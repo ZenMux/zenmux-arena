@@ -34,7 +34,9 @@ const LOGO: Record<string, string> = {
   xiaomi: "xiaomi.png",
   tencent: "tencent.png",
   inclusionai: "inclusionai.png",
-  zenmux: "ZenMux.png",
+  meta: "meta.png",
+  mistral: "mistral.png",
+  agnes: "agnes.png",
 };
 
 function logoSrc(id: VendorId): string | null {

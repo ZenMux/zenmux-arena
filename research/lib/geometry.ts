@@ -257,6 +257,9 @@ export function vendorColor(id: VendorId): string {
     xiaomi: "#ff6900",
     tencent: "#2d7ff9",
     inclusionai: "#3b82f6",
+    meta: "#0064e0",
+    mistral: "#fa520f",
+    agnes: "#6d28d9",
   };
   if (palette[id]) return palette[id]!;
   let h = 0;

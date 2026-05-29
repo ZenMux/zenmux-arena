@@ -34,7 +34,17 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
     id: "qwen",
     name: "Qwen",
     logo: "qwen.png",
-    aliases: ["qwen", "tongyi", "tong yi", "通义", "千问", "通义千问", "alibaba", "阿里", "阿里巴巴"],
+    aliases: [
+      "qwen",
+      "tongyi",
+      "tong yi",
+      "通义",
+      "千问",
+      "通义千问",
+      "alibaba",
+      "阿里",
+      "阿里巴巴",
+    ],
   },
   baidu: {
     id: "baidu",
@@ -46,7 +56,15 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
     id: "bytedance",
     name: "Doubao",
     logo: "bytedance.png",
-    aliases: ["doubao", "豆包", "bytedance", "字节", "字节跳动", "云雀", "skylark"],
+    aliases: [
+      "doubao",
+      "豆包",
+      "bytedance",
+      "字节",
+      "字节跳动",
+      "云雀",
+      "skylark",
+    ],
   },
   moonshot: {
     id: "moonshot",
@@ -100,13 +118,35 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
     id: "inclusionai",
     name: "inclusionAI",
     logo: "inclusionai.png",
-    aliases: ["inclusion", "inclusionai", "ant", "蚂蚁", "bailing", "百灵", "ling"],
+    aliases: [
+      "inclusion",
+      "inclusionai",
+      "ant",
+      "蚂蚁",
+      "bailing",
+      "百灵",
+      "ling",
+      "ring",
+      "ming",
+    ],
   },
-  zenmux: {
-    id: "zenmux",
-    name: "ZenMux",
-    logo: "ZenMux.png",
-    aliases: ["zenmux"],
+  meta: {
+    id: "meta",
+    name: "Meta",
+    logo: "meta.png",
+    aliases: ["meta", "llama", "facebook", "meta ai"],
+  },
+  mistral: {
+    id: "mistral",
+    name: "Mistral",
+    logo: "mistral.png",
+    aliases: ["mistral", "mixtral", "le chat"],
+  },
+  agnes: {
+    id: "agnes",
+    name: "Agnes",
+    logo: "agnes.png",
+    aliases: ["agnes"],
   },
   // Pseudo-vendors: analytical buckets, no logo.
   self: { id: "self", name: "Self (correct)", logo: "", aliases: [] },
@@ -121,8 +161,11 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
 };
 
 /** Real vendor ids (everything except the analytical / pseudo buckets). */
-export const REAL_VENDOR_IDS: VendorId[] = (Object.keys(VENDORS) as VendorId[]).filter(
-  (id) => id !== "self" && id !== "unknown" && id !== "refused" && id !== "other",
+export const REAL_VENDOR_IDS: VendorId[] = (
+  Object.keys(VENDORS) as VendorId[]
+).filter(
+  (id) =>
+    id !== "self" && id !== "unknown" && id !== "refused" && id !== "other",
 );
 
 const PSEUDO_IDS = new Set<VendorId>(["self", "unknown", "refused", "other"]);
@@ -179,7 +222,9 @@ export function makeOtherVendorMeta(rawName: string): VendorMeta {
  * Aliases are checked longest-first so that more specific strings ("通义千问")
  * win over short generic ones, and to avoid e.g. "mi " matching inside unrelated words.
  */
-export function vendorFromText(text: string | null | undefined): VendorId | null {
+export function vendorFromText(
+  text: string | null | undefined,
+): VendorId | null {
   if (!text) return null;
   const haystack = text.toLowerCase();
   let best: { id: VendorId; len: number } | null = null;

@@ -67,8 +67,20 @@ Your only job: read one model's answer to the question "Who are you?" and decide
 company/vendor the answer CLAIMS to be made by. Output strict JSON only — no prose, no
 markdown fences.
 
-You map to exactly ONE canonical vendor id from this closed list:
+You map to exactly ONE canonical vendor id from this CLOSED, AUTHORITATIVE list:
 ${vendorCheatSheet()}
+
+CLOSED-LIST RULE — DO NOT FORCE-FIT.
+- These ids are the ONLY canonical vendors. Emit one of them ONLY when the answer
+  genuinely names that exact vendor or one of its KNOWN products/aliases shown
+  above. The match must be real — the named brand/lab actually IS that company.
+- NEVER stretch, guess, or approximate a vendor into a canonical id: not by
+  superficial resemblance ("it sounds GPT-like"), not by topic/region, not to
+  avoid an empty answer. If the entity is not clearly one of the listed vendors,
+  it is NOT one of them — do not shoehorn it in.
+- An entity that is named but absent from the list does NOT become "unknown" and
+  does NOT get rounded to the nearest listed vendor. It goes to "other" with its
+  real name (see below). That is the correct, non-force-fit outcome.
 
 Mapping rules:
 - "I am Claude" / "made by Anthropic" -> anthropic
@@ -96,8 +108,9 @@ not heard of the entity, or because the entity is not in the canonical list.
 ANY capitalized brand/lab name, an abbreviation (BAAI, KAIST, OpenBMB, etc.),
 or a transliteration in any script (Яндекс, 智谱, 면벽, etc.) — surface it.
 
-When you do surface a non-canonical entity:
-- "other": pick this. Set claimed_vendor_other_name to the COMPANY / LAB name
+When the named entity is NOT one of the canonical vendors above:
+- "other": this is the REQUIRED label — never force-fit it to a canonical id and
+  never collapse it to "unknown". Set claimed_vendor_other_name to the COMPANY / LAB name
   (not the product name). Use the entity's common English form if it has one,
   otherwise the verbatim string the answer used. Keep it short (one to three
   words). Examples:
