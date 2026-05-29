@@ -73,6 +73,13 @@ export function loadConfig(configPath = DEFAULT_CONFIG_PATH): StudyConfig {
   // repeats
   if (typeof c.repeats !== "number" || c.repeats < 1) fail("repeats must be a number >= 1");
 
+  // graph
+  c.graph ??= {} as StudyConfig["graph"];
+  c.graph.edgeThreshold ??= 0.05;
+  if (typeof c.graph.edgeThreshold !== "number" || c.graph.edgeThreshold < 0 || c.graph.edgeThreshold > 1) {
+    fail("graph.edgeThreshold must be a number between 0 and 1");
+  }
+
   // env
   if (!process.env[api.apiKeyEnv]) {
     fail(`environment variable ${api.apiKeyEnv} is not set. Export your ZenMux API key first.`);

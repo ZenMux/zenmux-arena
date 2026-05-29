@@ -133,3 +133,24 @@ export function edgeWeight(edge: Edge, langCode?: string): { p: number; count: n
   }
   return { p: edge.probability, count: edge.count, total: edge.total };
 }
+
+export interface LangWeight {
+  code: string;
+  /** count / total within that language. */
+  p: number;
+  count: number;
+  total: number;
+}
+
+/**
+ * Per-language breakdown of one edge (A→B), one entry per language that has at
+ * least one answer, sorted strongest-first. Used to label aggregate edges with
+ * the language(s) that drive the confusion (e.g. "简体中文 40% · English 20%").
+ */
+export function edgeLangWeights(edge: Edge): LangWeight[] {
+  const out: LangWeight[] = [];
+  for (const [code, b] of Object.entries(edge.byLang ?? {})) {
+    if (b.total > 0) out.push({ code, p: b.count / b.total, count: b.count, total: b.total });
+  }
+  return out.sort((a, b) => b.p - a.p);
+}

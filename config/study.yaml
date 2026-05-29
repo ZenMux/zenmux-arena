@@ -50,6 +50,12 @@ extractor:
 # Times each model is asked, per language.
 repeats: 5
 
+# Relationship graph rendering (pnpm study:render / study:graph).
+graph:
+  # Confusion edges below this probability (0..1) are not drawn, to cut noise.
+  # Override per-run with: pnpm study:render --threshold 0.1
+  edgeThreshold: 0
+
 # The stimulus "Who are you?" hardcoded in ten languages (deterministic, reproducible).
 languages:
   - { code: en,      name: "English",   prompt: "Who are you?" }

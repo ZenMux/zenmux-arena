@@ -5,8 +5,10 @@
 import {
   curvedArrow,
   DEFAULT_LAYOUT,
+  edgeLangWeights,
   edgeWeight,
   type GraphLayout,
+  type LangWeight,
   nodePositions,
   vendorColor,
 } from "./geometry";
@@ -37,12 +39,25 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   const realVendors = graph.vendors.filter((v) => !["self", "unknown", "refused"].includes(v.id));
   const pos = nodePositions(realVendors, layout);
 
-  // Confusion edges: from != to, to is a real vendor, p >= threshold.
+  // Confusion edges: from != to, to is a real vendor.
+  //  - Language-filtered (langCode set): single rate for that language, p >= threshold.
+  //  - Aggregate (no langCode): draw the edge if ANY language confuses A→B at
+  //    p >= threshold, and label it with the per-language rates. `p` (used for
+  //    stroke width + draw order) is the strongest single-language rate.
   const drawable = graph.edges
     .filter((e) => e.from !== e.to && !["self", "unknown", "refused"].includes(e.to))
-    .map((e) => ({ e, w: edgeWeight(e, options.langCode) }))
-    .filter((x) => x.w.p >= threshold && pos.has(x.e.from) && pos.has(x.e.to))
-    .sort((a, b) => a.w.p - b.w.p); // weak first so strong edges render on top
+    .filter((e) => pos.has(e.from) && pos.has(e.to))
+    .map((e) => {
+      if (options.langCode) {
+        const w = edgeWeight(e, options.langCode);
+        return { e, p: w.p, langs: [] as LangWeight[] };
+      }
+      const langs = edgeLangWeights(e).filter((l) => l.p >= threshold);
+      const p = langs.length ? langs[0].p : 0;
+      return { e, p, langs };
+    })
+    .filter((x) => (options.langCode ? x.p >= threshold : x.langs.length > 0))
+    .sort((a, b) => a.p - b.p); // weak first so strong edges render on top
 
   const parts: string[] = [];
   parts.push(
@@ -68,18 +83,33 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   // confusions read as heavier), but every drawn edge stays fully opaque & legible
   // on the white background, including rare 1–2% edges.
   const EDGE_COLOR = "#16161a";
-  for (const { e, w } of drawable) {
+  for (const { e, p, langs } of drawable) {
     const a = pos.get(e.from)!;
     const b = pos.get(e.to)!;
     const arrow = curvedArrow(a, b, layout.nodeRadius);
-    const sw = 1.6 + w.p * 10; // 1.6px at 0% → ~11.6px at 100%
+    const sw = 1.6 + p * 10; // 1.6px at 0% → ~11.6px at 100%
     parts.push(`<path d="${arrow.path}" fill="none" stroke="${EDGE_COLOR}" stroke-width="${r2(sw)}" stroke-opacity="0.92" stroke-linecap="round"/>`);
     parts.push(`<polygon points="${arrow.head}" fill="${EDGE_COLOR}" fill-opacity="0.95"/>`);
-    // Probability label with white halo for legibility over lines.
-    const label = `${Math.round(w.p * 100)}%`;
-    parts.push(
-      `<text x="${r2(arrow.label.x)}" y="${r2(arrow.label.y)}" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="700" fill="${EDGE_COLOR}" stroke="#ffffff" stroke-width="3.5" paint-order="stroke" style="paint-order:stroke">${label}</text>`,
-    );
+
+    // Label, with a white halo for legibility over the lines.
+    //  - Language-filtered view: a single "NN%".
+    //  - Aggregate view: one line per language that confuses A→B, e.g.
+    //      简体中文 40%
+    //      English 20%
+    if (options.langCode) {
+      parts.push(
+        `<text x="${r2(arrow.label.x)}" y="${r2(arrow.label.y)}" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="700" fill="${EDGE_COLOR}" stroke="#ffffff" stroke-width="3.5" paint-order="stroke" style="paint-order:stroke">${Math.round(p * 100)}%</text>`,
+      );
+    } else {
+      const lineH = 17;
+      const startY = arrow.label.y - ((langs.length - 1) * lineH) / 2;
+      langs.forEach((l, i) => {
+        const text = `${esc(langName(graph, l.code))} ${Math.round(l.p * 100)}%`;
+        parts.push(
+          `<text x="${r2(arrow.label.x)}" y="${r2(startY + i * lineH)}" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="${EDGE_COLOR}" stroke="#ffffff" stroke-width="3.5" paint-order="stroke" style="paint-order:stroke">${text}</text>`,
+        );
+      });
+    }
   }
 
   // Nodes

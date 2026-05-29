@@ -194,20 +194,83 @@ export function buildReport(graph: GraphData): string {
   }
   L.push("");
 
-  L.push("### 3.5 Confusion matrix");
+  L.push("### 3.5 Cross-vendor confusion by language");
+  L.push("");
+  L.push(
+    `For each confusion edge, the per-language breakdown. An edge is drawn in the graph if ` +
+      `*any* single language confuses A→B; the cell value is \`P(A→B | language)\` = among ` +
+      `vendor A's answers in that language, the fraction claiming vendor B (with raw count).`,
+  );
+  L.push("");
+  if (confusionEdges.length) {
+    const langCols = graph.languages;
+    const headers = ["Edge", ...langCols.map((l) => l.name)];
+    const rows = confusionEdges.map((e) => {
+      const cells = langCols.map((l) => {
+        const b = e.byLang?.[l.code];
+        if (!b || b.total === 0 || b.count === 0) return "·";
+        return `${pct(b.count / b.total, 0)} (${b.count}/${b.total})`;
+      });
+      return [`${vName(e.from)} → ${vName(e.to)}`, ...cells];
+    });
+    L.push(table(headers, rows));
+  } else {
+    L.push("_No cross-vendor confusion above the reporting threshold._");
+  }
+  L.push("");
+
+  L.push("### 3.6 Cross-vendor confusion by model");
+  L.push("");
+  L.push(
+    `The same confusion edges, broken down by the specific model under test. \`P(A→B | model)\` ` +
+      `= among that model's answers, the fraction claiming vendor B (with raw count).`,
+  );
+  L.push("");
+  if (confusionEdges.length) {
+    const rows: string[][] = [];
+    for (const e of confusionEdges) {
+      const byModel = e.byModel ?? {};
+      const modelIds = Object.keys(byModel).sort((a, b) => {
+        const ra = byModel[a].total ? byModel[a].count / byModel[a].total : 0;
+        const rb = byModel[b].total ? byModel[b].count / byModel[b].total : 0;
+        return rb - ra;
+      });
+      for (const mid of modelIds) {
+        const b = byModel[mid];
+        if (!b || b.count === 0) continue;
+        const label = graph.models.find((m) => m.id === mid)?.label ?? mid;
+        rows.push([
+          `${vName(e.from)} → ${vName(e.to)}`,
+          label,
+          b.total ? pct(b.count / b.total) : "—",
+          `${b.count}/${b.total}`,
+        ]);
+      }
+    }
+    if (rows.length) {
+      L.push(table(["Edge", "Model", "Probability", "Count"], rows));
+    } else {
+      L.push("_No model-level confusion to report._");
+    }
+  } else {
+    L.push("_No cross-vendor confusion above the reporting threshold._");
+  }
+  L.push("");
+
+  L.push("### 3.7 Confusion matrix");
   L.push("");
   L.push("Rows are the true vendor; columns are the claimed vendor (`self` = correct). Cells are probabilities.");
   L.push("");
   L.push(confusionMatrix(graph));
   L.push("");
 
-  L.push("### 3.6 Relationship graph");
+  L.push("### 3.8 Relationship graph");
   L.push("");
   L.push(`![Who-claims-to-be-whom relationship graph](./graph.png)`);
   L.push("");
 
   // ---- LaTeX appendix table ----
-  L.push("### 3.7 LaTeX (booktabs) — per-model self rate");
+  L.push("### 3.9 LaTeX (booktabs) — per-model self rate");
   L.push("");
   L.push("```latex");
   L.push("\\begin{table}[t]");
@@ -283,7 +346,7 @@ function confusionMatrix(graph: GraphData): string {
   // Columns: self + real claimed vendors that appear + unknown/refused.
   const realTo = new Set<VendorId>();
   for (const e of graph.edges) if (!PSEUDO.includes(e.to)) realTo.add(e.to);
-  const cols: VendorId[] = ["self", ...[...realTo].filter((v) => !fromVendors.includes(v) || true), "unknown", "refused"];
+  const cols: VendorId[] = ["self", ...realTo, "unknown", "refused"];
   // Dedup cols preserving order.
   const seen = new Set<VendorId>();
   const orderedCols = cols.filter((c) => (seen.has(c) ? false : (seen.add(c), true)));

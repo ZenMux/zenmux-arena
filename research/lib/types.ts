@@ -99,6 +99,11 @@ export interface ExtractorConfig {
   maxTokens: number;
 }
 
+export interface GraphConfig {
+  /** Confusion edges below this probability are not drawn (cuts noise). 0..1. */
+  edgeThreshold: number;
+}
+
 export interface StudyConfig {
   study: StudyMeta;
   api: ApiConfig;
@@ -106,6 +111,7 @@ export interface StudyConfig {
   extractor: ExtractorConfig;
   languages: LanguageSpec[];
   repeats: number;
+  graph: GraphConfig;
 }
 
 // ---------------------------------------------------------------------------

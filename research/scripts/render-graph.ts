@@ -31,7 +31,8 @@ async function main() {
   const graph = JSON.parse(fs.readFileSync(paths.aggregate, "utf8")) as GraphData;
 
   const langCode = args.get("lang");
-  const threshold = args.has("threshold") ? args.num("threshold", 0.05) : 0.05;
+  // Threshold comes from config (graph.edgeThreshold); --threshold overrides it.
+  const threshold = args.has("threshold") ? args.num("threshold", cfg.graph.edgeThreshold) : cfg.graph.edgeThreshold;
 
   const svg = buildGraphSvg(graph, { langCode, threshold });
   fs.writeFileSync(paths.graphSvg, svg);

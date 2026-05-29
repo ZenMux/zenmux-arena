@@ -4,8 +4,10 @@ import { useMemo, useState } from "react";
 import {
   curvedArrow,
   DEFAULT_LAYOUT,
+  edgeLangWeights,
   edgeWeight,
   isPseudo,
+  type LangWeight,
   nodePositions,
 } from "@research/lib/geometry";
 import type { GraphData, VendorId } from "@research/lib/types";
@@ -43,6 +45,12 @@ interface HoverEdge {
   total: number;
   x: number;
   y: number;
+  /** Per-language breakdown (aggregate view only). */
+  langs: LangWeight[];
+}
+
+function langName(graph: GraphData, code: string): string {
+  return graph.languages.find((l) => l.code === code)?.name ?? code;
 }
 
 export default function RelationshipGraph({ graph }: { graph: GraphData }) {
@@ -61,9 +69,19 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
   const edges = useMemo(() => {
     return graph.edges
       .filter((e) => e.from !== e.to && !isPseudo(e.to))
-      .map((e) => ({ e, w: edgeWeight(e, lang || undefined) }))
-      .filter((x) => x.w.p >= threshold && pos.has(x.e.from) && pos.has(x.e.to))
-      .sort((a, b) => a.w.p - b.w.p);
+      .filter((e) => pos.has(e.from) && pos.has(e.to))
+      .map((e) => {
+        if (lang) {
+          const w = edgeWeight(e, lang);
+          return { e, p: w.p, count: w.count, total: w.total, langs: [] as LangWeight[] };
+        }
+        // Aggregate: keep the edge if ANY language confuses A→B, label per-language.
+        const langs = edgeLangWeights(e).filter((l) => l.p >= threshold);
+        const p = langs.length ? langs[0].p : 0;
+        return { e, p, count: e.count, total: e.total, langs };
+      })
+      .filter((x) => (lang ? x.p >= threshold : x.langs.length > 0))
+      .sort((a, b) => a.p - b.p);
   }, [graph.edges, lang, pos]);
 
   function nodeActive(id: VendorId): boolean {
@@ -143,18 +161,20 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
 
         {/* Edges — solid edges in the foreground color (black in light, white in dark);
             stroke width scales with probability. */}
-        {edges.map(({ e, w }) => {
+        {edges.map(({ e, p, count, total, langs }) => {
           const a = pos.get(e.from)!;
           const b = pos.get(e.to)!;
           const arrow = curvedArrow(a, b, layout.nodeRadius);
           const active = edgeActive(e.from, e.to);
-          const sw = 1.6 + w.p * 10;
+          const sw = 1.6 + p * 10;
           const op = 0.92 * (active ? 1 : 0.12);
+          const lineH = 17;
+          const startY = arrow.label.y - ((langs.length - 1) * lineH) / 2;
           return (
             <g
               key={`${e.from}->${e.to}`}
               onMouseEnter={() =>
-                setHoverEdge({ from: e.from, to: e.to, p: w.p, count: w.count, total: w.total, x: arrow.label.x, y: arrow.label.y })
+                setHoverEdge({ from: e.from, to: e.to, p, count, total, x: arrow.label.x, y: arrow.label.y, langs })
               }
               onMouseLeave={() => setHoverEdge(null)}
               style={{ cursor: "pointer" }}
@@ -162,20 +182,40 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
               <path d={arrow.path} fill="none" stroke="currentColor" strokeWidth={sw + 8} strokeOpacity={0} strokeLinecap="round" />
               <path d={arrow.path} fill="none" stroke="currentColor" strokeWidth={sw} strokeOpacity={op} strokeLinecap="round" />
               <polygon points={arrow.head} fill="currentColor" fillOpacity={op} />
-              <text
-                x={arrow.label.x}
-                y={arrow.label.y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fontSize={15}
-                fontWeight={700}
-                fill="currentColor"
-                stroke="var(--background, #fff)"
-                strokeWidth={3.5}
-                style={{ paintOrder: "stroke", opacity: active ? 1 : 0.15 }}
-              >
-                {Math.round(w.p * 100)}%
-              </text>
+              {lang ? (
+                <text
+                  x={arrow.label.x}
+                  y={arrow.label.y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize={15}
+                  fontWeight={700}
+                  fill="currentColor"
+                  stroke="var(--background, #fff)"
+                  strokeWidth={3.5}
+                  style={{ paintOrder: "stroke", opacity: active ? 1 : 0.15 }}
+                >
+                  {Math.round(p * 100)}%
+                </text>
+              ) : (
+                langs.map((l, i) => (
+                  <text
+                    key={l.code}
+                    x={arrow.label.x}
+                    y={startY + i * lineH}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={13}
+                    fontWeight={700}
+                    fill="currentColor"
+                    stroke="var(--background, #fff)"
+                    strokeWidth={3.5}
+                    style={{ paintOrder: "stroke", opacity: active ? 1 : 0.15 }}
+                  >
+                    {langName(graph, l.code)} {Math.round(l.p * 100)}%
+                  </text>
+                ))
+              )}
             </g>
           );
         })}
@@ -216,26 +256,28 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
           );
         })}
 
-        {/* Edge tooltip */}
-        {hoverEdge && (
-          <g pointerEvents="none">
-            <rect
-              x={hoverEdge.x - 90}
-              y={hoverEdge.y - 52}
-              width={180}
-              height={40}
-              rx={6}
-              fill="#16161a"
-              opacity={0.92}
-            />
-            <text x={hoverEdge.x} y={hoverEdge.y - 34} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff">
-              {hoverEdge.from} → {hoverEdge.to}
-            </text>
-            <text x={hoverEdge.x} y={hoverEdge.y - 18} textAnchor="middle" fontSize={12} fill="#cbd5e1">
-              {(hoverEdge.p * 100).toFixed(1)}% · {hoverEdge.count}/{hoverEdge.total}
-            </text>
-          </g>
-        )}
+        {/* Edge tooltip — aggregate view lists every language driving the edge. */}
+        {hoverEdge && (() => {
+          const rows = lang
+            ? [`${(hoverEdge.p * 100).toFixed(1)}% · ${hoverEdge.count}/${hoverEdge.total}`]
+            : hoverEdge.langs.map((l) => `${langName(graph, l.code)} ${(l.p * 100).toFixed(0)}% · ${l.count}/${l.total}`);
+          const rowH = 16;
+          const padTop = 34;
+          const h = padTop + rows.length * rowH + 6;
+          return (
+            <g pointerEvents="none">
+              <rect x={hoverEdge.x - 100} y={hoverEdge.y - h} width={200} height={h} rx={6} fill="#16161a" opacity={0.92} />
+              <text x={hoverEdge.x} y={hoverEdge.y - h + 20} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff">
+                {hoverEdge.from} → {hoverEdge.to}
+              </text>
+              {rows.map((r, i) => (
+                <text key={i} x={hoverEdge.x} y={hoverEdge.y - h + padTop + i * rowH} textAnchor="middle" fontSize={12} fill="#cbd5e1">
+                  {r}
+                </text>
+              ))}
+            </g>
+          );
+        })()}
       </svg>
     </div>
   );
