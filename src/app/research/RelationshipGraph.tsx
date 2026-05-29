@@ -1,0 +1,242 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  curvedArrow,
+  DEFAULT_LAYOUT,
+  edgeWeight,
+  isPseudo,
+  nodePositions,
+} from "@research/lib/geometry";
+import type { GraphData, VendorId } from "@research/lib/types";
+
+const LOGO: Record<string, string> = {
+  anthropic: "anthropic.png",
+  openai: "openai.png",
+  google: "google-brand 2.png",
+  deepseek: "DeepSeek.png",
+  qwen: "Qwen.png",
+  "baidu-ernie": "ernie.png",
+  doubao: "doubao.png",
+  moonshot: "moonshot.png",
+  zhipu: "zhipu.png",
+  stepfun: "stepfun.png",
+  xai: "xAI.png",
+  minimax: "minimax-text 1.png",
+  kwai: "kwai.png",
+  xiaomi: "xiaomi-1 1.png",
+  tencent: "tbox-logo.png",
+  inclusion: "inclusion.png",
+  zenmux: "ZenMux.png",
+};
+
+function logoSrc(id: VendorId): string | null {
+  const f = LOGO[id];
+  return f ? `/maker-logo/${encodeURIComponent(f)}` : null;
+}
+
+interface HoverEdge {
+  from: VendorId;
+  to: VendorId;
+  p: number;
+  count: number;
+  total: number;
+  x: number;
+  y: number;
+}
+
+export default function RelationshipGraph({ graph }: { graph: GraphData }) {
+  const [lang, setLang] = useState<string>("");
+  const [hoverNode, setHoverNode] = useState<VendorId | null>(null);
+  const [hoverEdge, setHoverEdge] = useState<HoverEdge | null>(null);
+
+  const layout = DEFAULT_LAYOUT;
+  const realVendors = useMemo(
+    () => graph.vendors.filter((v) => !isPseudo(v.id)),
+    [graph.vendors],
+  );
+  const pos = useMemo(() => nodePositions(realVendors, layout), [realVendors, layout]);
+
+  const threshold = 0.01;
+  const edges = useMemo(() => {
+    return graph.edges
+      .filter((e) => e.from !== e.to && !isPseudo(e.to))
+      .map((e) => ({ e, w: edgeWeight(e, lang || undefined) }))
+      .filter((x) => x.w.p >= threshold && pos.has(x.e.from) && pos.has(x.e.to))
+      .sort((a, b) => a.w.p - b.w.p);
+  }, [graph.edges, lang, pos]);
+
+  function nodeActive(id: VendorId): boolean {
+    if (!hoverNode) return true;
+    if (id === hoverNode) return true;
+    return edges.some(
+      ({ e }) => (e.from === hoverNode && e.to === id) || (e.to === hoverNode && e.from === id),
+    );
+  }
+
+  function edgeActive(from: VendorId, to: VendorId): boolean {
+    if (!hoverNode) return true;
+    return from === hoverNode || to === hoverNode;
+  }
+
+  return (
+    <div className="relative w-full">
+      <div className="mb-4 flex items-center gap-3 text-sm">
+        <label htmlFor="lang" className="text-neutral-500">
+          Language
+        </label>
+        <select
+          id="lang"
+          value={lang}
+          onChange={(e) => setLang(e.target.value)}
+          className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+        >
+          <option value="">All languages (aggregate)</option>
+          {graph.languages.map((l) => (
+            <option key={l.code} value={l.code}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+        {hoverNode && (
+          <span className="text-neutral-400">
+            Highlighting <strong>{hoverNode}</strong>
+          </span>
+        )}
+      </div>
+
+      <svg
+        viewBox={`0 0 ${layout.width} ${layout.height}`}
+        className="w-full h-auto select-none"
+        onMouseLeave={() => {
+          setHoverNode(null);
+          setHoverEdge(null);
+        }}
+      >
+        <rect width={layout.width} height={layout.height} fill="transparent" />
+        <circle
+          cx={layout.center.x}
+          cy={layout.center.y}
+          r={layout.radius}
+          fill="none"
+          stroke="currentColor"
+          strokeOpacity={0.08}
+          strokeWidth={1.5}
+          strokeDasharray="2 6"
+        />
+
+        {/* Title */}
+        <text
+          x={layout.width / 2}
+          y={64}
+          textAnchor="middle"
+          fontSize={34}
+          fontWeight={700}
+          fill="currentColor"
+        >
+          Who Are You?
+        </text>
+        <text x={layout.width / 2} y={98} textAnchor="middle" fontSize={16} fill="currentColor" opacity={0.55}>
+          Cross-Vendor Identity Confusion in Frontier LLMs
+          {lang ? ` · ${graph.languages.find((l) => l.code === lang)?.name ?? lang}` : ""}
+        </text>
+
+        {/* Edges — solid edges in the foreground color (black in light, white in dark);
+            stroke width scales with probability. */}
+        {edges.map(({ e, w }) => {
+          const a = pos.get(e.from)!;
+          const b = pos.get(e.to)!;
+          const arrow = curvedArrow(a, b, layout.nodeRadius);
+          const active = edgeActive(e.from, e.to);
+          const sw = 1.6 + w.p * 10;
+          const op = 0.92 * (active ? 1 : 0.12);
+          return (
+            <g
+              key={`${e.from}->${e.to}`}
+              onMouseEnter={() =>
+                setHoverEdge({ from: e.from, to: e.to, p: w.p, count: w.count, total: w.total, x: arrow.label.x, y: arrow.label.y })
+              }
+              onMouseLeave={() => setHoverEdge(null)}
+              style={{ cursor: "pointer" }}
+            >
+              <path d={arrow.path} fill="none" stroke="currentColor" strokeWidth={sw + 8} strokeOpacity={0} strokeLinecap="round" />
+              <path d={arrow.path} fill="none" stroke="currentColor" strokeWidth={sw} strokeOpacity={op} strokeLinecap="round" />
+              <polygon points={arrow.head} fill="currentColor" fillOpacity={op} />
+              <text
+                x={arrow.label.x}
+                y={arrow.label.y}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={15}
+                fontWeight={700}
+                fill="currentColor"
+                stroke="var(--background, #fff)"
+                strokeWidth={3.5}
+                style={{ paintOrder: "stroke", opacity: active ? 1 : 0.15 }}
+              >
+                {Math.round(w.p * 100)}%
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Nodes */}
+        {realVendors.map((v) => {
+          const p = pos.get(v.id)!;
+          const nr = layout.nodeRadius;
+          const active = nodeActive(v.id);
+          const src = logoSrc(v.id);
+          return (
+            <g
+              key={v.id}
+              opacity={active ? 1 : 0.25}
+              onMouseEnter={() => setHoverNode(v.id)}
+              onMouseLeave={() => setHoverNode(null)}
+              style={{ cursor: "pointer" }}
+            >
+              <circle cx={p.x} cy={p.y} r={nr} fill="var(--background, #fff)" stroke="currentColor" strokeOpacity={0.12} strokeWidth={1.5} />
+              {src ? (
+                <image
+                  href={src}
+                  x={p.x - (nr * 1.15) / 2}
+                  y={p.y - (nr * 1.15) / 2}
+                  width={nr * 1.15}
+                  height={nr * 1.15}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              ) : (
+                <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize={13} fill="currentColor">
+                  {v.name}
+                </text>
+              )}
+              <text x={p.x} y={p.y + nr + 20} textAnchor="middle" fontSize={15} fontWeight={600} fill="currentColor">
+                {v.name}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Edge tooltip */}
+        {hoverEdge && (
+          <g pointerEvents="none">
+            <rect
+              x={hoverEdge.x - 90}
+              y={hoverEdge.y - 52}
+              width={180}
+              height={40}
+              rx={6}
+              fill="#16161a"
+              opacity={0.92}
+            />
+            <text x={hoverEdge.x} y={hoverEdge.y - 34} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff">
+              {hoverEdge.from} → {hoverEdge.to}
+            </text>
+            <text x={hoverEdge.x} y={hoverEdge.y - 18} textAnchor="middle" fontSize={12} fill="#cbd5e1">
+              {(hoverEdge.p * 100).toFixed(1)}% · {hoverEdge.count}/{hoverEdge.total}
+            </text>
+          </g>
+        )}
+      </svg>
+    </div>
+  );
+}

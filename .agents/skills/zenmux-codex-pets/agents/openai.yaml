@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZenMux Codex Pets"
+  short_description: "Install bundled ZenMux Codex APP pets"
+  default_prompt: "Use $zenmux-codex-pets to install the bundled ZenMux pets into my Codex APP pets directory."
