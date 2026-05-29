@@ -87,8 +87,15 @@ async function main() {
     appendJsonl(paths.extractions, result);
     completed++;
     if (result.parseError) parseErrors++;
+    const claim =
+      result.claimedVendor === "other" && result.claimedVendorOther
+        ? `other:${result.claimedVendorOther}`
+        : result.claimedVendor;
+    const src = result.sourceGenerationId ?? "—";
+    const ext = result.extractorGenerationId ?? "—";
     console.log(
-      `[extract] [${completed}/${todo.length} ${since()}] ${record.key} → ${result.claimedVendor}` +
+      `[extract] [${completed}/${todo.length} ${since()}] ${record.key} → ${claim}  ` +
+        `(source=${src} extractor=${ext})` +
         (result.parseError ? `  (parseError: ${result.parseError})` : ""),
     );
   });

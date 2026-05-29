@@ -3,14 +3,20 @@
 import type { GraphData, VendorId } from "./types";
 import { VENDORS } from "./vendors";
 
-const PSEUDO: VendorId[] = ["self", "unknown", "refused"];
+const PSEUDO: VendorId[] = ["self", "unknown", "refused", "other"];
 
 function pct(x: number, digits = 1): string {
   return `${(x * 100).toFixed(digits)}%`;
 }
 
-function vName(id: VendorId): string {
-  return VENDORS[id]?.name ?? id;
+/**
+ * Display name lookup. Dynamic `other:<slug>` brands aren't in the static
+ * VENDORS table — fall back to the materialized graph.vendors list, then to
+ * the raw id as a last resort.
+ */
+function makeVName(graph: GraphData): (id: VendorId) => string {
+  const byId = new Map(graph.vendors.map((v) => [v.id, v.name]));
+  return (id: VendorId) => VENDORS[id]?.name ?? byId.get(id) ?? String(id);
 }
 
 /** A clean three-line (booktabs-feel) GitHub table. */
@@ -24,6 +30,7 @@ function table(headers: string[], rows: string[][]): string {
 export function buildReport(graph: GraphData): string {
   const s = graph.summary;
   const date = graph.generatedAt.slice(0, 10);
+  const vName = makeVName(graph);
 
   // Top confusion edge for the abstract.
   const confusionEdges = graph.edges.filter((e) => !PSEUDO.includes(e.to) && e.from !== e.to);
@@ -261,7 +268,7 @@ export function buildReport(graph: GraphData): string {
   L.push("");
   L.push("Rows are the true vendor; columns are the claimed vendor (`self` = correct). Cells are probabilities.");
   L.push("");
-  L.push(confusionMatrix(graph));
+  L.push(confusionMatrix(graph, vName));
   L.push("");
 
   L.push("### 3.8 Relationship graph");
@@ -340,7 +347,7 @@ export function buildReport(graph: GraphData): string {
   return L.join("\n");
 }
 
-function confusionMatrix(graph: GraphData): string {
+function confusionMatrix(graph: GraphData, vName: (id: VendorId) => string): string {
   // True vendors = vendors of models under test.
   const fromVendors = [...new Set(graph.models.map((m) => m.vendor))];
   // Columns: self + real claimed vendors that appear + unknown/refused.

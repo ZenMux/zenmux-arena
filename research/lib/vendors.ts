@@ -1,8 +1,5 @@
 // Canonical vendor registry: display names, logo filenames (under public/maker-logo/),
 // and the aliases used to map free-text model/company names back to a canonical vendor.
-//
-// NOTE on logo filenames: several contain spaces exactly as shipped in the repo
-// ("google-brand 2.png", "minimax-text 1.png", "xiaomi-1 1.png"). Keep them verbatim.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -24,31 +21,31 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   google: {
     id: "google",
     name: "Google",
-    logo: "google-brand 2.png",
+    logo: "google.png",
     aliases: ["google", "gemini", "deepmind", "bard", "palm"],
   },
   deepseek: {
     id: "deepseek",
     name: "DeepSeek",
-    logo: "DeepSeek.png",
+    logo: "deepseek.png",
     aliases: ["deepseek", "深度求索"],
   },
   qwen: {
     id: "qwen",
     name: "Qwen",
-    logo: "Qwen.png",
+    logo: "qwen.png",
     aliases: ["qwen", "tongyi", "tong yi", "通义", "千问", "通义千问", "alibaba", "阿里", "阿里巴巴"],
   },
-  "baidu-ernie": {
-    id: "baidu-ernie",
+  baidu: {
+    id: "baidu",
     name: "ERNIE",
-    logo: "ernie.png",
+    logo: "baidu.png",
     aliases: ["ernie", "baidu", "文心", "文心一言", "百度", "wenxin", "yiyan"],
   },
-  doubao: {
-    id: "doubao",
+  bytedance: {
+    id: "bytedance",
     name: "Doubao",
-    logo: "doubao.png",
+    logo: "bytedance.png",
     aliases: ["doubao", "豆包", "bytedance", "字节", "字节跳动", "云雀", "skylark"],
   },
   moonshot: {
@@ -57,11 +54,11 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
     logo: "moonshot.png",
     aliases: ["moonshot", "kimi", "月之暗面"],
   },
-  zhipu: {
-    id: "zhipu",
-    name: "Zhipu",
-    logo: "zhipu.png",
-    aliases: ["zhipu", "glm", "智谱", "chatglm", "z.ai", "智谱清言"],
+  "z-ai": {
+    id: "z-ai",
+    name: "z-ai",
+    logo: "z-ai.png",
+    aliases: ["z-ai", "glm", "智谱", "chatglm", "z.ai", "智谱清言"],
   },
   stepfun: {
     id: "stepfun",
@@ -69,16 +66,16 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
     logo: "stepfun.png",
     aliases: ["stepfun", "step-", "阶跃", "阶跃星辰", "step star"],
   },
-  xai: {
-    id: "xai",
+  "x-ai": {
+    id: "x-ai",
     name: "xAI",
-    logo: "xAI.png",
-    aliases: ["xai", "x.ai", "grok"],
+    logo: "x-ai.png",
+    aliases: ["x-ai", "x.ai", "grok"],
   },
   minimax: {
     id: "minimax",
     name: "MiniMax",
-    logo: "minimax-text 1.png",
+    logo: "minimax.png",
     aliases: ["minimax", "abab", "海螺", "hailuo"],
   },
   kwai: {
@@ -90,19 +87,19 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   xiaomi: {
     id: "xiaomi",
     name: "Xiaomi",
-    logo: "xiaomi-1 1.png",
+    logo: "xiaomi.png",
     aliases: ["xiaomi", "mimo", "小米", "mi "],
   },
   tencent: {
     id: "tencent",
     name: "Tencent",
-    logo: "tbox-logo.png",
+    logo: "tencent.png",
     aliases: ["tencent", "hunyuan", "混元", "腾讯"],
   },
-  inclusion: {
-    id: "inclusion",
+  inclusionai: {
+    id: "inclusionai",
     name: "inclusionAI",
-    logo: "inclusion.png",
+    logo: "inclusionai.png",
     aliases: ["inclusion", "inclusionai", "ant", "蚂蚁", "bailing", "百灵", "ling"],
   },
   zenmux: {
@@ -115,12 +112,65 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   self: { id: "self", name: "Self (correct)", logo: "", aliases: [] },
   unknown: { id: "unknown", name: "Unknown", logo: "", aliases: [] },
   refused: { id: "refused", name: "Refused", logo: "", aliases: [] },
+  // `other` is the pre-materialization bucket: a claim mapping to a non-canonical
+  // brand whose name is carried in ExtractionResult.claimedVendorOther. The
+  // aggregate step turns each distinct brand into its own dynamic vendor node
+  // (id = `other:<slug>`) so confusion edges land on a named circle, not into
+  // an opaque "unknown" sink.
+  other: { id: "other", name: "Other", logo: "", aliases: [] },
 };
 
-/** Real vendor ids (everything except the three analytical buckets). */
+/** Real vendor ids (everything except the analytical / pseudo buckets). */
 export const REAL_VENDOR_IDS: VendorId[] = (Object.keys(VENDORS) as VendorId[]).filter(
-  (id) => id !== "self" && id !== "unknown" && id !== "refused",
+  (id) => id !== "self" && id !== "unknown" && id !== "refused" && id !== "other",
 );
+
+const PSEUDO_IDS = new Set<VendorId>(["self", "unknown", "refused", "other"]);
+
+/** True for `self`/`unknown`/`refused`/`other` (the dynamic-brand parent bucket). */
+export function isPseudoVendor(id: VendorId): boolean {
+  return PSEUDO_IDS.has(id);
+}
+
+/** Stable slug from a free-text brand name. ASCII letters/digits, lowercased. */
+function slugifyBrand(name: string): string {
+  const ascii = name
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (ascii) return ascii;
+  // Non-Latin (e.g. CJK) brand — keep a deterministic hash so it round-trips.
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return `b${h.toString(36)}`;
+}
+
+/** `other:<slug>` is the runtime VendorId for an extractor-discovered brand. */
+export function otherVendorId(name: string): VendorId {
+  return `other:${slugifyBrand(name)}` as VendorId;
+}
+
+/** True for the dynamic per-brand vendor ids minted from `claimedVendorOther`. */
+export function isOtherBrand(id: VendorId): boolean {
+  return typeof id === "string" && id.startsWith("other:");
+}
+
+/**
+ * VendorMeta for a dynamic brand. Title-cases the user-supplied name and
+ * leaves logo blank — RelationshipGraph / svg.ts already fall back to a
+ * text label when no logo exists.
+ */
+export function makeOtherVendorMeta(rawName: string): VendorMeta {
+  const trimmed = rawName.trim();
+  return {
+    id: otherVendorId(trimmed),
+    name: trimmed,
+    logo: "",
+    aliases: [],
+  };
+}
 
 /**
  * Map an arbitrary free-text string to a canonical vendor by case-insensitive

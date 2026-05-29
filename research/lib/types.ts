@@ -18,23 +18,32 @@ export type VendorId =
   | "google"
   | "deepseek"
   | "qwen"
-  | "baidu-ernie"
-  | "doubao"
+  | "baidu"
+  | "bytedance"
   | "moonshot"
-  | "zhipu"
+  | "z-ai"
   | "stepfun"
-  | "xai"
+  | "x-ai"
   | "minimax"
   | "kwai"
   | "xiaomi"
   | "tencent"
-  | "inclusion"
+  | "inclusionai"
   | "zenmux"
   | "self"
   | "unknown"
-  | "refused";
+  | "refused"
+  | "other"
+  // Discovered vendor ids are slugified from a free-text brand the extractor named
+  // (e.g. "yandex"). They are valid VendorIds at runtime even though they are not
+  // listed in this union — the union just enumerates known statics.
+  | (string & {});
 
-/** Real vendors the extractor is allowed to return (excludes the derived `self`). */
+/**
+ * Vendors the extractor is allowed to return: the canonical set, plus the two
+ * analytical buckets, plus `other` (which carries a free-text brand name in
+ * `claimedVendorOther`, materialized into a dynamic vendor at aggregate time).
+ */
 export type ClaimedVendor = Exclude<VendorId, "self">;
 
 export interface VendorMeta {
@@ -148,8 +157,22 @@ export interface ExtractionResult {
   runId: string;
   timestamp: string;
   extractorModel: string;
-  /** Canonical vendor the answer claims to be (real vendor | unknown | refused). */
+  /**
+   * `message.id` of the answer record this extraction was run over — copied
+   * verbatim from RawRecord.generationId so each extraction row is self-contained
+   * for manual audit (one jsonl line = one full trace).
+   */
+  sourceGenerationId: string | null;
+  /** `message.id` returned by the extractor's own API call (for audit of the labeler). */
+  extractorGenerationId: string | null;
+  /** Canonical vendor the answer claims to be (real vendor | unknown | refused | other). */
   claimedVendor: ClaimedVendor;
+  /**
+   * When `claimedVendor === "other"`, the brand name the extractor identified
+   * (e.g. "Yandex", "Mistral", "Cohere"). Aggregation slugifies this into a
+   * dynamic vendor node. Null for all other cases.
+   */
+  claimedVendorOther?: string | null;
   /** Verbatim model/company name string the response claimed, or null. */
   claimedModelText: string | null;
   /** 0..1 confidence reported by the extractor. */

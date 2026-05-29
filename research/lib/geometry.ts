@@ -100,17 +100,17 @@ export function vendorColor(id: VendorId): string {
     google: "#4285f4",
     deepseek: "#4d6bfe",
     qwen: "#7b5cff",
-    "baidu-ernie": "#2932e1",
-    doubao: "#1664ff",
+    baidu: "#2932e1",
+    bytedance: "#1664ff",
     moonshot: "#16161a",
-    zhipu: "#1a73e8",
+    "z-ai": "#1a73e8",
     stepfun: "#005bff",
-    xai: "#16161a",
+    "x-ai": "#16161a",
     minimax: "#ff2d6f",
     kwai: "#ff6200",
     xiaomi: "#ff6900",
     tencent: "#2d7ff9",
-    inclusion: "#3b82f6",
+    inclusionai: "#3b82f6",
   };
   if (palette[id]) return palette[id]!;
   let h = 0;
@@ -118,8 +118,14 @@ export function vendorColor(id: VendorId): string {
   return `hsl(${h} 65% 45%)`;
 }
 
-const PSEUDO: VendorId[] = ["self", "unknown", "refused"];
+const PSEUDO: VendorId[] = ["self", "unknown", "refused", "other"];
 
+/**
+ * True for the analytical buckets that never get a circle on the ring:
+ * `self`, `unknown`, `refused`, and the bare `other` parent. Dynamic
+ * per-brand ids of the form `other:<slug>` are NOT pseudo — they render
+ * as named nodes (text label, no logo).
+ */
 export function isPseudo(id: VendorId): boolean {
   return PSEUDO.includes(id);
 }

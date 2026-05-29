@@ -10,7 +10,7 @@ import type {
   VendorId,
   VendorMeta,
 } from "./types";
-import { VENDORS } from "./vendors";
+import { makeOtherVendorMeta, VENDORS } from "./vendors";
 
 const PSEUDO: VendorId[] = ["self", "unknown", "refused"];
 
@@ -38,11 +38,32 @@ export function aggregate(
   const answered = records.filter((r) => r.response && !r.error);
   const errorCount = records.filter((r) => r.error).length;
 
+  // Dynamic brand registry: extractor-discovered vendors named via
+  // `claimedVendorOther` are materialized as `other:<slug>` nodes so they
+  // appear as named circles in the graph instead of being lumped into "unknown".
+  // We pick the canonical display name as the first non-empty form seen for a
+  // given slug (subsequent variants like "Yandex." / "yandex" collapse to it).
+  const otherVendors = new Map<VendorId, VendorMeta>();
+  const registerOther = (rawName: string | null | undefined): VendorId | null => {
+    if (!rawName) return null;
+    const trimmed = rawName.trim();
+    if (!trimmed) return null;
+    const meta = makeOtherVendorMeta(trimmed);
+    if (!otherVendors.has(meta.id)) otherVendors.set(meta.id, meta);
+    return meta.id;
+  };
+
   const joined: Joined[] = [];
   for (const record of answered) {
     const ext = extByKey.get(record.key);
     if (!ext) continue; // not yet extracted
-    const claimed = ext.claimedVendor;
+    let claimed: VendorId = ext.claimedVendor;
+    if (claimed === "other") {
+      const dyn = registerOther(ext.claimedVendorOther);
+      // If the extractor said "other" but failed to name a brand, treat as unknown
+      // rather than letting a nameless dynamic node into the graph.
+      claimed = dyn ?? "unknown";
+    }
     joined.push({ record, claimed, effective: effectiveClaimed(claimed, record.modelVendor) });
   }
 
@@ -134,7 +155,9 @@ export function aggregate(
     if (!PSEUDO.includes(edge.to)) nodeIds.add(edge.to);
   }
   for (const m of cfg.models) nodeIds.add(m.vendor);
-  const vendors: VendorMeta[] = [...nodeIds].map((id) => VENDORS[id]).filter(Boolean);
+  const vendors: VendorMeta[] = [...nodeIds]
+    .map((id) => VENDORS[id] ?? otherVendors.get(id))
+    .filter(Boolean) as VendorMeta[];
 
   return {
     runId,

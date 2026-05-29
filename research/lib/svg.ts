@@ -36,7 +36,9 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   const { width, height } = layout;
 
   // Only draw nodes for real vendors (pseudo-vendors aren't placed on the ring).
-  const realVendors = graph.vendors.filter((v) => !["self", "unknown", "refused"].includes(v.id));
+  // Dynamic `other:<slug>` brands ARE drawn (as labeled circles); only the
+  // analytical buckets and the bare `other` parent are excluded from the ring.
+  const realVendors = graph.vendors.filter((v) => !["self", "unknown", "refused", "other"].includes(v.id));
   const pos = nodePositions(realVendors, layout);
 
   // Confusion edges: from != to, to is a real vendor.
@@ -45,7 +47,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   //    p >= threshold, and label it with the per-language rates. `p` (used for
   //    stroke width + draw order) is the strongest single-language rate.
   const drawable = graph.edges
-    .filter((e) => e.from !== e.to && !["self", "unknown", "refused"].includes(e.to))
+    .filter((e) => e.from !== e.to && !["self", "unknown", "refused", "other"].includes(e.to))
     .filter((e) => pos.has(e.from) && pos.has(e.to))
     .map((e) => {
       if (options.langCode) {

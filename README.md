@@ -31,7 +31,7 @@ models:
 ```
 
 `vendor` 必须是 `research/lib/vendors.ts` 里的规范厂商 id（anthropic / openai / google / deepseek /
-qwen / baidu-ernie / doubao / moonshot / zhipu / stepfun / xai / minimax / kwai / xiaomi / tencent /
+qwen / baidu-ernie / doubao / moonshot / z-ai / stepfun / x-ai / minimax / kwai / xiaomi / tencent /
 inclusion）。语言、重复次数、提取器模型也都在该文件里配置。
 
 ---

@@ -41,10 +41,20 @@ function firstJsonObject(text: string): string | null {
 
 interface ParsedExtraction {
   claimedVendor: ClaimedVendor;
+  claimedVendorOther: string | null;
   claimedModelText: string | null;
   confidence: number;
   rationale: string;
   parseError?: string;
+}
+
+/** Normalize the free-text brand the extractor returned for "other". */
+function cleanOtherName(s: unknown): string | null {
+  if (typeof s !== "string") return null;
+  const t = s.trim();
+  if (!t) return null;
+  // Strip wrapping quotes; collapse internal whitespace.
+  return t.replace(/^["'`]+|["'`]+$/g, "").replace(/\s+/g, " ");
 }
 
 /** Robustly turn raw extractor output into a structured result; never throws. */
@@ -61,12 +71,30 @@ export function parseExtractorOutput(raw: string): ParsedExtraction {
 
   if (obj && typeof obj.claimed_vendor === "string") {
     let vendor = obj.claimed_vendor;
+    let otherName = cleanOtherName(obj.claimed_vendor_other_name);
     if (!ENUM_SET.has(vendor)) {
-      // Normalize an unexpected label via alias matching, else mark unknown.
-      vendor = vendorFromText(vendor) ?? "unknown";
+      // Normalize an unexpected label via alias matching; else fall through to "other"
+      // if the extractor at least gave us a brand string, otherwise "unknown".
+      const canonical = vendorFromText(vendor);
+      if (canonical) {
+        vendor = canonical;
+      } else if (otherName ?? typeof vendor === "string") {
+        otherName = otherName ?? cleanOtherName(vendor);
+        vendor = otherName ? "other" : "unknown";
+      } else {
+        vendor = "unknown";
+      }
+    }
+    // If the extractor said "other" but didn't fill the brand, salvage one from
+    // claimed_model_text; if that also fails, demote to unknown.
+    if (vendor === "other" && !otherName) {
+      otherName =
+        cleanOtherName(obj.claimed_model_text) ?? null;
+      if (!otherName) vendor = "unknown";
     }
     return {
       claimedVendor: vendor as ClaimedVendor,
+      claimedVendorOther: vendor === "other" ? otherName : null,
       claimedModelText:
         typeof obj.claimed_model_text === "string" ? obj.claimed_model_text : null,
       confidence: typeof obj.confidence === "number" ? obj.confidence : 0.5,
@@ -78,6 +106,7 @@ export function parseExtractorOutput(raw: string): ParsedExtraction {
   const salvaged = vendorFromText(raw);
   return {
     claimedVendor: (salvaged ?? "unknown") as ClaimedVendor,
+    claimedVendorOther: null,
     claimedModelText: null,
     confidence: salvaged ? 0.3 : 0.0,
     rationale: "Salvaged from non-JSON extractor output.",
@@ -118,7 +147,13 @@ export async function extract(
       runId,
       timestamp: new Date().toISOString(),
       extractorModel: cfg.extractor.model,
+      sourceGenerationId: record.generationId ?? null,
+      extractorGenerationId:
+        typeof (message as { id?: unknown }).id === "string"
+          ? ((message as { id: string }).id)
+          : null,
       claimedVendor: parsed.claimedVendor,
+      claimedVendorOther: parsed.claimedVendorOther,
       claimedModelText: parsed.claimedModelText,
       confidence: parsed.confidence,
       rationale: parsed.rationale,
@@ -131,7 +166,10 @@ export async function extract(
       runId,
       timestamp: new Date().toISOString(),
       extractorModel: cfg.extractor.model,
+      sourceGenerationId: record.generationId ?? null,
+      extractorGenerationId: null,
       claimedVendor: "unknown",
+      claimedVendorOther: null,
       claimedModelText: null,
       confidence: 0,
       rationale: "Extractor API call failed.",
