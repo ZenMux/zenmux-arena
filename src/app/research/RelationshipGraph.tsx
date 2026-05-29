@@ -1,14 +1,19 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import {
   curvedArrow,
-  DEFAULT_LAYOUT,
+  DEFAULT_RENDER,
   edgeLangWeights,
   edgeWeight,
   isPseudo,
   type LangWeight,
+  makeLayout,
   nodePositions,
+  paletteFor,
+  type RenderConfig,
+  vendorColor,
 } from "@research/lib/geometry";
 import type { GraphData, VendorId } from "@research/lib/types";
 
@@ -53,19 +58,76 @@ function langName(graph: GraphData, code: string): string {
   return graph.languages.find((l) => l.code === code)?.name ?? code;
 }
 
-export default function RelationshipGraph({ graph }: { graph: GraphData }) {
-  const [lang, setLang] = useState<string>("");
+/** One edge label line: colored text with a background-colored halo (paint-order stroke). */
+function EdgeText({
+  x,
+  y,
+  color,
+  casing,
+  fontSize,
+  opacity,
+  children,
+}: {
+  x: number;
+  y: number;
+  color: string;
+  casing: string;
+  fontSize: number;
+  opacity: number;
+  children: ReactNode;
+}) {
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor="middle"
+      dominantBaseline="middle"
+      fontSize={fontSize}
+      fontWeight={700}
+      fill={color}
+      stroke={casing}
+      strokeWidth={3.5}
+      style={{ paintOrder: "stroke", opacity }}
+    >
+      {children}
+    </text>
+  );
+}
+
+export default function RelationshipGraph({
+  graph,
+  config,
+  lang: controlledLang,
+  onLangChange,
+  hideLangPicker = false,
+}: {
+  graph: GraphData;
+  /** Visual knobs; omit to use the defaults (the report page's look). */
+  config?: RenderConfig;
+  /** Controlled language filter ("" = aggregate). Omit for internal state. */
+  lang?: string;
+  onLangChange?: (lang: string) => void;
+  /** Hide the built-in language <select> (e.g. when the studio owns it). */
+  hideLangPicker?: boolean;
+}) {
+  const cfg = config ?? DEFAULT_RENDER;
+  // Foreground palette derived from the (custom) background — light ink on dark
+  // backgrounds and vice versa, so the graph stays legible on any color.
+  const pal = useMemo(() => paletteFor(cfg.background), [cfg.background]);
+  const [internalLang, setInternalLang] = useState<string>("");
+  const lang = controlledLang ?? internalLang;
+  const setLang = (v: string) => (onLangChange ? onLangChange(v) : setInternalLang(v));
   const [hoverNode, setHoverNode] = useState<VendorId | null>(null);
   const [hoverEdge, setHoverEdge] = useState<HoverEdge | null>(null);
 
-  const layout = DEFAULT_LAYOUT;
   const realVendors = useMemo(
     () => graph.vendors.filter((v) => !isPseudo(v.id)),
     [graph.vendors],
   );
+  const layout = useMemo(() => makeLayout(realVendors.length, cfg), [realVendors.length, cfg]);
   const pos = useMemo(() => nodePositions(realVendors, layout), [realVendors, layout]);
 
-  const threshold = 0.01;
+  const threshold = cfg.threshold;
   const edges = useMemo(() => {
     return graph.edges
       .filter((e) => e.from !== e.to && !isPseudo(e.to))
@@ -82,7 +144,7 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
       })
       .filter((x) => (lang ? x.p >= threshold : x.langs.length > 0))
       .sort((a, b) => a.p - b.p);
-  }, [graph.edges, lang, pos]);
+  }, [graph.edges, lang, pos, threshold]);
 
   function nodeActive(id: VendorId): boolean {
     if (!hoverNode) return true;
@@ -99,29 +161,31 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
 
   return (
     <div className="relative w-full">
-      <div className="mb-4 flex items-center gap-3 text-sm">
-        <label htmlFor="lang" className="text-neutral-500">
-          Language
-        </label>
-        <select
-          id="lang"
-          value={lang}
-          onChange={(e) => setLang(e.target.value)}
-          className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
-        >
-          <option value="">All languages (aggregate)</option>
-          {graph.languages.map((l) => (
-            <option key={l.code} value={l.code}>
-              {l.name}
-            </option>
-          ))}
-        </select>
-        {hoverNode && (
-          <span className="text-neutral-400">
-            Highlighting <strong>{hoverNode}</strong>
-          </span>
-        )}
-      </div>
+      {!hideLangPicker && (
+        <div className="mb-4 flex items-center gap-3 text-sm">
+          <label htmlFor="lang" className="text-neutral-500">
+            Language
+          </label>
+          <select
+            id="lang"
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+            className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-neutral-800 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+          >
+            <option value="">All languages (aggregate)</option>
+            {graph.languages.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+          {hoverNode && (
+            <span className="text-neutral-400">
+              Highlighting <strong>{hoverNode}</strong>
+            </span>
+          )}
+        </div>
+      )}
 
       <svg
         viewBox={`0 0 ${layout.width} ${layout.height}`}
@@ -131,43 +195,52 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
           setHoverEdge(null);
         }}
       >
-        <rect width={layout.width} height={layout.height} fill="transparent" />
+        <rect width={layout.width} height={layout.height} fill={cfg.background} />
         <circle
           cx={layout.center.x}
           cy={layout.center.y}
           r={layout.radius}
           fill="none"
-          stroke="currentColor"
-          strokeOpacity={0.08}
+          stroke={pal.faint}
+          strokeOpacity={0.4}
           strokeWidth={1.5}
           strokeDasharray="2 6"
         />
 
-        {/* Title */}
-        <text
-          x={layout.width / 2}
-          y={64}
-          textAnchor="middle"
-          fontSize={34}
-          fontWeight={700}
-          fill="currentColor"
-        >
-          Who Are You?
-        </text>
-        <text x={layout.width / 2} y={98} textAnchor="middle" fontSize={16} fill="currentColor" opacity={0.55}>
-          Cross-Vendor Identity Confusion in Frontier LLMs
-          {lang ? ` · ${graph.languages.find((l) => l.code === lang)?.name ?? lang}` : ""}
-        </text>
+        {/* Title (chrome) */}
+        {cfg.chrome && (
+          <>
+            <text
+              x={layout.width / 2}
+              y={64}
+              textAnchor="middle"
+              fontSize={34}
+              fontWeight={700}
+              fill={pal.ink}
+            >
+              Who Are You?
+            </text>
+            <text x={layout.width / 2} y={98} textAnchor="middle" fontSize={16} fill={pal.muted}>
+              Cross-Vendor Identity Confusion in Frontier LLMs
+              {lang ? ` · ${graph.languages.find((l) => l.code === lang)?.name ?? lang}` : ""}
+            </text>
+          </>
+        )}
 
-        {/* Edges — solid edges in the foreground color (black in light, white in dark);
-            stroke width scales with probability. */}
+        {/* Edges — colored per SOURCE vendor (configurable) so overlapping curves
+            can be told apart; stroke width scales with probability. A white casing
+            under each line keeps crossings legible. Hover dims the rest. Label mode
+            "all" flattens EVERY driving language; "top" shows dominant + "+N";
+            "none" hides labels. */}
         {edges.map(({ e, p, count, total, langs }) => {
           const a = pos.get(e.from)!;
           const b = pos.get(e.to)!;
-          const arrow = curvedArrow(a, b, layout.nodeRadius);
+          const arrow = curvedArrow(a, b, layout.nodeRadius, cfg.curveBow);
           const active = edgeActive(e.from, e.to);
-          const sw = 1.6 + p * 10;
-          const op = 0.92 * (active ? 1 : 0.12);
+          const color = cfg.colorBySource ? vendorColor(e.from) : pal.mono;
+          const sw = cfg.edgeBaseWidth + p * cfg.edgeWidthScale;
+          const op = 0.95 * (active ? 1 : 0.1);
+          const labelOp = active ? 1 : 0.12;
           const lineH = 17;
           const startY = arrow.label.y - ((langs.length - 1) * lineH) / 2;
           return (
@@ -179,41 +252,26 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
               onMouseLeave={() => setHoverEdge(null)}
               style={{ cursor: "pointer" }}
             >
-              <path d={arrow.path} fill="none" stroke="currentColor" strokeWidth={sw + 8} strokeOpacity={0} strokeLinecap="round" />
-              <path d={arrow.path} fill="none" stroke="currentColor" strokeWidth={sw} strokeOpacity={op} strokeLinecap="round" />
-              <polygon points={arrow.head} fill="currentColor" fillOpacity={op} />
+              <path d={arrow.path} fill="none" stroke={pal.ink} strokeWidth={sw + 8} strokeOpacity={0} strokeLinecap="round" />
+              <path d={arrow.path} fill="none" stroke={pal.casing} strokeWidth={sw + 3} strokeOpacity={active ? 0.85 : 0.1} strokeLinecap="round" />
+              <path d={arrow.path} fill="none" stroke={color} strokeWidth={sw} strokeOpacity={op} strokeLinecap="round" />
+              <polygon points={arrow.head} fill={color} fillOpacity={op} />
               {lang ? (
-                <text
-                  x={arrow.label.x}
-                  y={arrow.label.y}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize={15}
-                  fontWeight={700}
-                  fill="currentColor"
-                  stroke="var(--background, #fff)"
-                  strokeWidth={3.5}
-                  style={{ paintOrder: "stroke", opacity: active ? 1 : 0.15 }}
-                >
+                <EdgeText x={arrow.label.x} y={arrow.label.y} color={color} casing={pal.casing} fontSize={15} opacity={labelOp}>
                   {Math.round(p * 100)}%
-                </text>
+                </EdgeText>
+              ) : cfg.labelMode === "none" ? null : cfg.labelMode === "top" ? (
+                langs[0] && (
+                  <EdgeText x={arrow.label.x} y={arrow.label.y} color={color} casing={pal.casing} fontSize={13} opacity={labelOp}>
+                    {langName(graph, langs[0].code)} {Math.round(langs[0].p * 100)}%
+                    {langs.length > 1 ? ` +${langs.length - 1}` : ""}
+                  </EdgeText>
+                )
               ) : (
                 langs.map((l, i) => (
-                  <text
-                    key={l.code}
-                    x={arrow.label.x}
-                    y={startY + i * lineH}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fontSize={13}
-                    fontWeight={700}
-                    fill="currentColor"
-                    stroke="var(--background, #fff)"
-                    strokeWidth={3.5}
-                    style={{ paintOrder: "stroke", opacity: active ? 1 : 0.15 }}
-                  >
+                  <EdgeText key={l.code} x={arrow.label.x} y={startY + i * lineH} color={color} casing={pal.casing} fontSize={13} opacity={labelOp}>
                     {langName(graph, l.code)} {Math.round(l.p * 100)}%
-                  </text>
+                  </EdgeText>
                 ))
               )}
             </g>
@@ -234,7 +292,9 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
               onMouseLeave={() => setHoverNode(null)}
               style={{ cursor: "pointer" }}
             >
-              <circle cx={p.x} cy={p.y} r={nr} fill="var(--background, #fff)" stroke="currentColor" strokeOpacity={0.12} strokeWidth={1.5} />
+              {/* Dark chip regardless of background: the maker logos are white/light
+                  variants, so they must sit on a dark fill to be visible. */}
+              <circle cx={p.x} cy={p.y} r={nr} fill={pal.chip} stroke={pal.chipStroke} strokeWidth={1.5} />
               {src ? (
                 <image
                   href={src}
@@ -245,11 +305,11 @@ export default function RelationshipGraph({ graph }: { graph: GraphData }) {
                   preserveAspectRatio="xMidYMid meet"
                 />
               ) : (
-                <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize={13} fill="currentColor">
+                <text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fontSize={13} fontWeight={600} fill="#f4f4f5">
                   {v.name}
                 </text>
               )}
-              <text x={p.x} y={p.y + nr + 20} textAnchor="middle" fontSize={15} fontWeight={600} fill="currentColor">
+              <text x={p.x} y={p.y + nr + 20} textAnchor="middle" fontSize={15} fontWeight={600} fill={pal.ink}>
                 {v.name}
               </text>
             </g>

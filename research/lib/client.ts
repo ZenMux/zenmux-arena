@@ -17,10 +17,18 @@ export function makeClient(cfg: StudyConfig): Anthropic {
   });
 }
 
-/** Concatenate all text blocks of a Messages response into a single string. */
+/**
+ * Concatenate all text blocks of a Messages response into a single string.
+ * Defensive: some upstream shims return a message whose `content` is missing or
+ * not an array (e.g. a reasoning-only response, or a non-conformant body). Treat
+ * any such case as empty text rather than throwing — callers parse robustly and
+ * an empty string degrades to a normal "no usable output" result.
+ */
 export function extractText(message: Anthropic.Message): string {
-  return message.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+  const content = message?.content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .filter((b): b is Anthropic.TextBlock => b?.type === "text")
     .map((b) => b.text)
     .join("")
     .trim();

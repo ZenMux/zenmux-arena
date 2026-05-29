@@ -18,7 +18,7 @@ api:
   #  - Within each model, languages run SEQUENTIALLY (lang 1 fully, then lang 2, ...).
   #  - Within each language, the `repeats` requests run in BATCHES of `batchSize`
   #    (batchSize requests in flight at once; batches run one after another).
-  modelConcurrency: 100 # how many models run at the same time (set >= number of models to run all together)
+  modelConcurrency: 1000 # how many models run at the same time (set >= number of models to run all together)
   batchSize: 5 # requests fired concurrently per batch, within one model+language
   # Retry/backoff for transient errors (429 / 5xx / network):
   maxRetries: 6 # attempts per request after the first try
@@ -100,11 +100,11 @@ models:
 
 # Identity extractor: reads each answer and returns the claimed vendor as JSON.
 extractor:
-  model: "google/gemini-3.5-flash"
-  maxTokens: 512
+  model: "gpt-5.5"
+  maxTokens: 10240
 
 # Times each model is asked, per language.
-repeats: 2
+repeats: 10
 
 # Relationship graph rendering (pnpm study:render / study:graph).
 graph:

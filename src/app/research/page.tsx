@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
+import { SlidersHorizontal } from "lucide-react";
 import type { GraphData } from "@research/lib/types";
 import RelationshipGraph from "./RelationshipGraph";
 
@@ -68,6 +70,15 @@ export default function ResearchPage() {
         {graph.study.description && (
           <p className="mx-auto mt-4 max-w-2xl text-neutral-500">{graph.study.description}</p>
         )}
+        <div className="mt-6">
+          <Link
+            href="/research/studio"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-900"
+          >
+            <SlidersHorizontal className="size-4" />
+            Open graph studio
+          </Link>
+        </div>
       </header>
 
       {/* Headline stats */}

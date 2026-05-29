@@ -4,24 +4,31 @@
 
 import {
   curvedArrow,
-  DEFAULT_LAYOUT,
+  DEFAULT_RENDER,
   edgeLangWeights,
   edgeWeight,
   type GraphLayout,
+  isDarkBackground,
   type LangWeight,
+  makeLayout,
   nodePositions,
+  paletteFor,
+  type RenderConfig,
   vendorColor,
 } from "./geometry";
 import type { GraphData } from "./types";
 import { logoDataUri, logoFileDataUri, VENDORS } from "./vendors";
 
 export interface SvgOptions {
+  /** Visual knobs (spacing, node size, edge width, label mode…). */
+  config?: Partial<RenderConfig>;
+  /** Explicit layout override (skips makeLayout). Rarely needed. */
   layout?: GraphLayout;
-  /** Edges below this probability are not drawn (cuts noise). */
+  /** Edges below this probability are not drawn. Overrides config.threshold. */
   threshold?: number;
   /** Only edges for this language (uses edge.byLang). Omit for aggregate. */
   langCode?: string;
-  /** Draw the title/footer/branding chrome. */
+  /** Draw the title/footer/branding chrome. Overrides config.chrome. */
   chrome?: boolean;
 }
 
@@ -30,15 +37,20 @@ function esc(s: string): string {
 }
 
 export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): string {
-  const layout = options.layout ?? DEFAULT_LAYOUT;
-  const threshold = options.threshold ?? 0.01;
-  const chrome = options.chrome ?? true;
-  const { width, height } = layout;
+  const cfg: RenderConfig = { ...DEFAULT_RENDER, ...options.config };
+  // Back-compat: top-level threshold/chrome override the config fields.
+  const threshold = options.threshold ?? cfg.threshold;
+  const chrome = options.chrome ?? cfg.chrome;
+  // Foreground palette adapts to the (custom) background so everything stays legible.
+  const pal = paletteFor(cfg.background);
 
   // Only draw nodes for real vendors (pseudo-vendors aren't placed on the ring).
   // Dynamic `other:<slug>` brands ARE drawn (as labeled circles); only the
   // analytical buckets and the bare `other` parent are excluded from the ring.
   const realVendors = graph.vendors.filter((v) => !["self", "unknown", "refused", "other"].includes(v.id));
+  // Layout auto-scales to the vendor count (and the config's spacing) so the ring never crowds.
+  const layout = options.layout ?? makeLayout(realVendors.length, { ...cfg, chrome });
+  const { width, height } = layout;
   const pos = nodePositions(realVendors, layout);
 
   // Confusion edges: from != to, to is a real vendor.
@@ -65,52 +77,59 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   parts.push(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="Noto Sans SC, Helvetica, Arial, sans-serif">`,
   );
-  parts.push(`<rect width="${width}" height="${height}" fill="#ffffff"/>`);
+  parts.push(`<rect width="${width}" height="${height}" fill="${cfg.background}"/>`);
   // subtle dotted backdrop ring
   parts.push(
-    `<circle cx="${layout.center.x}" cy="${layout.center.y}" r="${layout.radius}" fill="none" stroke="#eceef2" stroke-width="1.5" stroke-dasharray="2 6"/>`,
+    `<circle cx="${layout.center.x}" cy="${layout.center.y}" r="${layout.radius}" fill="none" stroke="${pal.faint}" stroke-opacity="0.4" stroke-width="1.5" stroke-dasharray="2 6"/>`,
   );
 
   // Title chrome
   if (chrome) {
     parts.push(
-      `<text x="${width / 2}" y="64" text-anchor="middle" font-size="34" font-weight="700" fill="#16161a">Who Are You?</text>`,
+      `<text x="${width / 2}" y="64" text-anchor="middle" font-size="34" font-weight="700" fill="${pal.ink}">Who Are You?</text>`,
     );
     parts.push(
-      `<text x="${width / 2}" y="98" text-anchor="middle" font-size="16" fill="#6b7280">Cross-Vendor Identity Confusion in Frontier LLMs${options.langCode ? ` · ${esc(langName(graph, options.langCode))}` : ""}</text>`,
+      `<text x="${width / 2}" y="98" text-anchor="middle" font-size="16" fill="${pal.muted}">Cross-Vendor Identity Confusion in Frontier LLMs${options.langCode ? ` · ${esc(langName(graph, options.langCode))}` : ""}</text>`,
     );
   }
 
-  // Edges — solid black arrows. Stroke WIDTH scales with probability (so strong
-  // confusions read as heavier), but every drawn edge stays fully opaque & legible
-  // on the white background, including rare 1–2% edges.
-  const EDGE_COLOR = "#16161a";
+  // Edges — colored per SOURCE vendor (configurable) so overlapping curves can be
+  // told apart in the tangle. Stroke WIDTH scales with probability so strong
+  // confusions read as heavier. A soft white casing is drawn under each line so
+  // crossings stay legible.
   for (const { e, p, langs } of drawable) {
     const a = pos.get(e.from)!;
     const b = pos.get(e.to)!;
-    const arrow = curvedArrow(a, b, layout.nodeRadius);
-    const sw = 1.6 + p * 10; // 1.6px at 0% → ~11.6px at 100%
-    parts.push(`<path d="${arrow.path}" fill="none" stroke="${EDGE_COLOR}" stroke-width="${r2(sw)}" stroke-opacity="0.92" stroke-linecap="round"/>`);
-    parts.push(`<polygon points="${arrow.head}" fill="${EDGE_COLOR}" fill-opacity="0.95"/>`);
+    const arrow = curvedArrow(a, b, layout.nodeRadius, cfg.curveBow);
+    const color = cfg.colorBySource ? vendorColor(e.from) : pal.mono;
+    const sw = r2(cfg.edgeBaseWidth + p * cfg.edgeWidthScale);
+    // Background-colored casing first (slightly wider) for separation where lines cross.
+    parts.push(`<path d="${arrow.path}" fill="none" stroke="${pal.casing}" stroke-width="${r2(sw + 3)}" stroke-opacity="0.85" stroke-linecap="round"/>`);
+    parts.push(`<path d="${arrow.path}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-opacity="0.95" stroke-linecap="round"/>`);
+    parts.push(`<polygon points="${arrow.head}" fill="${color}" fill-opacity="0.98"/>`);
 
-    // Label, with a white halo for legibility over the lines.
+    // Labels with a background-colored halo for legibility over the lines.
     //  - Language-filtered view: a single "NN%".
-    //  - Aggregate view: one line per language that confuses A→B, e.g.
-    //      简体中文 40%
-    //      English 20%
+    //  - Aggregate view, labelMode:
+    //      "all"  → one line per language driving the edge (every language, flat)
+    //      "top"  → dominant language + rate, plus a "+N" overflow badge
+    //      "none" → no label
     if (options.langCode) {
-      parts.push(
-        `<text x="${r2(arrow.label.x)}" y="${r2(arrow.label.y)}" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="700" fill="${EDGE_COLOR}" stroke="#ffffff" stroke-width="3.5" paint-order="stroke" style="paint-order:stroke">${Math.round(p * 100)}%</text>`,
-      );
-    } else {
-      const lineH = 17;
-      const startY = arrow.label.y - ((langs.length - 1) * lineH) / 2;
-      langs.forEach((l, i) => {
-        const text = `${esc(langName(graph, l.code))} ${Math.round(l.p * 100)}%`;
-        parts.push(
-          `<text x="${r2(arrow.label.x)}" y="${r2(startY + i * lineH)}" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="${EDGE_COLOR}" stroke="#ffffff" stroke-width="3.5" paint-order="stroke" style="paint-order:stroke">${text}</text>`,
-        );
-      });
+      parts.push(edgeLabel(arrow.label.x, arrow.label.y, `${Math.round(p * 100)}%`, color, 15, pal.casing));
+    } else if (cfg.labelMode !== "none" && langs.length) {
+      if (cfg.labelMode === "top") {
+        const top = langs[0];
+        const extra = langs.length - 1;
+        const text = `${esc(langName(graph, top.code))} ${Math.round(top.p * 100)}%${extra > 0 ? ` +${extra}` : ""}`;
+        parts.push(edgeLabel(arrow.label.x, arrow.label.y, text, color, 13, pal.casing));
+      } else {
+        const lineH = 17;
+        const startY = arrow.label.y - ((langs.length - 1) * lineH) / 2;
+        langs.forEach((l, i) => {
+          const text = `${esc(langName(graph, l.code))} ${Math.round(l.p * 100)}%`;
+          parts.push(edgeLabel(arrow.label.x, startY + i * lineH, text, color, 13, pal.casing));
+        });
+      }
     }
   }
 
@@ -118,9 +137,10 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   for (const v of realVendors) {
     const p = pos.get(v.id)!;
     const nr = layout.nodeRadius;
-    // Dark chip: the maker logos are white/light variants, so they read on a dark fill.
+    // The chip stays dark regardless of background: the maker logos are white/light
+    // variants, so they must sit on a dark fill to be visible.
     parts.push(
-      `<circle cx="${r2(p.x)}" cy="${r2(p.y)}" r="${nr}" fill="#16161a" stroke="#2a2a31" stroke-width="1.5"/>`,
+      `<circle cx="${r2(p.x)}" cy="${r2(p.y)}" r="${nr}" fill="${pal.chip}" stroke="${pal.chipStroke}" stroke-width="1.5"/>`,
     );
     const uri = logoDataUri(v.id);
     if (uri) {
@@ -129,20 +149,27 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
         `<image href="${uri}" x="${r2(p.x - s / 2)}" y="${r2(p.y - s / 2)}" width="${r2(s)}" height="${r2(s)}" preserveAspectRatio="xMidYMid meet"/>`,
       );
     } else {
+      // No logo (e.g. dynamic `other:<brand>`): render the name INSIDE the dark
+      // chip — always light to read on the near-black fill.
       parts.push(
-        `<text x="${r2(p.x)}" y="${r2(p.y)}" text-anchor="middle" dominant-baseline="middle" font-size="13" fill="#374151">${esc(v.name)}</text>`,
+        `<text x="${r2(p.x)}" y="${r2(p.y)}" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="600" fill="#f4f4f5">${esc(v.name)}</text>`,
       );
     }
-    parts.push(
-      `<text x="${r2(p.x)}" y="${r2(p.y + nr + 20)}" text-anchor="middle" font-size="15" font-weight="600" fill="#16161a">${esc(v.name)}</text>`,
-    );
+    // Name below the chip — only for logo nodes (logo-less nodes show it inside,
+    // so repeating it here would duplicate the label).
+    if (uri) {
+      parts.push(
+        `<text x="${r2(p.x)}" y="${r2(p.y + nr + 20)}" text-anchor="middle" font-size="15" font-weight="600" fill="${pal.ink}">${esc(v.name)}</text>`,
+      );
+    }
   }
 
   // Footer branding
   if (chrome) {
     const fy = height - 46;
-    // ZenMux-Light.png is the dark-ink variant, legible on the white footer.
-    const zen = logoFileDataUri("ZenMux-Light.png");
+    // Pick the wordmark variant that reads on the current background:
+    // ZenMux-Light.png is dark ink (for light bg); ZenMux.png is the light variant.
+    const zen = logoFileDataUri(isDarkBackground(cfg.background) ? "ZenMux.png" : "ZenMux-Light.png");
     const text = "以上研究由 thinkthinking | ZenMux.ai 测试";
     if (zen) {
       // logo (wide wordmark) + text centered as a unit
@@ -153,13 +180,13 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
       const startX = width / 2 - groupW / 2;
       parts.push(`<image href="${zen}" x="${r2(startX)}" y="${r2(fy - 19)}" width="${logoW}" height="${logoH}" preserveAspectRatio="xMidYMid meet"/>`);
       parts.push(
-        `<text x="${r2(startX + logoW + 12)}" y="${r2(fy - 1)}" font-size="16" fill="#374151">${esc(text)}</text>`,
+        `<text x="${r2(startX + logoW + 12)}" y="${r2(fy - 1)}" font-size="16" fill="${pal.muted}">${esc(text)}</text>`,
       );
     } else {
-      parts.push(`<text x="${width / 2}" y="${fy}" text-anchor="middle" font-size="16" fill="#374151">${esc(text)}</text>`);
+      parts.push(`<text x="${width / 2}" y="${fy}" text-anchor="middle" font-size="16" fill="${pal.muted}">${esc(text)}</text>`);
     }
     parts.push(
-      `<text x="${width / 2}" y="${height - 22}" text-anchor="middle" font-size="11" fill="#9ca3af">Generated ${esc(graph.generatedAt)} · run ${esc(graph.runId)} · n=${graph.summary.totalAnswers} answers</text>`,
+      `<text x="${width / 2}" y="${height - 22}" text-anchor="middle" font-size="11" fill="${pal.faint}">Generated ${esc(graph.generatedAt)} · run ${esc(graph.runId)} · n=${graph.summary.totalAnswers} answers</text>`,
     );
   }
 
@@ -169,6 +196,11 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
 
 function langName(graph: GraphData, code: string): string {
   return graph.languages.find((l) => l.code === code)?.name ?? code;
+}
+
+/** One edge label line: colored text with a background-colored halo (paint-order stroke). */
+function edgeLabel(x: number, y: number, text: string, color: string, fontSize: number, casing: string): string {
+  return `<text x="${r2(x)}" y="${r2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${fontSize}" font-weight="700" fill="${color}" stroke="${casing}" stroke-width="3.5" paint-order="stroke" style="paint-order:stroke">${text}</text>`;
 }
 
 function r2(n: number): number {
