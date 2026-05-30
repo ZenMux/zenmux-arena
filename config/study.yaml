@@ -141,7 +141,7 @@ models:
 
 # Identity extractor: reads each answer and returns the claimed vendor as JSON. gemini-3.5-flash
 extractor:
-  model: "gemini-3.5-flash"
+  model: "gpt-5.5:openai"
   maxTokens: 10240
 
 # Times each model is asked, per language.
