@@ -7,9 +7,11 @@ import {
   Download,
   ImageDown,
   LoaderCircle,
+  Move,
   Pipette,
   RotateCcw,
   SlidersHorizontal,
+  Spline,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -34,8 +36,8 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { DEFAULT_RENDER, type RenderConfig } from "@research/lib/geometry";
-import type { GraphData } from "@research/lib/types";
+import { DEFAULT_RENDER, type EdgeCurves, type RenderConfig } from "@research/lib/geometry";
+import type { GraphData, VendorId } from "@research/lib/types";
 import RelationshipGraph from "../RelationshipGraph";
 import EdgeTable from "./EdgeTable";
 
@@ -71,6 +73,10 @@ export default function StudioClient({
   const [scale, setScale] = useState<number>(2);
   const [exporting, setExporting] = useState<null | "png" | "svg">(null);
   const [exportError, setExportError] = useState<string | null>(null);
+  // Lifted out of RelationshipGraph so the export reflects the user's edits:
+  // which vendors are hidden, and any edges they've dragged into a new shape.
+  const [hidden, setHidden] = useState<Set<VendorId>>(() => new Set());
+  const [curves, setCurves] = useState<EdgeCurves>({});
 
   const set = useCallback(
     <K extends keyof RenderConfig>(key: K, value: RenderConfig[K]) =>
@@ -90,7 +96,15 @@ export default function StudioClient({
         const res = await fetch("/api/export", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ run: selectedRun, lang, scale, format, config: cfg }),
+          body: JSON.stringify({
+            run: selectedRun,
+            lang,
+            scale,
+            format,
+            config: cfg,
+            hidden: [...hidden],
+            curves,
+          }),
         });
         if (!res.ok) {
           const msg = await res.json().catch(() => ({ error: res.statusText }));
@@ -114,10 +128,12 @@ export default function StudioClient({
         setExporting(null);
       }
     },
-    [selectedRun, lang, scale, cfg],
+    [selectedRun, lang, scale, cfg, hidden, curves],
   );
 
   const dirty = JSON.stringify(cfg) !== JSON.stringify(DEFAULT_RENDER);
+  const curveCount = Object.keys(curves).length;
+  const hiddenCount = hidden.size;
 
   return (
     <div className="min-h-screen bg-background">
@@ -354,18 +370,59 @@ export default function StudioClient({
                   Download SVG
                 </Button>
                 {exportError && <p className="text-xs text-destructive">{exportError}</p>}
+                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                  Export honors your edits — hidden vendors and reshaped edges
+                  are baked into the {scale}× PNG and the SVG.
+                </p>
               </div>
 
-              {dirty && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCfg(DEFAULT_RENDER)}
-                  className="w-full text-muted-foreground"
-                >
-                  <RotateCcw className="size-3.5" />
-                  Reset controls
-                </Button>
+              {/* Edit affordances — drag hint + granular resets, shown only when
+                  there's something to undo so the console stays uncluttered. */}
+              <Separator />
+              <div className="flex items-start gap-2 rounded-md bg-muted/50 px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                <Move className="mt-0.5 size-3.5 shrink-0" />
+                <span>
+                  Drag any edge to bend it; double-click an edge to snap it back.
+                  Uncheck a vendor to drop it and reflow the ring.
+                </span>
+              </div>
+
+              {(dirty || curveCount > 0 || hiddenCount > 0) && (
+                <div className="flex flex-col gap-1.5">
+                  {curveCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurves({})}
+                      className="w-full justify-start text-muted-foreground"
+                    >
+                      <Spline className="size-3.5" />
+                      Reset {curveCount} reshaped {curveCount === 1 ? "edge" : "edges"}
+                    </Button>
+                  )}
+                  {hiddenCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setHidden(new Set())}
+                      className="w-full justify-start text-muted-foreground"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      Show {hiddenCount} hidden {hiddenCount === 1 ? "vendor" : "vendors"}
+                    </Button>
+                  )}
+                  {dirty && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCfg(DEFAULT_RENDER)}
+                      className="w-full justify-start text-muted-foreground"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      Reset controls
+                    </Button>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
@@ -388,7 +445,18 @@ export default function StudioClient({
               {/* The SVG paints its own (configurable) background edge-to-edge, so
                   the wrapper just clips + frames it. */}
               <div className="overflow-hidden rounded-xl border border-border shadow-sm">
-                <RelationshipGraph graph={graph} config={cfg} lang={lang} hideLangPicker />
+                <RelationshipGraph
+                  graph={graph}
+                  config={cfg}
+                  lang={lang}
+                  hideLangPicker
+                  showVendorPicker
+                  hidden={hidden}
+                  onHiddenChange={setHidden}
+                  curves={curves}
+                  onCurvesChange={setCurves}
+                  editableEdges
+                />
               </div>
             </TabsContent>
 

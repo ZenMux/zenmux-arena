@@ -1,6 +1,6 @@
 {
   "runId": "who-are-you/20260529T090051",
-  "generatedAt": "2026-05-29T13:08:12.775Z",
+  "generatedAt": "2026-05-29T15:24:51.052Z",
   "study": {
     "id": "who-are-you",
     "title": "Who Are You? Cross-Vendor Identity Confusion in Frontier LLMs",
@@ -131,6 +131,11 @@
       "id": "inclusionai/ling-2.6-1t",
       "vendor": "inclusionai",
       "label": "Ling 2.6 100B"
+    },
+    {
+      "id": "kuaishou/kat-coder-pro-v2",
+      "vendor": "kwai",
+      "label": "Kat Coder Pro V2"
     }
   ],
   "languages": [
@@ -305,6 +310,18 @@
       ]
     },
     {
+      "id": "kwai",
+      "name": "Kwai",
+      "logo": "kwai.png",
+      "aliases": [
+        "kwai",
+        "kuaishou",
+        "kling",
+        "快手",
+        "可灵"
+      ]
+    },
+    {
       "id": "z-ai",
       "name": "z-ai",
       "logo": "z-ai.png",
@@ -315,18 +332,6 @@
         "chatglm",
         "z.ai",
         "智谱清言"
-      ]
-    },
-    {
-      "id": "kwai",
-      "name": "Kwai",
-      "logo": "kwai.png",
-      "aliases": [
-        "kwai",
-        "kuaishou",
-        "kling",
-        "快手",
-        "可灵"
       ]
     },
     {
@@ -372,7 +377,9 @@
         "蚂蚁",
         "bailing",
         "百灵",
-        "ling"
+        "ling",
+        "ring",
+        "ming"
       ]
     },
     {
@@ -400,8 +407,8 @@
       "aliases": []
     },
     {
-      "id": "other:b100vk",
-      "name": "최음",
+      "id": "other:choeum",
+      "name": "Choeum",
       "logo": "",
       "aliases": []
     },
@@ -412,12 +419,10 @@
       "aliases": []
     },
     {
-      "id": "zenmux",
-      "name": "ZenMux",
-      "logo": "ZenMux.png",
-      "aliases": [
-        "zenmux"
-      ]
+      "id": "other:zen",
+      "name": "Zen",
+      "logo": "",
+      "aliases": []
     },
     {
       "id": "other:baai",
@@ -1024,6 +1029,61 @@
       }
     },
     {
+      "from": "kwai",
+      "to": "self",
+      "count": 93,
+      "total": 100,
+      "probability": 0.93,
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2": {
+          "count": 93,
+          "total": 100
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 10,
+          "total": 10
+        },
+        "zh-Hans": {
+          "count": 10,
+          "total": 10
+        },
+        "zh-Hant": {
+          "count": 10,
+          "total": 10
+        },
+        "ja": {
+          "count": 10,
+          "total": 10
+        },
+        "ko": {
+          "count": 6,
+          "total": 10
+        },
+        "ru": {
+          "count": 8,
+          "total": 10
+        },
+        "es": {
+          "count": 10,
+          "total": 10
+        },
+        "fr": {
+          "count": 10,
+          "total": 10
+        },
+        "de": {
+          "count": 10,
+          "total": 10
+        },
+        "pt": {
+          "count": 9,
+          "total": 10
+        }
+      }
+    },
+    {
       "from": "z-ai",
       "to": "kwai",
       "count": 83,
@@ -1238,12 +1298,12 @@
     {
       "from": "inclusionai",
       "to": "self",
-      "count": 104,
+      "count": 105,
       "total": 200,
-      "probability": 0.52,
+      "probability": 0.525,
       "byModel": {
         "inclusionai/ling-2.6-1t": {
-          "count": 45,
+          "count": 46,
           "total": 100
         },
         "inclusionai/ring-2.6-1t": {
@@ -1257,7 +1317,7 @@
           "total": 20
         },
         "zh-Hans": {
-          "count": 15,
+          "count": 16,
           "total": 20
         },
         "zh-Hant": {
@@ -1352,30 +1412,30 @@
     {
       "from": "inclusionai",
       "to": "refused",
-      "count": 49,
+      "count": 51,
       "total": 200,
-      "probability": 0.245,
+      "probability": 0.255,
       "byModel": {
         "inclusionai/ling-2.6-1t": {
-          "count": 31,
+          "count": 34,
           "total": 100
         },
         "inclusionai/ring-2.6-1t": {
-          "count": 18,
+          "count": 17,
           "total": 100
         }
       },
       "byLang": {
         "ja": {
-          "count": 12,
+          "count": 15,
           "total": 20
         },
         "ko": {
-          "count": 9,
+          "count": 11,
           "total": 20
         },
         "ru": {
-          "count": 15,
+          "count": 12,
           "total": 20
         },
         "es": {
@@ -1438,34 +1498,30 @@
     {
       "from": "inclusionai",
       "to": "unknown",
-      "count": 41,
+      "count": 40,
       "total": 200,
-      "probability": 0.205,
+      "probability": 0.2,
       "byModel": {
         "inclusionai/ling-2.6-1t": {
-          "count": 19,
+          "count": 16,
           "total": 100
         },
         "inclusionai/ring-2.6-1t": {
-          "count": 22,
+          "count": 24,
           "total": 100
         }
       },
       "byLang": {
-        "ja": {
-          "count": 3,
+        "ko": {
+          "count": 4,
           "total": 20
         },
-        "ko": {
-          "count": 5,
+        "ru": {
+          "count": 6,
           "total": 20
         },
         "fr": {
           "count": 11,
-          "total": 20
-        },
-        "ru": {
-          "count": 3,
           "total": 20
         },
         "pt": {
@@ -1587,6 +1643,29 @@
       }
     },
     {
+      "from": "z-ai",
+      "to": "qwen",
+      "count": 4,
+      "total": 100,
+      "probability": 0.04,
+      "byModel": {
+        "z-ai/glm-5.1": {
+          "count": 4,
+          "total": 100
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 3,
+          "total": 10
+        },
+        "de": {
+          "count": 1,
+          "total": 10
+        }
+      }
+    },
+    {
       "from": "tencent",
       "to": "unknown",
       "count": 4,
@@ -1606,42 +1685,23 @@
       }
     },
     {
-      "from": "z-ai",
-      "to": "other:alibaba-cloud",
-      "count": 3,
-      "total": 100,
-      "probability": 0.03,
-      "byModel": {
-        "z-ai/glm-5.1": {
-          "count": 3,
-          "total": 100
-        }
-      },
-      "byLang": {
-        "ko": {
-          "count": 3,
-          "total": 10
-        }
-      }
-    },
-    {
-      "from": "z-ai",
+      "from": "kwai",
       "to": "qwen",
-      "count": 3,
+      "count": 4,
       "total": 100,
-      "probability": 0.03,
+      "probability": 0.04,
       "byModel": {
-        "z-ai/glm-5.1": {
-          "count": 3,
+        "kuaishou/kat-coder-pro-v2": {
+          "count": 4,
           "total": 100
         }
       },
       "byLang": {
         "ko": {
-          "count": 1,
+          "count": 2,
           "total": 10
         },
-        "de": {
+        "ru": {
           "count": 2,
           "total": 10
         }
@@ -1671,6 +1731,56 @@
       }
     },
     {
+      "from": "anthropic",
+      "to": "unknown",
+      "count": 7,
+      "total": 300,
+      "probability": 0.023333333333333334,
+      "byModel": {
+        "anthropic/claude-opus-4.8": {
+          "count": 7,
+          "total": 100
+        }
+      },
+      "byLang": {
+        "zh-Hans": {
+          "count": 3,
+          "total": 30
+        },
+        "ja": {
+          "count": 2,
+          "total": 30
+        },
+        "pt": {
+          "count": 2,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "other:alibaba-cloud",
+      "count": 2,
+      "total": 100,
+      "probability": 0.02,
+      "byModel": {
+        "z-ai/glm-5.1": {
+          "count": 2,
+          "total": 100
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 10
+        },
+        "de": {
+          "count": 1,
+          "total": 10
+        }
+      }
+    },
+    {
       "from": "stepfun",
       "to": "google",
       "count": 2,
@@ -1694,47 +1804,39 @@
       }
     },
     {
-      "from": "anthropic",
-      "to": "unknown",
-      "count": 5,
-      "total": 300,
-      "probability": 0.016666666666666666,
+      "from": "kwai",
+      "to": "other:alibaba-cloud",
+      "count": 2,
+      "total": 100,
+      "probability": 0.02,
       "byModel": {
-        "anthropic/claude-opus-4.8": {
-          "count": 5,
+        "kuaishou/kat-coder-pro-v2": {
+          "count": 2,
           "total": 100
         }
       },
       "byLang": {
-        "zh-Hans": {
+        "ko": {
           "count": 2,
-          "total": 30
-        },
-        "ja": {
-          "count": 1,
-          "total": 30
-        },
-        "pt": {
-          "count": 2,
-          "total": 30
+          "total": 10
         }
       }
     },
     {
       "from": "inclusionai",
       "to": "bytedance",
-      "count": 3,
+      "count": 2,
       "total": 200,
-      "probability": 0.015,
+      "probability": 0.01,
       "byModel": {
         "inclusionai/ling-2.6-1t": {
-          "count": 3,
+          "count": 2,
           "total": 100
         }
       },
       "byLang": {
         "zh-Hans": {
-          "count": 3,
+          "count": 2,
           "total": 20
         }
       }
@@ -1817,7 +1919,7 @@
     },
     {
       "from": "tencent",
-      "to": "other:b100vk",
+      "to": "other:choeum",
       "count": 1,
       "total": 100,
       "probability": 0.01,
@@ -1893,7 +1995,7 @@
     },
     {
       "from": "tencent",
-      "to": "zenmux",
+      "to": "other:zen",
       "count": 1,
       "total": 100,
       "probability": 0.01,
@@ -1968,6 +2070,25 @@
       }
     },
     {
+      "from": "kwai",
+      "to": "unknown",
+      "count": 1,
+      "total": 100,
+      "probability": 0.01,
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2": {
+          "count": 1,
+          "total": 100
+        }
+      },
+      "byLang": {
+        "pt": {
+          "count": 1,
+          "total": 10
+        }
+      }
+    },
+    {
       "from": "anthropic",
       "to": "qwen",
       "count": 2,
@@ -2001,33 +2122,6 @@
       "byLang": {
         "zh-Hans": {
           "count": 2,
-          "total": 30
-        }
-      }
-    },
-    {
-      "from": "anthropic",
-      "to": "openai",
-      "count": 2,
-      "total": 300,
-      "probability": 0.006666666666666667,
-      "byModel": {
-        "anthropic/claude-opus-4.8": {
-          "count": 1,
-          "total": 100
-        },
-        "anthropic/claude-sonnet-4.6": {
-          "count": 1,
-          "total": 100
-        }
-      },
-      "byLang": {
-        "zh-Hans": {
-          "count": 1,
-          "total": 30
-        },
-        "ru": {
-          "count": 1,
           "total": 30
         }
       }
@@ -2071,25 +2165,6 @@
       }
     },
     {
-      "from": "inclusionai",
-      "to": "openai",
-      "count": 1,
-      "total": 200,
-      "probability": 0.005,
-      "byModel": {
-        "inclusionai/ring-2.6-1t": {
-          "count": 1,
-          "total": 100
-        }
-      },
-      "byLang": {
-        "ko": {
-          "count": 1,
-          "total": 20
-        }
-      }
-    },
-    {
       "from": "bytedance",
       "to": "other:yandex",
       "count": 2,
@@ -2110,18 +2185,18 @@
     },
     {
       "from": "anthropic",
-      "to": "refused",
+      "to": "openai",
       "count": 1,
       "total": 300,
       "probability": 0.0033333333333333335,
       "byModel": {
-        "anthropic/claude-opus-4.8": {
+        "anthropic/claude-sonnet-4.6": {
           "count": 1,
           "total": 100
         }
       },
       "byLang": {
-        "ja": {
+        "ru": {
           "count": 1,
           "total": 30
         }
@@ -2378,12 +2453,12 @@
       "modelId": "inclusionai/ling-2.6-1t",
       "langCode": "zh-Hans",
       "distribution": {
-        "bytedance": 0.3,
-        "self": 0.5,
+        "self": 0.6,
+        "bytedance": 0.2,
         "other:bkrsn": 0.1,
         "tencent": 0.1
       },
-      "selfRate": 0.5,
+      "selfRate": 0.6,
       "n": 10
     },
     {
@@ -2430,8 +2505,7 @@
         "qwen": 0.2,
         "self": 0.3,
         "deepseek": 0.2,
-        "unknown": 0.2,
-        "openai": 0.1
+        "unknown": 0.3
       },
       "selfRate": 0.3,
       "n": 10
@@ -2559,8 +2633,7 @@
       "modelId": "inclusionai/ling-2.6-1t",
       "langCode": "ja",
       "distribution": {
-        "refused": 0.7,
-        "unknown": 0.3
+        "refused": 1
       },
       "selfRate": 0,
       "n": 10
@@ -2651,8 +2724,8 @@
       "modelId": "inclusionai/ling-2.6-1t",
       "langCode": "ko",
       "distribution": {
-        "unknown": 0.3,
-        "refused": 0.6,
+        "refused": 0.7,
+        "unknown": 0.2,
         "self": 0.1
       },
       "selfRate": 0.1,
@@ -2810,8 +2883,8 @@
       "langCode": "ko",
       "distribution": {
         "kwai": 0.6,
-        "other:alibaba-cloud": 0.3,
-        "qwen": 0.1
+        "qwen": 0.3,
+        "other:alibaba-cloud": 0.1
       },
       "selfRate": 0,
       "n": 10
@@ -2912,7 +2985,8 @@
       "modelId": "inclusionai/ling-2.6-1t",
       "langCode": "ru",
       "distribution": {
-        "refused": 0.8,
+        "refused": 0.7,
+        "unknown": 0.1,
         "self": 0.2
       },
       "selfRate": 0.2,
@@ -2936,7 +3010,7 @@
         "deepseek": 0.5,
         "openai": 0.1,
         "other:hyperconnect": 0.1,
-        "other:b100vk": 0.1
+        "other:choeum": 0.1
       },
       "selfRate": 0,
       "n": 10
@@ -2954,10 +3028,9 @@
       "modelId": "inclusionai/ring-2.6-1t",
       "langCode": "ko",
       "distribution": {
-        "refused": 0.3,
-        "openai": 0.1,
-        "self": 0.4,
-        "unknown": 0.2
+        "refused": 0.4,
+        "unknown": 0.2,
+        "self": 0.4
       },
       "selfRate": 0.4,
       "n": 10
@@ -3123,8 +3196,8 @@
       "modelId": "inclusionai/ring-2.6-1t",
       "langCode": "ru",
       "distribution": {
-        "refused": 0.7,
-        "unknown": 0.3
+        "unknown": 0.5,
+        "refused": 0.5
       },
       "selfRate": 0,
       "n": 10
@@ -3276,8 +3349,7 @@
       "langCode": "ja",
       "distribution": {
         "self": 0.8,
-        "unknown": 0.1,
-        "refused": 0.1
+        "unknown": 0.2
       },
       "selfRate": 0.8,
       "n": 10
@@ -3372,7 +3444,7 @@
         "other:microsoft": 0.2,
         "unknown": 0.4,
         "self": 0.2,
-        "zenmux": 0.1
+        "other:zen": 0.1
       },
       "selfRate": 0.2,
       "n": 10
@@ -3556,8 +3628,9 @@
       "modelId": "z-ai/glm-5.1",
       "langCode": "de",
       "distribution": {
-        "qwen": 0.2,
+        "other:alibaba-cloud": 0.1,
         "kwai": 0.7,
+        "qwen": 0.1,
         "other:baai": 0.1
       },
       "selfRate": 0,
@@ -4454,21 +4527,115 @@
       },
       "selfRate": 1,
       "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "ko",
+      "distribution": {
+        "self": 0.6,
+        "other:alibaba-cloud": 0.2,
+        "qwen": 0.2
+      },
+      "selfRate": 0.6,
+      "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "ru",
+      "distribution": {
+        "qwen": 0.2,
+        "self": 0.8
+      },
+      "selfRate": 0.8,
+      "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 10
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2",
+      "langCode": "pt",
+      "distribution": {
+        "self": 0.9,
+        "unknown": 0.1
+      },
+      "selfRate": 0.9,
+      "n": 10
     }
   ],
   "summary": {
-    "totalAnswers": 2500,
-    "overallSelfRate": 0.8428,
-    "confusionRate": 0.0896,
-    "unknownRate": 0.0476,
-    "refusedRate": 0.02,
+    "totalAnswers": 2600,
+    "overallSelfRate": 0.8465384615384616,
+    "confusionRate": 0.08730769230769231,
+    "unknownRate": 0.046538461538461535,
+    "refusedRate": 0.019615384615384614,
     "errorCount": 0,
     "perModelSelfRate": {
       "anthropic/claude-haiku-4.5": 1,
       "openai/gpt-5.3-codex": 0.7,
       "google/gemini-3.5-flash": 1,
       "openai/chat-latest": 1,
-      "inclusionai/ling-2.6-1t": 0.45,
+      "inclusionai/ling-2.6-1t": 0.46,
       "z-ai/glm-5.1": 0.1,
       "anthropic/claude-sonnet-4.6": 0.99,
       "openai/gpt-5.5": 0.61,
@@ -4488,19 +4655,20 @@
       "xiaomi/mimo-v2.5-pro": 1,
       "bytedance/doubao-seed-2.0-pro": 1,
       "deepseek/deepseek-v4-pro": 1,
-      "moonshotai/kimi-k2.5": 0.36
+      "moonshotai/kimi-k2.5": 0.36,
+      "kuaishou/kat-coder-pro-v2": 0.93
     },
     "perLangSelfRate": {
-      "en": 0.888,
-      "zh-Hans": 0.848,
-      "zh-Hant": 0.924,
-      "ja": 0.824,
-      "ko": 0.836,
-      "ru": 0.792,
-      "es": 0.828,
-      "fr": 0.796,
-      "de": 0.912,
-      "pt": 0.78
+      "en": 0.8923076923076924,
+      "zh-Hans": 0.8576923076923076,
+      "zh-Hant": 0.926923076923077,
+      "ja": 0.8307692307692308,
+      "ko": 0.8269230769230769,
+      "ru": 0.7923076923076923,
+      "es": 0.8346153846153846,
+      "fr": 0.8038461538461539,
+      "de": 0.9153846153846154,
+      "pt": 0.7846153846153846
     }
   }
 }

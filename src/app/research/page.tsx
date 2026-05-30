@@ -91,7 +91,7 @@ export default function ResearchPage() {
 
       {/* Graph */}
       <section className="mb-16 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-8 dark:border-neutral-800 dark:bg-neutral-950">
-        <RelationshipGraph graph={graph} />
+        <RelationshipGraph graph={graph} showVendorPicker />
       </section>
 
       {/* Tables */}

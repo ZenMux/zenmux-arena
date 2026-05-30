@@ -12,7 +12,7 @@ study:
 api:
   baseURL: "https://zenmux.ai/api/anthropic"
   apiKeyEnv: "ZENMUX_API_KEY"
-  maxTokens: 1024
+  maxTokens: 2048
   # Concurrency model:
   #  - All models run in parallel, capped at `modelConcurrency` workers.
   #  - Within each model, languages run SEQUENTIALLY (lang 1 fully, then lang 2, ...).
@@ -97,10 +97,11 @@ models:
       vendor: inclusionai,
       label: "Ling 2.6 100B",
     }
+  - { id: "kuaishou/kat-coder-pro-v2", vendor: kwai, label: "Kat Coder Pro V2" }
 
-# Identity extractor: reads each answer and returns the claimed vendor as JSON.
+# Identity extractor: reads each answer and returns the claimed vendor as JSON. gemini-3.5-flash
 extractor:
-  model: "gpt-5.5"
+  model: "gemini-3.5-flash"
   maxTokens: 10240
 
 # Times each model is asked, per language.

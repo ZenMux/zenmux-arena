@@ -13,9 +13,14 @@
 import { Resvg } from "@resvg/resvg-js";
 import fs from "node:fs";
 import path from "node:path";
-import { DEFAULT_RENDER, type RenderConfig } from "@research/lib/geometry";
+import {
+  DEFAULT_RENDER,
+  type EdgeCurves,
+  type RenderConfig,
+  sanitizeCurve,
+} from "@research/lib/geometry";
 import { buildGraphSvg } from "@research/lib/svg";
-import type { GraphData } from "@research/lib/types";
+import type { GraphData, VendorId } from "@research/lib/types";
 
 export const runtime = "nodejs";
 
@@ -30,6 +35,25 @@ interface ExportBody {
   scale?: number; // PNG pixel multiplier (1–4)
   format?: "png" | "svg";
   config?: Partial<RenderConfig>;
+  hidden?: string[]; // vendor ids unchecked in the studio
+  curves?: Record<string, { bow?: number; along?: number }>; // per-edge drag reshapes
+}
+
+/** Keep only string ids, so a malformed `hidden` can't crash the renderer. */
+function sanitizeHidden(raw: unknown): VendorId[] {
+  return Array.isArray(raw) ? raw.filter((v): v is string => typeof v === "string") : [];
+}
+
+/** Clamp every per-edge curve override; drop non-object entries. */
+function sanitizeCurves(raw: unknown): EdgeCurves {
+  if (!raw || typeof raw !== "object") return {};
+  const out: EdgeCurves = {};
+  for (const [key, val] of Object.entries(raw as Record<string, unknown>)) {
+    if (val && typeof val === "object") {
+      out[key] = sanitizeCurve(val as { bow?: number; along?: number });
+    }
+  }
+  return out;
 }
 
 /** Resolve + validate a run id to its aggregate.json path, refusing traversal. */
@@ -67,8 +91,10 @@ export async function POST(request: Request) {
   const langCode = body.lang || undefined;
   const format = body.format === "svg" ? "svg" : "png";
   const scale = Math.min(4, Math.max(1, Number(body.scale) || 2));
+  const hidden = sanitizeHidden(body.hidden);
+  const curves = sanitizeCurves(body.curves);
 
-  const svg = buildGraphSvg(graph, { config, langCode });
+  const svg = buildGraphSvg(graph, { config, langCode, hidden, curves });
   const stamp = run.split("/")[1] ?? "graph";
   const base = `who-are-you-${stamp}${langCode ? `-${langCode}` : ""}`;
 

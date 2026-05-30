@@ -1,65 +1,113 @@
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, FlaskConical } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-white px-6 py-24 text-center dark:bg-black">
+      {/* Soft ambient backdrop — a single radial wash, kept subtle. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 [background:radial-gradient(60%_50%_at_50%_0%,rgba(120,120,255,0.07),transparent_70%)] dark:[background:radial-gradient(60%_50%_at_50%_0%,rgba(140,140,255,0.10),transparent_70%)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-neutral-800"
+      />
+
+      <div className="relative flex w-full max-w-xl flex-col items-center gap-10">
+        {/* Wordmark — theme-aware. Note the asset naming: ZenMux-Light.png is the
+            DARK wordmark (for light backgrounds), ZenMux.png is the WHITE wordmark
+            (for dark backgrounds) — same convention as the graph export (svg.ts). */}
+        <div>
+          <Image
+            src="/maker-logo/ZenMux-Light.png"
+            alt="ZenMux"
+            width={512}
+            height={125}
+            priority
+            className="h-9 w-auto dark:hidden"
+          />
+          <Image
+            src="/maker-logo/ZenMux.png"
+            alt="ZenMux"
+            width={2000}
+            height={512}
+            priority
+            className="hidden h-9 w-auto dark:block"
+          />
+        </div>
+
+        <div className="flex flex-col items-center gap-5">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 px-3 py-1 text-xs font-medium tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+            <span className="size-1.5 rounded-full bg-emerald-500" />
+            ZenMux Arena
+          </span>
+          <h1 className="text-balance text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl dark:text-neutral-50">
+            Where frontier models
+            <br className="hidden sm:block" /> meet the same question.
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="max-w-md text-pretty text-lg leading-8 text-neutral-500 dark:text-neutral-400">
+            Reproducible, cross-vendor studies of how today&apos;s leading LLMs
+            actually behave — run through one unified endpoint.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+
+        <div className="flex flex-col items-center gap-3 sm:flex-row">
+          <Link
+            href="/research"
+            className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-neutral-900 px-6 text-sm font-medium text-white transition-colors hover:bg-neutral-700 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+          >
+            <FlaskConical className="size-4" />
+            Enter the Arena
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+          </Link>
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://zenmux.ai"
             target="_blank"
             rel="noopener noreferrer"
+            className="inline-flex h-12 items-center justify-center rounded-full border border-neutral-200 px-6 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-900"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            About ZenMux
           </a>
         </div>
-      </main>
-    </div>
+      </div>
+
+      {/* Featured study card */}
+      <Link
+        href="/research"
+        className="group relative mt-16 flex w-full max-w-xl items-center gap-4 rounded-2xl border border-neutral-200 bg-white/70 p-5 text-left backdrop-blur transition-all hover:border-neutral-300 hover:shadow-sm dark:border-neutral-800 dark:bg-neutral-950/70 dark:hover:border-neutral-700"
+      >
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
+          <FlaskConical className="size-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs uppercase tracking-[0.18em] text-neutral-400">
+            Featured study
+          </p>
+          <h2 className="mt-1 truncate font-medium text-neutral-900 dark:text-neutral-100">
+            Who Are You? — Cross-Vendor Identity Confusion
+          </h2>
+          <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">
+            One question, many vendors, ten languages.
+          </p>
+        </div>
+        <ArrowRight className="size-4 shrink-0 text-neutral-400 transition-transform group-hover:translate-x-0.5" />
+      </Link>
+
+      <footer className="relative mt-16 text-xs text-neutral-400">
+        Built by{" "}
+        <strong className="font-medium text-neutral-500 dark:text-neutral-400">
+          thinkthinking
+        </strong>{" "}
+        ·{" "}
+        <a
+          href="https://zenmux.ai"
+          className="underline decoration-dotted underline-offset-4 hover:text-neutral-600 dark:hover:text-neutral-300"
+        >
+          ZenMux.ai
+        </a>
+      </footer>
+    </main>
   );
 }

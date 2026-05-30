@@ -5,6 +5,8 @@
 import {
   curvedArrow,
   DEFAULT_RENDER,
+  type EdgeCurves,
+  edgeKey,
   edgeLangWeights,
   edgeWeight,
   type GraphLayout,
@@ -14,9 +16,10 @@ import {
   nodePositions,
   paletteFor,
   type RenderConfig,
+  sanitizeCurve,
   vendorColor,
 } from "./geometry";
-import type { GraphData } from "./types";
+import type { GraphData, VendorId } from "./types";
 import { logoDataUri, logoFileDataUri, VENDORS } from "./vendors";
 
 export interface SvgOptions {
@@ -30,6 +33,15 @@ export interface SvgOptions {
   langCode?: string;
   /** Draw the title/footer/branding chrome. Overrides config.chrome. */
   chrome?: boolean;
+  /**
+   * Vendor ids the user hid in the studio. They (and every edge touching them)
+   * are dropped, and the ring reflows around the survivors — so the export
+   * matches the on-screen, post-filter graph. Pseudo-vendors are already
+   * excluded; this is for hiding real vendors.
+   */
+  hidden?: VendorId[];
+  /** Per-edge curve reshapes from dragging in the studio, keyed by edgeKey. */
+  curves?: EdgeCurves;
 }
 
 function esc(s: string): string {
@@ -47,7 +59,12 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   // Only draw nodes for real vendors (pseudo-vendors aren't placed on the ring).
   // Dynamic `other:<slug>` brands ARE drawn (as labeled circles); only the
   // analytical buckets and the bare `other` parent are excluded from the ring.
-  const realVendors = graph.vendors.filter((v) => !["self", "unknown", "refused", "other"].includes(v.id));
+  // A `hidden` set (vendors the user unchecked in the studio) drops more, so the
+  // export reflows around exactly the vendors left on screen.
+  const hidden = new Set(options.hidden ?? []);
+  const realVendors = graph.vendors.filter(
+    (v) => !["self", "unknown", "refused", "other"].includes(v.id) && !hidden.has(v.id),
+  );
   // Layout auto-scales to the vendor count (and the config's spacing) so the ring never crowds.
   const layout = options.layout ?? makeLayout(realVendors.length, { ...cfg, chrome });
   const { width, height } = layout;
@@ -100,7 +117,11 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   for (const { e, p, langs } of drawable) {
     const a = pos.get(e.from)!;
     const b = pos.get(e.to)!;
-    const arrow = curvedArrow(a, b, layout.nodeRadius, cfg.curveBow);
+    // A dragged edge carries a per-edge {bow, along} override; otherwise fall
+    // back to the global curveBow (centered, along=0).
+    const ov = options.curves?.[edgeKey(e.from, e.to)];
+    const curve = ov ? sanitizeCurve(ov) : { bow: cfg.curveBow, along: 0 };
+    const arrow = curvedArrow(a, b, layout.nodeRadius, curve.bow, curve.along);
     const color = cfg.colorBySource ? vendorColor(e.from) : pal.mono;
     const sw = r2(cfg.edgeBaseWidth + p * cfg.edgeWidthScale);
     // Background-colored casing first (slightly wider) for separation where lines cross.

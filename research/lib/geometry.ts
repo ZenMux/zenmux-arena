@@ -70,7 +70,7 @@ export const DEFAULT_RENDER: RenderConfig = {
   background: "#ffffff",
 };
 
-function clamp(n: number, lo: number, hi: number): number {
+export function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
 
@@ -195,10 +195,63 @@ export interface ArrowGeometry {
 }
 
 /**
- * Curved arrow between two node centers, trimmed to the node circles and bowed
- * perpendicular to the chord so A→B and B→A do not overlap.
+ * A user reshape of one edge, expressed in the chord's LOCAL frame so it stays
+ * attached to its endpoints when the ring reflows (e.g. after a vendor is
+ * hidden). Both components are signed fractions of the chord length:
+ *  - `bow`   : perpendicular offset of the apex (the default curve uses
+ *              `RenderConfig.curveBow`; an override replaces it per edge).
+ *  - `along` : offset of the apex parallel to the chord (0 = mid-chord). Lets
+ *              the user slide the bend toward either endpoint, not just push it
+ *              out — so two near-parallel edges can be pulled fully apart.
  */
-export function curvedArrow(from: Point, to: Point, nodeRadius: number, bow = 0.18): ArrowGeometry {
+export interface CurveOverride {
+  bow: number;
+  along: number;
+}
+
+/** Per-edge curve overrides, keyed by edgeKey(from, to). */
+export type EdgeCurves = Record<string, CurveOverride>;
+
+/** Stable identifier for a directed edge — matches the React key used in the graph. */
+export function edgeKey(from: VendorId, to: VendorId): string {
+  return `${from}->${to}`;
+}
+
+const CURVE_BOW_LIMIT = 1.6;
+const CURVE_ALONG_LIMIT = 0.9;
+
+/** Clamp a (possibly untrusted) curve override to sane bounds; coerce non-finite to 0. */
+export function sanitizeCurve(c: { bow?: unknown; along?: unknown } | null | undefined): CurveOverride {
+  const bow = typeof c?.bow === "number" && Number.isFinite(c.bow) ? c.bow : 0;
+  const along = typeof c?.along === "number" && Number.isFinite(c.along) ? c.along : 0;
+  return {
+    bow: clamp(bow, -CURVE_BOW_LIMIT, CURVE_BOW_LIMIT),
+    along: clamp(along, -CURVE_ALONG_LIMIT, CURVE_ALONG_LIMIT),
+  };
+}
+
+interface ChordFrame {
+  /** Trimmed start (offset off the source chip). */
+  sx: number;
+  sy: number;
+  /** Trimmed end (offset off the target chip, leaving room for the arrowhead). */
+  ex: number;
+  ey: number;
+  /** Midpoint of the trimmed chord. */
+  mx: number;
+  my: number;
+  /** Full center-to-center distance — the scale `bow`/`along` are fractions of. */
+  len: number;
+  /** Chord unit vector (from → to). */
+  ux: number;
+  uy: number;
+  /** Perpendicular unit vector (−uy, ux). */
+  px: number;
+  py: number;
+}
+
+/** The geometry both curvedArrow and apexToCurve build on, so they stay in lockstep. */
+function chordFrame(from: Point, to: Point, nodeRadius: number): ChordFrame {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const len = Math.hypot(dx, dy) || 1;
@@ -209,33 +262,75 @@ export function curvedArrow(from: Point, to: Point, nodeRadius: number, bow = 0.
   const sy = from.y + uy * gap;
   const ex = to.x - ux * (gap + 6);
   const ey = to.y - uy * (gap + 6);
-  const mx = (sx + ex) / 2;
-  const my = (sy + ey) / 2;
-  const px = -uy;
-  const py = ux;
-  const cx = mx + px * len * bow;
-  const cy = my + py * len * bow;
-  const adx = ex - cx;
-  const ady = ey - cy;
+  return {
+    sx,
+    sy,
+    ex,
+    ey,
+    mx: (sx + ex) / 2,
+    my: (sy + ey) / 2,
+    len,
+    ux,
+    uy,
+    px: -uy,
+    py: ux,
+  };
+}
+
+/**
+ * Curved arrow between two node centers, trimmed to the node circles and bowed
+ * perpendicular to the chord so A→B and B→A do not overlap. `bow` pushes the
+ * apex out perpendicular to the chord; the optional `along` slides it parallel
+ * to the chord (0 = centered). Both are fractions of the chord length.
+ */
+export function curvedArrow(
+  from: Point,
+  to: Point,
+  nodeRadius: number,
+  bow = 0.18,
+  along = 0,
+): ArrowGeometry {
+  const f = chordFrame(from, to, nodeRadius);
+  const cx = f.mx + f.px * f.len * bow + f.ux * f.len * along;
+  const cy = f.my + f.py * f.len * bow + f.uy * f.len * along;
+  const adx = f.ex - cx;
+  const ady = f.ey - cy;
   const al = Math.hypot(adx, ady) || 1;
   const aux = adx / al;
   const auy = ady / al;
   const headLen = 18;
   const headW = 9;
-  const baseX = ex - aux * headLen;
-  const baseY = ey - auy * headLen;
+  const baseX = f.ex - aux * headLen;
+  const baseY = f.ey - auy * headLen;
   const lx = baseX - auy * headW;
   const ly = baseY + aux * headW;
   const rx = baseX + auy * headW;
   const ry = baseY - aux * headW;
   const t = 0.5;
-  const labelX = (1 - t) * (1 - t) * sx + 2 * (1 - t) * t * cx + t * t * ex;
-  const labelY = (1 - t) * (1 - t) * sy + 2 * (1 - t) * t * cy + t * t * ey;
+  const labelX = (1 - t) * (1 - t) * f.sx + 2 * (1 - t) * t * cx + t * t * f.ex;
+  const labelY = (1 - t) * (1 - t) * f.sy + 2 * (1 - t) * t * cy + t * t * f.ey;
   return {
-    path: `M ${round(sx)} ${round(sy)} Q ${round(cx)} ${round(cy)} ${round(ex)} ${round(ey)}`,
-    head: `${round(ex)},${round(ey)} ${round(lx)},${round(ly)} ${round(rx)},${round(ry)}`,
+    path: `M ${round(f.sx)} ${round(f.sy)} Q ${round(cx)} ${round(cy)} ${round(f.ex)} ${round(f.ey)}`,
+    head: `${round(f.ex)},${round(f.ey)} ${round(lx)},${round(ly)} ${round(rx)},${round(ry)}`,
     label: { x: labelX, y: labelY },
   };
+}
+
+/**
+ * Inverse of curvedArrow's apex (its t=0.5 point, which is also where the label
+ * and the drag handle sit): given a target apex the user dragged to, return the
+ * {bow, along} that reproduces it. Because the apex of a quadratic Bézier is
+ * `m + ½·perp·L·bow + ½·chord·L·along`, we just project the apex offset onto the
+ * chord frame and double it. Result is clamped via sanitizeCurve.
+ */
+export function apexToCurve(from: Point, to: Point, nodeRadius: number, apex: Point): CurveOverride {
+  const f = chordFrame(from, to, nodeRadius);
+  const dx = apex.x - f.mx;
+  const dy = apex.y - f.my;
+  return sanitizeCurve({
+    bow: (2 * (dx * f.px + dy * f.py)) / f.len,
+    along: (2 * (dx * f.ux + dy * f.uy)) / f.len,
+  });
 }
 
 /** Deterministic, pleasant edge color per source vendor. */
