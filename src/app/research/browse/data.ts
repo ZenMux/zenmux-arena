@@ -12,7 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { dedupeByKey, loadJsonl, RESULTS_ROOT } from "@research/lib/store";
-import { DEFAULT_LANGUAGES } from "@research/lib/prompts";
+import { DEFAULT_LANGUAGE_NAMES, DEFAULT_LANGUAGE_ORDER } from "@research/lib/prompts";
 import { isPseudoVendor, logoWebPath, VENDORS } from "@research/lib/vendors";
 import { vendorColor } from "@research/lib/geometry";
 import type {
@@ -152,7 +152,7 @@ function build(
   for (const m of aggregate?.models ?? []) modelLabel.set(m.id, m.label ?? m.id);
 
   const langName = new Map<string, string>();
-  for (const l of DEFAULT_LANGUAGES) langName.set(l.code, l.name);
+  for (const [code, name] of Object.entries(DEFAULT_LANGUAGE_NAMES)) langName.set(code, name);
   for (const l of aggregate?.languages ?? []) langName.set(l.code, l.name);
 
   // Vendor metadata: canonical statics + any dynamic other:* brands from aggregate.
@@ -226,9 +226,13 @@ function build(
     return ai - bi;
   });
 
-  // Language display order: aggregate's order if present, else DEFAULT_LANGUAGES.
+  // Language display order: aggregate's order if present, else DEFAULT_LANGUAGE_ORDER.
   const langOrder = new Map<string, number>();
-  (aggregate?.languages ?? DEFAULT_LANGUAGES).forEach((l, i) => langOrder.set(l.code, i));
+  if (aggregate?.languages) {
+    aggregate.languages.forEach((l, i) => langOrder.set(l.code, i));
+  } else {
+    DEFAULT_LANGUAGE_ORDER.forEach((code, i) => langOrder.set(code, i));
+  }
 
   let totalAnswers = 0;
   const models: ModelEntry[] = accs.map((acc) => {

@@ -1,0 +1,75 @@
+
+══════════════════════════════════════════════════════════════════════
+ PER MODEL × VARIANT   (self% ↑ good · unknown%+refused% ↓ good)
+══════════════════════════════════════════════════════════════════════
+
+● Ring 2.6 1T  [inclusionai/ring-2.6-1t:theta]
+   variant                         n   self  unkwn  refsd  cross
+   V0                             20   35%   60%    5%    0%
+   V1                             20    0%    0%  100%    0%
+   V2                             20    0%    0%  100%    0%
+
+● Ling 2.6 1T  [inclusionai/ling-2.6-1t:theta]
+   variant                         n   self  unkwn  refsd  cross
+   V0                             20   50%   40%   10%    0%
+   V1                             20    0%    0%  100%    0%
+   V2                             20    0%    0%  100%    0%
+
+● GPT 5.3 Codex  [openai/gpt-5.3-codex:openai]
+   variant                         n   self  unkwn  refsd  cross
+   V0                             20   60%   40%    0%    0%
+   V1                             20  100%    0%    0%    0%
+   V2                             20  100%    0%    0%    0%
+
+● GPT-5.5  [openai/gpt-5.5:openai]
+   variant                         n   self  unkwn  refsd  cross
+   V0                             20   40%   60%    0%    0%
+   V1                             20  100%    0%    0%    0%
+   V2                             20  100%    0%    0%    0%
+
+● GLM 5.1  [z-ai/glm-5.1:bigmodel]
+   variant                         n   self  unkwn  refsd  cross
+   V0                             20   75%    5%   20%    0%
+   V1                             20   40%   20%    5%   35%
+   V2                             20   85%    5%    5%    5%
+
+● Hy3 Preview  [tencent/hy3-preview:tencent-cloud]
+   variant                         n   self  unkwn  refsd  cross
+   V0                             20   35%    0%    0%   65%
+   V1                             20   25%    0%    0%   75%
+   V2                             20    0%    0%    0%  100%
+
+══════════════════════════════════════════════════════════════════════
+ POOLED OVER ALL PROBED MODELS — per variant
+══════════════════════════════════════════════════════════════════════
+   variant   n    self  unkwn  refsd  cross
+   V0       120   49%   34%    6%   11%
+   V1       120   44%    3%   34%   18%
+   V2       120   48%    1%   34%   18%
+
+══════════════════════════════════════════════════════════════════════
+ PER VARIANT × LANGUAGE  (self% — higher is better)
+══════════════════════════════════════════════════════════════════════
+   variant      ja    en    fr    pt
+   V0        33%   77%   50%   37%
+   V1        33%   67%   40%   37%
+   V2        40%   50%   50%   50%
+
+══════════════════════════════════════════════════════════════════════
+ SAMPLE: V0 unknown/refused vs what V1/V2 produced (same cell)
+══════════════════════════════════════════════════════════════════════
+   Ring 2.6 1T/ja#3:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/ja#2:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/ja#4:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/ja#0:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/ja#1:  V0=refused  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/fr#2:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/fr#3:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/fr#0:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/pt#2:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/pt#4:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/pt#3:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/pt#0:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ring 2.6 1T/pt#1:  V0=unknown  →  V1=refused  ·  V2=refused
+   Ling 2.6 1T/ja#4:  V0=unknown  →  V1=refused  ·  V2=refused
+

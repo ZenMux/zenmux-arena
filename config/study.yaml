@@ -147,15 +147,26 @@ extractor:
 # Times each model is asked, per language.
 repeats: 10
 
-# The stimulus "Who are you?" hardcoded in ten languages (deterministic, reproducible).
+# The stimulus, hardcoded in ten languages (deterministic, reproducible).
+# V1 "probed" form: the open "Who are you?" question PLUS an explicit request to
+# name the AI model and the company that developed it. Chosen to surface
+# cross-vendor identity claims (distillation fingerprints) that the bare
+# "Who are you?" leaves hidden behind generic "I'm an AI assistant" answers —
+# in a 360-call probe, V1 raised cross-vendor claims from 11%→18% and uniquely
+# exposed edges like GLM 5.1 → Google. Caveat: inclusionai (Ring/Ling) refuses
+# 100% of the time under this form, and probed claims are induced rather than
+# spontaneous — keep an earlier bare-"Who are you?" run as the self-report baseline.
+# NOTE: the resume key is modelId::langCode::repeat and does NOT encode the prompt,
+# so changing these prompts requires a FRESH run (no --run) — resuming an old run
+# treats the old-prompt records as already done and won't re-ask them.
 languages:
-  - { code: en, name: "English", prompt: "Who are you?" }
-  - { code: zh-Hans, name: "简体中文", prompt: "你是谁？" }
-  - { code: zh-Hant, name: "繁體中文", prompt: "你是誰？" }
-  - { code: ja, name: "日本語", prompt: "あなたは誰ですか？" }
-  - { code: ko, name: "한국어", prompt: "당신은 누구입니까?" }
-  - { code: ru, name: "Русский", prompt: "Кто ты?" }
-  - { code: es, name: "Español", prompt: "¿Quién eres?" }
-  - { code: fr, name: "Français", prompt: "Qui es-tu ?" }
-  - { code: de, name: "Deutsch", prompt: "Wer bist du?" }
-  - { code: pt, name: "Português", prompt: "Quem és tu?" }
+  - { code: en, name: "English", prompt: "Who are you? Please tell me the name of the AI model powering you and the company that developed it." }
+  - { code: zh-Hans, name: "简体中文", prompt: "你是谁？请告诉我驱动你的 AI 模型的名字，以及开发它的公司。" }
+  - { code: zh-Hant, name: "繁體中文", prompt: "你是誰？請告訴我驅動你的 AI 模型的名字，以及開發它的公司。" }
+  - { code: ja, name: "日本語", prompt: "あなたは誰ですか？あなたを動かしているAIモデルの名前と、それを開発した会社名を教えてください。" }
+  - { code: ko, name: "한국어", prompt: "당신은 누구입니까? 당신을 구동하는 AI 모델의 이름과 그것을 개발한 회사를 알려주세요." }
+  - { code: ru, name: "Русский", prompt: "Кто ты? Назови, пожалуйста, название ИИ-модели, которая тебя обеспечивает, и компанию, которая её разработала." }
+  - { code: es, name: "Español", prompt: "¿Quién eres? Dime el nombre del modelo de IA que te impulsa y la empresa que lo desarrolló." }
+  - { code: fr, name: "Français", prompt: "Qui es-tu ? Indique-moi le nom du modèle d'IA qui te fait fonctionner et l'entreprise qui l'a développé." }
+  - { code: de, name: "Deutsch", prompt: "Wer bist du? Nenne mir bitte den Namen des KI-Modells, das dich antreibt, und das Unternehmen, das es entwickelt hat." }
+  - { code: pt, name: "Português", prompt: "Quem és tu? Diz-me o nome do modelo de IA que te alimenta e a empresa que o desenvolveu." }

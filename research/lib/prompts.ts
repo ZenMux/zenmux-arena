@@ -1,25 +1,36 @@
 // The stimulus translations and the deepseek extraction prompt + JSON schema.
 
-import type { LanguageSpec, RawRecord } from "./types";
+import type { RawRecord } from "./types";
 import { REAL_VENDOR_IDS, VENDORS } from "./vendors";
 
 /**
- * Canonical hardcoded translations of "Who are you?" — used as a fallback and as the
- * documented reference. The authoritative list comes from config/study.yaml; these
- * must stay in sync but the config wins at runtime.
+ * Display metadata for the study's languages: native name + canonical display order.
+ *
+ * This is the fallback the web viewer uses for language labels / ordering when a
+ * run has no aggregate.json yet. It deliberately holds NO prompt text — the
+ * authoritative prompts live ONLY in config/study.yaml (the pipeline reads them
+ * via loadConfig). The viewer is an RSC layer that must not import config.ts
+ * (loadConfig fails fast if ZENMUX_API_KEY is unset), so it falls back to these
+ * env-free constants instead. Keeping prompts out of here means editing the
+ * stimulus in study.yaml requires NO change to any TS file.
+ *
+ * `code` values must match the `languages[].code` in config/study.yaml.
  */
-export const DEFAULT_LANGUAGES: LanguageSpec[] = [
-  { code: "en", name: "English", prompt: "Who are you?" },
-  { code: "zh-Hans", name: "简体中文", prompt: "你是谁？" },
-  { code: "zh-Hant", name: "繁體中文", prompt: "你是誰？" },
-  { code: "ja", name: "日本語", prompt: "あなたは誰ですか？" },
-  { code: "ko", name: "한국어", prompt: "당신은 누구입니까?" },
-  { code: "ru", name: "Русский", prompt: "Кто ты?" },
-  { code: "es", name: "Español", prompt: "¿Quién eres?" },
-  { code: "fr", name: "Français", prompt: "Qui es-tu ?" },
-  { code: "de", name: "Deutsch", prompt: "Wer bist du?" },
-  { code: "pt", name: "Português", prompt: "Quem és tu?" },
-];
+export const DEFAULT_LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  "zh-Hans": "简体中文",
+  "zh-Hant": "繁體中文",
+  ja: "日本語",
+  ko: "한국어",
+  ru: "Русский",
+  es: "Español",
+  fr: "Français",
+  de: "Deutsch",
+  pt: "Português",
+};
+
+/** Canonical language display order (the key order of DEFAULT_LANGUAGE_NAMES). */
+export const DEFAULT_LANGUAGE_ORDER: string[] = Object.keys(DEFAULT_LANGUAGE_NAMES);
 
 /**
  * The vendor enum the extractor is allowed to emit. Real vendors map to the
