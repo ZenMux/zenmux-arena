@@ -22,6 +22,7 @@ import { makeLimiter, runBatched } from "../lib/limiter";
 import {
   appendJsonl,
   checkCompleteness,
+  compactRecords,
   completedAnswerKeys,
   latestStamp,
   loadJsonl,
@@ -65,6 +66,15 @@ async function main() {
 
   const client = makeClient(cfg);
 
+  // Compact once up front: collapse the append-only log so each key keeps a single
+  // record (a successful retry supersedes its earlier errored row). This cleans
+  // pre-existing stale 429/error rows even on a resume that turns out to have
+  // "nothing to do", so the file never carries already-resolved errors forward.
+  {
+    const c = compactRecords(paths.records);
+    if (c.removed > 0) console.log(`[run] compacted records: kept ${c.kept} key(s), removed ${c.removed} stale row(s).`);
+  }
+
   // Round loop: each round attempts only keys that are still missing or errored,
   // until the run is complete or we run out of rounds.
   for (let round = 1; round <= maxRounds; round++) {
@@ -85,6 +95,12 @@ async function main() {
         `${todoCount} to (re)try (missing=${before.missing.length}, errored=${before.errored.length}) ═══`,
     );
     await runRound(client, cfg, paths.runId, paths.records, done);
+
+    // Compact at the round boundary (no writes in flight now): a key that errored
+    // this round but succeeded on retry collapses to its single successful row, so
+    // resolved errors are physically dropped instead of lingering in the log.
+    const c = compactRecords(paths.records);
+    if (c.removed > 0) console.log(`[run] round ${round}: compacted — removed ${c.removed} stale row(s).`);
 
     // Re-check after the round.
     const after = checkCompleteness(expectedKeys, loadJsonl<RawRecord>(paths.records));

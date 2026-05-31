@@ -104,6 +104,55 @@ export function dedupeByKey<T extends { key: string }>(items: T[]): Map<string, 
   return m;
 }
 
+export interface CompactResult {
+  /** Distinct keys kept (one record each). */
+  kept: number;
+  /** Rows physically removed (duplicates / superseded errors). */
+  removed: number;
+}
+
+/**
+ * Rewrite a records JSONL so each key keeps exactly ONE record, dropping stale
+ * duplicates — in particular an errored attempt that was later resolved by a
+ * successful retry. Without this, the append-only log keeps every failed 429 row
+ * forever even after the key succeeded.
+ *
+ * Dedup priority (NOT plain last-write-wins): a SUCCESS always beats a non-success
+ * for the same key regardless of order; among records of the same success-status the
+ * later (freshest) one wins. First-seen key order is preserved so the file stays
+ * stable/diffable. The rewrite is atomic (temp file + rename) so a crash can't leave
+ * a half-written file. Returns kept/removed counts. No-op (and no rewrite) if the file
+ * is missing or already has no duplicates.
+ */
+export function compactRecords(file: string): CompactResult {
+  if (!fs.existsSync(file)) return { kept: 0, removed: 0 };
+  const records = loadJsonl<RawRecord>(file);
+
+  const best = new Map<string, RawRecord>();
+  const order: string[] = [];
+  for (const r of records) {
+    const prev = best.get(r.key);
+    if (!prev) {
+      best.set(r.key, r);
+      order.push(r.key);
+      continue;
+    }
+    // A success supersedes a non-success; otherwise the newer record wins (it is
+    // later in the file). Equivalent: replace unless the incumbent is the only success.
+    if (isSuccess(prev) && !isSuccess(r)) continue;
+    best.set(r.key, r);
+  }
+
+  const removed = records.length - order.length;
+  if (removed <= 0) return { kept: order.length, removed: 0 };
+
+  const body = order.map((k) => JSON.stringify(best.get(k)!)).join("\n") + "\n";
+  const tmp = `${file}.compact.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, body);
+  fs.renameSync(tmp, file); // atomic on the same filesystem
+  return { kept: order.length, removed };
+}
+
 /**
  * The single definition of a "successful" answer record, shared by the round-loop
  * skip-set (`completedAnswerKeys`) and the completeness gate (`checkCompleteness`).
