@@ -113,7 +113,7 @@ models:
   - {
       id: "inclusionai/ling-2.6-1t:theta",
       vendor: inclusionai,
-      label: "Ling 2.6 100B",
+      label: "Ling 2.6 1T",
     }
   - {
       id: "kuaishou/kat-coder-pro-v2:streamlake",
