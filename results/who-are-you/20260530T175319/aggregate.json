@@ -1,6 +1,6 @@
 {
   "runId": "who-are-you/20260530T175319",
-  "generatedAt": "2026-05-30T18:02:48.438Z",
+  "generatedAt": "2026-05-31T04:13:18.457Z",
   "study": {
     "id": "who-are-you",
     "title": "Who Are You? Cross-Vendor Identity Confusion in Frontier LLMs",
@@ -219,14 +219,20 @@
       "logo": "qwen.png",
       "aliases": [
         "qwen",
+        "qwq",
+        "qvq",
         "tongyi",
         "tong yi",
         "通义",
         "千问",
         "通义千问",
+        "通义万相",
         "alibaba",
+        "alibaba cloud",
+        "aliyun",
         "阿里",
-        "阿里巴巴"
+        "阿里巴巴",
+        "阿里云"
       ]
     },
     {
@@ -244,6 +250,7 @@
       "logo": "moonshot.png",
       "aliases": [
         "moonshot",
+        "moonshot ai",
         "kimi",
         "月之暗面"
       ]
@@ -265,9 +272,11 @@
       "logo": "baidu.png",
       "aliases": [
         "ernie",
+        "ernie bot",
         "baidu",
         "文心",
         "文心一言",
+        "文心大模型",
         "百度",
         "wenxin",
         "yiyan"
@@ -291,6 +300,7 @@
       "aliases": [
         "stepfun",
         "step-",
+        "step fun",
         "阶跃",
         "阶跃星辰",
         "step star"
@@ -313,10 +323,13 @@
         "doubao",
         "豆包",
         "bytedance",
+        "byte dance",
         "字节",
         "字节跳动",
         "云雀",
-        "skylark"
+        "skylark",
+        "seedance",
+        "seedream"
       ]
     },
     {
@@ -325,10 +338,16 @@
       "logo": "kwai.png",
       "aliases": [
         "kwai",
+        "kwaipilot",
+        "kat-coder",
+        "kat coder",
+        "katcoder",
+        "kat",
         "kuaishou",
         "kling",
         "快手",
-        "可灵"
+        "可灵",
+        "快影"
       ]
     },
     {
@@ -337,11 +356,14 @@
       "logo": "z-ai.png",
       "aliases": [
         "z-ai",
-        "glm",
-        "智谱",
-        "chatglm",
         "z.ai",
-        "智谱清言"
+        "zhipu",
+        "zhipuai",
+        "glm",
+        "chatglm",
+        "智谱",
+        "智谱清言",
+        "智谱ai"
       ]
     },
     {
@@ -360,12 +382,17 @@
       "name": "inclusionAI",
       "logo": "inclusionai.png",
       "aliases": [
-        "inclusion",
         "inclusionai",
-        "ant",
+        "inclusion ai",
+        "inclusion",
+        "百灵",
+        "百灵大模型",
+        "ant group",
+        "antgroup",
+        "ant financial",
+        "蚂蚁集团",
         "蚂蚁",
         "bailing",
-        "百灵",
         "ling",
         "ring",
         "ming"
@@ -379,18 +406,15 @@
         "tencent",
         "hunyuan",
         "混元",
-        "腾讯"
+        "腾讯",
+        "腾讯混元",
+        "Hy",
+        "HY"
       ]
     },
     {
       "id": "other:microsoft",
       "name": "Microsoft",
-      "logo": "",
-      "aliases": []
-    },
-    {
-      "id": "other:alibaba-cloud",
-      "name": "Alibaba Cloud",
       "logo": "",
       "aliases": []
     },
@@ -420,7 +444,7 @@
     },
     {
       "id": "other:xiaohongshu",
-      "name": "Xiaohongshu",
+      "name": "XiaoHongShu",
       "logo": "",
       "aliases": []
     },
@@ -463,18 +487,6 @@
     {
       "id": "other:leiwu",
       "name": "LeiWu",
-      "logo": "",
-      "aliases": []
-    },
-    {
-      "id": "other:kat-coder",
-      "name": "KAT-Coder",
-      "logo": "",
-      "aliases": []
-    },
-    {
-      "id": "other:bkrsn",
-      "name": "百灵",
       "logo": "",
       "aliases": []
     }
@@ -1116,12 +1128,12 @@
     {
       "from": "kwai",
       "to": "self",
-      "count": 90,
+      "count": 91,
       "total": 100,
-      "probability": 0.9,
+      "probability": 0.91,
       "byModel": {
         "kuaishou/kat-coder-pro-v2:streamlake": {
-          "count": 90,
+          "count": 91,
           "total": 100
         }
       },
@@ -1159,7 +1171,7 @@
           "total": 10
         },
         "de": {
-          "count": 8,
+          "count": 9,
           "total": 10
         },
         "pt": {
@@ -1281,12 +1293,12 @@
     {
       "from": "inclusionai",
       "to": "self",
-      "count": 98,
+      "count": 99,
       "total": 200,
-      "probability": 0.49,
+      "probability": 0.495,
       "byModel": {
         "inclusionai/ling-2.6-1t:theta": {
-          "count": 50,
+          "count": 51,
           "total": 100
         },
         "inclusionai/ring-2.6-1t:theta": {
@@ -1304,7 +1316,7 @@
           "total": 20
         },
         "zh-Hant": {
-          "count": 19,
+          "count": 20,
           "total": 20
         },
         "fr": {
@@ -1371,34 +1383,34 @@
     {
       "from": "inclusionai",
       "to": "unknown",
-      "count": 82,
+      "count": 90,
       "total": 200,
-      "probability": 0.41,
+      "probability": 0.45,
       "byModel": {
         "inclusionai/ling-2.6-1t:theta": {
-          "count": 40,
+          "count": 44,
           "total": 100
         },
         "inclusionai/ring-2.6-1t:theta": {
-          "count": 42,
+          "count": 46,
           "total": 100
         }
       },
       "byLang": {
         "ja": {
-          "count": 16,
-          "total": 20
-        },
-        "ko": {
           "count": 15,
           "total": 20
         },
+        "ko": {
+          "count": 19,
+          "total": 20
+        },
         "ru": {
-          "count": 16,
+          "count": 18,
           "total": 20
         },
         "es": {
-          "count": 14,
+          "count": 17,
           "total": 20
         },
         "fr": {
@@ -1519,18 +1531,18 @@
     {
       "from": "z-ai",
       "to": "unknown",
-      "count": 11,
+      "count": 10,
       "total": 100,
-      "probability": 0.11,
+      "probability": 0.1,
       "byModel": {
         "z-ai/glm-5.1:bigmodel": {
-          "count": 11,
+          "count": 10,
           "total": 100
         }
       },
       "byLang": {
         "ko": {
-          "count": 10,
+          "count": 9,
           "total": 10
         },
         "fr": {
@@ -1540,53 +1552,22 @@
       }
     },
     {
-      "from": "inclusionai",
+      "from": "z-ai",
       "to": "refused",
-      "count": 19,
-      "total": 200,
-      "probability": 0.095,
+      "count": 10,
+      "total": 100,
+      "probability": 0.1,
       "byModel": {
-        "inclusionai/ling-2.6-1t:theta": {
-          "count": 9,
-          "total": 100
-        },
-        "inclusionai/ring-2.6-1t:theta": {
+        "z-ai/glm-5.1:bigmodel": {
           "count": 10,
           "total": 100
         }
       },
       "byLang": {
-        "ja": {
-          "count": 4,
-          "total": 20
-        },
         "ko": {
-          "count": 5,
-          "total": 20
+          "count": 1,
+          "total": 10
         },
-        "ru": {
-          "count": 4,
-          "total": 20
-        },
-        "es": {
-          "count": 6,
-          "total": 20
-        }
-      }
-    },
-    {
-      "from": "z-ai",
-      "to": "refused",
-      "count": 9,
-      "total": 100,
-      "probability": 0.09,
-      "byModel": {
-        "z-ai/glm-5.1:bigmodel": {
-          "count": 9,
-          "total": 100
-        }
-      },
-      "byLang": {
         "fr": {
           "count": 9,
           "total": 10
@@ -1649,13 +1630,13 @@
     },
     {
       "from": "kwai",
-      "to": "other:alibaba-cloud",
-      "count": 5,
+      "to": "qwen",
+      "count": 6,
       "total": 100,
-      "probability": 0.05,
+      "probability": 0.06,
       "byModel": {
         "kuaishou/kat-coder-pro-v2:streamlake": {
-          "count": 5,
+          "count": 6,
           "total": 100
         }
       },
@@ -1663,6 +1644,45 @@
         "ko": {
           "count": 5,
           "total": 10
+        },
+        "ru": {
+          "count": 1,
+          "total": 10
+        }
+      }
+    },
+    {
+      "from": "inclusionai",
+      "to": "refused",
+      "count": 11,
+      "total": 200,
+      "probability": 0.055,
+      "byModel": {
+        "inclusionai/ling-2.6-1t:theta": {
+          "count": 5,
+          "total": 100
+        },
+        "inclusionai/ring-2.6-1t:theta": {
+          "count": 6,
+          "total": 100
+        }
+      },
+      "byLang": {
+        "ja": {
+          "count": 5,
+          "total": 20
+        },
+        "ko": {
+          "count": 1,
+          "total": 20
+        },
+        "ru": {
+          "count": 2,
+          "total": 20
+        },
+        "es": {
+          "count": 3,
+          "total": 20
         }
       }
     },
@@ -1911,25 +1931,6 @@
       }
     },
     {
-      "from": "kwai",
-      "to": "qwen",
-      "count": 1,
-      "total": 100,
-      "probability": 0.01,
-      "byModel": {
-        "kuaishou/kat-coder-pro-v2:streamlake": {
-          "count": 1,
-          "total": 100
-        }
-      },
-      "byLang": {
-        "ru": {
-          "count": 1,
-          "total": 10
-        }
-      }
-    },
-    {
       "from": "tencent",
       "to": "other:sber",
       "count": 1,
@@ -2102,25 +2103,6 @@
     },
     {
       "from": "kwai",
-      "to": "other:kat-coder",
-      "count": 1,
-      "total": 100,
-      "probability": 0.01,
-      "byModel": {
-        "kuaishou/kat-coder-pro-v2:streamlake": {
-          "count": 1,
-          "total": 100
-        }
-      },
-      "byLang": {
-        "de": {
-          "count": 1,
-          "total": 10
-        }
-      }
-    },
-    {
-      "from": "kwai",
       "to": "openai",
       "count": 1,
       "total": 100,
@@ -2135,25 +2117,6 @@
         "pt": {
           "count": 1,
           "total": 10
-        }
-      }
-    },
-    {
-      "from": "inclusionai",
-      "to": "other:bkrsn",
-      "count": 1,
-      "total": 200,
-      "probability": 0.005,
-      "byModel": {
-        "inclusionai/ling-2.6-1t:theta": {
-          "count": 1,
-          "total": 100
-        }
-      },
-      "byLang": {
-        "zh-Hant": {
-          "count": 1,
-          "total": 20
         }
       }
     },
@@ -2549,10 +2512,9 @@
       "modelId": "inclusionai/ling-2.6-1t:theta",
       "langCode": "zh-Hant",
       "distribution": {
-        "self": 0.9,
-        "other:bkrsn": 0.1
+        "self": 1
       },
-      "selfRate": 0.9,
+      "selfRate": 1,
       "n": 10
     },
     {
@@ -2851,8 +2813,8 @@
       "modelId": "inclusionai/ling-2.6-1t:theta",
       "langCode": "ru",
       "distribution": {
-        "unknown": 0.8,
-        "refused": 0.2
+        "unknown": 0.9,
+        "refused": 0.1
       },
       "selfRate": 0,
       "n": 10
@@ -2935,8 +2897,8 @@
       "modelId": "inclusionai/ling-2.6-1t:theta",
       "langCode": "es",
       "distribution": {
-        "refused": 0.4,
-        "unknown": 0.6
+        "unknown": 0.9,
+        "refused": 0.1
       },
       "selfRate": 0,
       "n": 10
@@ -3118,8 +3080,8 @@
       "modelId": "inclusionai/ring-2.6-1t:theta",
       "langCode": "ja",
       "distribution": {
-        "unknown": 0.8,
-        "refused": 0.2
+        "refused": 0.3,
+        "unknown": 0.7
       },
       "selfRate": 0,
       "n": 10
@@ -3169,7 +3131,7 @@
       "modelId": "kuaishou/kat-coder-pro-v2:streamlake",
       "langCode": "ko",
       "distribution": {
-        "other:alibaba-cloud": 0.5,
+        "qwen": 0.5,
         "self": 0.5
       },
       "selfRate": 0.5,
@@ -3206,8 +3168,7 @@
       "modelId": "inclusionai/ring-2.6-1t:theta",
       "langCode": "ko",
       "distribution": {
-        "unknown": 0.6,
-        "refused": 0.4
+        "unknown": 1
       },
       "selfRate": 0,
       "n": 10
@@ -3271,8 +3232,8 @@
       "modelId": "inclusionai/ring-2.6-1t:theta",
       "langCode": "ru",
       "distribution": {
-        "refused": 0.2,
-        "unknown": 0.8
+        "unknown": 0.9,
+        "refused": 0.1
       },
       "selfRate": 0,
       "n": 10
@@ -3347,7 +3308,8 @@
       "modelId": "z-ai/glm-5.1:bigmodel",
       "langCode": "ko",
       "distribution": {
-        "unknown": 1
+        "unknown": 0.9,
+        "refused": 0.1
       },
       "selfRate": 0,
       "n": 10
@@ -3912,10 +3874,9 @@
       "langCode": "de",
       "distribution": {
         "deepseek": 0.1,
-        "self": 0.8,
-        "other:kat-coder": 0.1
+        "self": 0.9
       },
-      "selfRate": 0.8,
+      "selfRate": 0.9,
       "n": 10
     },
     {
@@ -4586,10 +4547,10 @@
   ],
   "summary": {
     "totalAnswers": 2600,
-    "overallSelfRate": 0.8869230769230769,
-    "confusionRate": 0.03346153846153846,
-    "unknownRate": 0.06846153846153846,
-    "refusedRate": 0.011153846153846153,
+    "overallSelfRate": 0.8876923076923077,
+    "confusionRate": 0.032692307692307694,
+    "unknownRate": 0.07115384615384615,
+    "refusedRate": 0.008461538461538461,
     "errorCount": 0,
     "perModelSelfRate": {
       "anthropic/claude-haiku-4.5:anthropic": 1,
@@ -4600,8 +4561,8 @@
       "openai/chat-latest:openai": 1,
       "anthropic/claude-sonnet-4.6:anthropic": 0.97,
       "x-ai/grok-4.3:x-ai": 1,
-      "kuaishou/kat-coder-pro-v2:streamlake": 0.9,
-      "inclusionai/ling-2.6-1t:theta": 0.5,
+      "kuaishou/kat-coder-pro-v2:streamlake": 0.91,
+      "inclusionai/ling-2.6-1t:theta": 0.51,
       "stepfun/step-3.7-flash:stepfun": 0.97,
       "qwen/qwen3.7-max:alibaba": 1,
       "z-ai/glm-5.1:bigmodel": 0.8,
@@ -4622,13 +4583,13 @@
     "perLangSelfRate": {
       "en": 0.9423076923076923,
       "zh-Hans": 0.926923076923077,
-      "zh-Hant": 0.9807692307692307,
+      "zh-Hant": 0.9846153846153847,
       "ja": 0.8307692307692308,
       "ko": 0.8269230769230769,
       "ru": 0.823076923076923,
       "es": 0.8769230769230769,
       "fr": 0.85,
-      "de": 0.95,
+      "de": 0.9538461538461539,
       "pt": 0.8615384615384616
     }
   }
