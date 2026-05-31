@@ -10,10 +10,8 @@
     "study:run": "tsx research/scripts/run.ts",
     "study:extract": "tsx research/scripts/extract.ts",
     "study:aggregate": "tsx research/scripts/aggregate.ts",
-    "study:graph": "tsx research/scripts/render-graph.ts",
     "study:report": "tsx research/scripts/report.ts",
-    "study:test": "tsx research/scripts/run.ts && tsx research/scripts/extract.ts && tsx research/scripts/aggregate.ts",
-    "study:render": "tsx research/scripts/render-graph.ts"
+    "study:test": "tsx research/scripts/run.ts && tsx research/scripts/extract.ts && tsx research/scripts/aggregate.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",

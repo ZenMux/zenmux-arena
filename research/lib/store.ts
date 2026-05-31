@@ -16,8 +16,6 @@ export interface RunPaths {
   records: string;
   extractions: string;
   aggregate: string;
-  graphSvg: string;
-  graphPng: string;
   report: string;
 }
 
@@ -33,8 +31,6 @@ export function runPaths(studyId: string, stamp: string): RunPaths {
     records: path.join(dir, "records.jsonl"),
     extractions: path.join(dir, "extractions.jsonl"),
     aggregate: path.join(dir, "aggregate.json"),
-    graphSvg: path.join(dir, "graph.svg"),
-    graphPng: path.join(dir, "graph.png"),
     report: path.join(dir, "report.md"),
   };
 }

@@ -2,6 +2,7 @@
 // Embeds base64 logos (Node/fs side). Pure geometry lives in geometry.ts and is
 // shared with the Next.js client component.
 
+import { BADGE_TEXT, REPO_LABEL } from "./branding";
 import {
   curvedArrow,
   DEFAULT_RENDER,
@@ -191,7 +192,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     // Pick the wordmark variant that reads on the current background:
     // ZenMux-Light.png is dark ink (for light bg); ZenMux.png is the light variant.
     const zen = logoFileDataUri(isDarkBackground(cfg.background) ? "ZenMux.png" : "ZenMux-Light.png");
-    const text = "以上研究由 thinkthinking | ZenMux.ai 测试";
+    const text = BADGE_TEXT;
     if (zen) {
       // logo (wide wordmark) + text centered as a unit
       const tw = 230; // approx text width budget
@@ -207,7 +208,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
       parts.push(`<text x="${width / 2}" y="${fy}" text-anchor="middle" font-size="16" fill="${pal.muted}">${esc(text)}</text>`);
     }
     parts.push(
-      `<text x="${width / 2}" y="${height - 22}" text-anchor="middle" font-size="11" fill="${pal.faint}">Generated ${esc(graph.generatedAt)} · run ${esc(graph.runId)} · n=${graph.summary.totalAnswers} answers</text>`,
+      `<text x="${width / 2}" y="${height - 22}" text-anchor="middle" font-size="11" fill="${pal.faint}">Generated ${esc(graph.generatedAt)} · run ${esc(graph.runId)} · n=${graph.summary.totalAnswers} answers · ${esc(REPO_LABEL)}</text>`,
     );
   }
 

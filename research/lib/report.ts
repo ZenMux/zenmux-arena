@@ -336,7 +336,7 @@ export function buildReport(graph: GraphData): string {
   L.push(
     `Run id \`${graph.runId}\`. Raw answers (\`records.jsonl\`), extraction labels ` +
       `(\`extractions.jsonl\`), and aggregated data (\`aggregate.json\`) accompany this report. ` +
-      `Re-run with \`pnpm study:all\`.`,
+      `Re-run with \`pnpm study:test\`.`,
   );
   L.push("");
   L.push("---");

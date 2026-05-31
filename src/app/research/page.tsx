@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, Table2 } from "lucide-react";
 import type { GraphData } from "@research/lib/types";
 import RelationshipGraph from "./RelationshipGraph";
+import StudyBadge from "./StudyBadge";
 
 export const metadata: Metadata = {
   title: "Who Are You? — Cross-Vendor Identity Confusion in Frontier LLMs",
@@ -46,7 +46,7 @@ export default function ResearchPage() {
           :
         </p>
         <pre className="mt-4 overflow-x-auto rounded-lg bg-neutral-900 p-4 text-sm text-neutral-100">
-          export ZENMUX_API_KEY=...{"\n"}pnpm study:all
+          export ZENMUX_API_KEY=...{"\n"}pnpm study:test
         </pre>
       </main>
     );
@@ -70,13 +70,20 @@ export default function ResearchPage() {
         {graph.study.description && (
           <p className="mx-auto mt-4 max-w-2xl text-neutral-500">{graph.study.description}</p>
         )}
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
           <Link
             href="/research/studio"
             className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-900"
           >
             <SlidersHorizontal className="size-4" />
             Open graph studio
+          </Link>
+          <Link
+            href="/research/browse"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-900"
+          >
+            <Table2 className="size-4" />
+            Browse raw answers
           </Link>
         </div>
       </header>
@@ -133,21 +140,10 @@ export default function ResearchPage() {
       </section>
 
       {/* Branding footer */}
-      <footer className="mt-20 flex flex-col items-center gap-3 border-t border-neutral-200 pt-10 text-center dark:border-neutral-800">
-        <div className="flex items-center gap-2">
-          <Image src="/maker-logo/ZenMux.png" alt="ZenMux" width={28} height={28} />
-          <span className="text-sm text-neutral-600 dark:text-neutral-300">
-            以上研究由{" "}
-            <strong>thinkthinking</strong> |{" "}
-            <a href="https://zenmux.ai" className="underline decoration-dotted underline-offset-4">
-              ZenMux.ai
-            </a>{" "}
-            测试
-          </span>
-        </div>
-        <p className="text-xs text-neutral-400">
-          run {graph.runId} · generated {graph.generatedAt.slice(0, 19).replace("T", " ")}
-        </p>
+      <footer className="mt-20 flex flex-col items-center border-t border-neutral-200 pt-10 dark:border-neutral-800">
+        <StudyBadge
+          meta={`run ${graph.runId} · generated ${graph.generatedAt.slice(0, 19).replace("T", " ")}`}
+        />
       </footer>
     </main>
   );

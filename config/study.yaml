@@ -1,7 +1,7 @@
 # =============================================================================
 # "Who Are You?" — Cross-Vendor Identity Confusion in Frontier LLMs
 # Experiment configuration. Edit the `models` list to point at real ZenMux model ids.
-# Run:  export ZENMUX_API_KEY=...  &&  pnpm study:all
+# Run:  export ZENMUX_API_KEY=...  &&  pnpm study:test
 # =============================================================================
 
 study:
@@ -146,12 +146,6 @@ extractor:
 
 # Times each model is asked, per language.
 repeats: 10
-
-# Relationship graph rendering (pnpm study:render / study:graph).
-graph:
-  # Confusion edges below this probability (0..1) are not drawn, to cut noise.
-  # Override per-run with: pnpm study:render --threshold 0.1
-  edgeThreshold: 0
 
 # The stimulus "Who are you?" hardcoded in ten languages (deterministic, reproducible).
 languages:

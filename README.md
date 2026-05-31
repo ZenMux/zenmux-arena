@@ -36,9 +36,10 @@ inclusion）。语言、重复次数、提取器模型也都在该文件里配�
 
 ---
 
-## 2. 三阶段工作流（测试 → 渲染 → 报告，彼此独立）
+## 2. 工作流（测试 → 报告，彼此独立；关系图在网页里导出）
 
-设计上刻意分开，方便你**先看测试数据，确认无误后再渲染图、再写报告**。
+设计上刻意分开，方便你**先看测试数据，确认无误后再写报告**。
+关系图不再用命令行渲染——改为在网页 **Graph Studio** 里实时预览并手动导出 PNG/SVG（见第 4 节）。
 
 ### 阶段一 · 测试（问答 + 提取 + 聚合）
 
@@ -93,22 +94,7 @@ pnpm study:run --run 20260529T045756
 
 确实想在不完整数据上强跑，可加 `--force`。
 
-### 阶段二 · 渲染关系图
-
-确认测试数据 OK 后：
-
-```bash
-pnpm study:render            # 默认渲染最近一次 run
-pnpm study:render --run 20260529T045756   # 或指定某次
-```
-
-产物：`results/<study.id>/<时间戳>/graph.svg` + `graph.png`，并发布到 `public/research/graph.png`（供网页/分享）。
-
-可选参数：
-- `--lang zh-Hans` 只渲染某种语言的混淆关系
-- `--threshold 0.1` 调整边的显示阈值（默认 0.05，低于此概率的边不画）
-
-### 阶段三 · 撰写报告
+### 阶段二 · 撰写报告
 
 ```bash
 pnpm study:report            # 默认最近一次 run
@@ -118,6 +104,8 @@ pnpm study:report            # 默认最近一次 run
 arxiv 风格：摘要、方法论、三线表（各模型/各语言自识别率、混淆矩阵、Top 混淆边）、内嵌关系图、
 可粘贴论文的 LaTeX booktabs 块、讨论与结论。
 
+> 关系图（PNG/SVG）请到网页 **Graph Studio** 里调参后手动导出（第 4 节），不再有命令行渲染步骤。
+
 ---
 
 ## 3. 常用命令速查
@@ -125,8 +113,7 @@ arxiv 风格：摘要、方法论、三线表（各模型/各语言自识别率�
 | 命令 | 作用 |
 |---|---|
 | `pnpm study:test` | 阶段一：问答 + 提取 + 聚合（带完整性门禁） |
-| `pnpm study:render` | 阶段二：渲染关系图 SVG/PNG |
-| `pnpm study:report` | 阶段三：生成 arxiv 风格报告 |
+| `pnpm study:report` | 阶段二：生成 arxiv 风格报告 |
 | `pnpm study:run` | 仅问答（自动补全 + 重试轮次） |
 | `pnpm study:extract` | 仅身份提取（需 records 完整） |
 | `pnpm study:aggregate` | 仅聚合（需 records 完整） |
@@ -136,7 +123,6 @@ arxiv 风格：摘要、方法论、三线表（各模型/各语言自识别率�
 - `--run <时间戳>`：指定 run 目录续跑；`--run latest` 用最近一次。`study:run` 不带则新建。
 - `study:run` 专属：`--model-concurrency <n>`、`--batch-size <n>`、`--max-rounds <n>`
 - `study:extract` / `study:aggregate`：`--force` 跳过完整性门禁
-- `study:render`：`--lang <code>`、`--threshold <p>`
 
 > 注意：`study:test` 会**新建**一次 run 并依次跑完三步；若问答未跑完（超过 max-rounds 仍有失败），
 > 链条会在门禁处停下，不会在残缺数据上提取/聚合。
@@ -149,8 +135,11 @@ arxiv 风格：摘要、方法论、三线表（各模型/各语言自识别率�
 pnpm dev
 ```
 
-打开 [http://localhost:3000/research](http://localhost:3000/research) 查看交互式关系图：
-节点 hover 高亮关联边、边 hover 显示精确概率、可按语言筛选。页面读取 `public/research/aggregate.json`。
+三个页面（均读取 `results/<study.id>/<时间戳>/` 下的数据；`/research` 读 `public/research/aggregate.json`）：
+
+- **[/research](http://localhost:3000/research)** — 报告页：头条指标、交互式关系图（节点 hover 高亮关联边、边 hover 显示精确概率、可按语言筛选）、汇总表格。
+- **[/research/studio](http://localhost:3000/research/studio)** — Graph Studio：实时调参（间距/节点大小/曲率/阈值/配色/标签模式/背景），拖动改边形状，隐藏厂商，然后**导出 PNG/SVG**（所见即所得，导出图脚注自带 ZenMux 标识 + 源码地址）。**关系图就在这里出图**。
+- **[/research/browse](http://localhost:3000/research/browse)** — 原始回答浏览：按模型 slug 浏览每条 `records.jsonl` 回答，按语言分组，每条回答下方展示 `extractions.jsonl` 里的提取结果（自称厂商、自称文本、置信度、理由；无对应结果时显示「无」）。
 
 ---
 
@@ -159,12 +148,12 @@ pnpm dev
 ```
 config/study.yaml          # 实验配置（编辑这里）
 research/
-  lib/                     # 核心库：types/vendors/config/prompts/client/limiter/store/ask/extract/aggregate/svg/geometry/report
-  scripts/                 # run / extract / aggregate / render-graph / report
-  assets/NotoSansSC-*.otf  # resvg 渲染 PNG 内中文用的字体
-results/<study.id>/<时间戳>/  # 每次测试的产物（records/extractions/aggregate/graph/report）
-public/research/           # 发布物：aggregate.json + graph.png（网页读取）
-src/app/research/          # Next.js 交互页
+  lib/                     # 核心库：types/vendors/config/prompts/client/limiter/store/ask/extract/aggregate/svg/geometry/report/branding
+  scripts/                 # run / extract / aggregate / report
+  assets/NotoSansSC-*.otf  # resvg 导出 PNG 内中文用的字体
+results/<study.id>/<时间戳>/  # 每次测试的产物（records/extractions/aggregate/report）
+public/research/           # 发布物：aggregate.json + report.md（+ 网页导出的 graph.png 作 OG 图）
+src/app/research/          # Next.js 交互页：报告页 / studio（出图+导出）/ browse（原始回答浏览）
 ```
 
 ---
