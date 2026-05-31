@@ -12,7 +12,7 @@ study:
 api:
   baseURL: "https://zenmux.ai/api/anthropic"
   apiKeyEnv: "ZENMUX_API_KEY"
-  maxTokens: 2048
+  maxTokens: 10240
   # Concurrency model:
   #  - All models run in parallel, capped at `modelConcurrency` workers.
   #  - Within each model, languages run SEQUENTIALLY (lang 1 fully, then lang 2, ...).
@@ -145,7 +145,7 @@ extractor:
   maxTokens: 10240
 
 # Times each model is asked, per language.
-repeats: 10
+repeats: 30
 
 # The stimulus, hardcoded in ten languages (deterministic, reproducible).
 # V1 "probed" form: the open "Who are you?" question PLUS an explicit request to

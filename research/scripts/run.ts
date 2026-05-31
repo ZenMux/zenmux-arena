@@ -69,15 +69,21 @@ async function main() {
   // until the run is complete or we run out of rounds.
   for (let round = 1; round <= maxRounds; round++) {
     const existing = loadJsonl<RawRecord>(paths.records);
-    const done = completedAnswerKeys(existing); // only successful keys count as done
-    const todoCount = allTasks.length - done.size;
+    const done = completedAnswerKeys(existing); // keys with ≥1 successful record
+    // Split the remaining work so it's visible that errored/429 keys are re-attempted,
+    // not silently treated as done. `errored` = attempted-but-never-succeeded.
+    const before = checkCompleteness(expectedKeys, existing);
+    const todoCount = before.missing.length + before.errored.length;
 
     if (todoCount === 0) {
       console.log(`[run] round ${round}: all ${allTasks.length} keys complete — nothing to do.`);
       break;
     }
 
-    console.log(`[run] ═══ round ${round}/${maxRounds}: ${done.size}/${allTasks.length} done, ${todoCount} to (re)try ═══`);
+    console.log(
+      `[run] ═══ round ${round}/${maxRounds}: ${done.size}/${allTasks.length} done, ` +
+        `${todoCount} to (re)try (missing=${before.missing.length}, errored=${before.errored.length}) ═══`,
+    );
     await runRound(client, cfg, paths.runId, paths.records, done);
 
     // Re-check after the round.

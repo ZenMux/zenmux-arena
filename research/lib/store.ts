@@ -105,12 +105,25 @@ export function dedupeByKey<T extends { key: string }>(items: T[]): Map<string, 
 }
 
 /**
- * Keys considered "done" for the ask pass: a record exists with a non-empty response.
- * With `retryErrors=true`, errored keys (no response) become eligible again.
+ * The single definition of a "successful" answer record, shared by the round-loop
+ * skip-set (`completedAnswerKeys`) and the completeness gate (`checkCompleteness`).
+ * A record is a success iff it has a non-empty response and no `error` field set.
+ * (`ask` now also flags an empty 200 as an error, so the two conditions agree.)
+ */
+export function isSuccess(r: RawRecord): boolean {
+  return !r.error && !!r.response;
+}
+
+/**
+ * Keys considered "done" for the ask pass: a key is done if it has AT LEAST ONE
+ * successful record (any-success, not last-write-wins). A later errored re-attempt
+ * for an already-succeeded key must NOT un-complete it — otherwise the round loop
+ * and the completeness gate could disagree and deadlock (loop skips a key the gate
+ * still rejects). `checkCompleteness` classifies keys the same way.
  */
 export function completedAnswerKeys(records: RawRecord[]): Set<string> {
   const set = new Set<string>();
-  for (const r of records) if (r.response && !r.error) set.add(r.key);
+  for (const r of records) if (isSuccess(r)) set.add(r.key);
   return set;
 }
 
@@ -132,19 +145,29 @@ export interface Completeness {
 }
 
 /**
- * Check that every expected key has a successful record (non-empty response, no error).
+ * Check that every expected key has at least one successful record.
  * `expectedKeys` is the full model×lang×repeat key set from enumerateTasks.
+ *
+ * Classification is any-success (matching `completedAnswerKeys`), NOT last-write-wins:
+ *   - `missing`  — the key has no record at all (never attempted).
+ *   - `errored`  — the key has record(s), but none succeeded (all errored / empty).
+ *   - `ok`       — the key has ≥1 successful record (a later errored retry can't undo this).
+ * This guarantees the gate and the round-loop skip-set always agree, so an errored
+ * 429 that later succeeded reads as `ok`, and one that never succeeds reads as `errored`
+ * and IS retried — never silently treated as done.
  */
 export function checkCompleteness(expectedKeys: string[], records: RawRecord[]): Completeness {
-  const byKey = dedupeByKey(records);
+  const succeeded = completedAnswerKeys(records);
+  const seen = new Set<string>();
+  for (const r of records) seen.add(r.key);
+
   const missing: string[] = [];
   const errored: string[] = [];
   let ok = 0;
   for (const key of expectedKeys) {
-    const r = byKey.get(key);
-    if (!r) missing.push(key);
-    else if (r.error || !r.response) errored.push(key);
-    else ok++;
+    if (succeeded.has(key)) ok++;
+    else if (seen.has(key)) errored.push(key);
+    else missing.push(key);
   }
   return { complete: missing.length === 0 && errored.length === 0, expected: expectedKeys.length, ok, missing, errored };
 }

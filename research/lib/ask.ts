@@ -73,14 +73,30 @@ export async function ask(
           ),
       },
     );
+    const response = extractText(message);
+    const usage = message.usage
+      ? { input: message.usage.input_tokens, output: message.usage.output_tokens }
+      : undefined;
+    // A 200 with no text content is a *silent* failure (e.g. the model spent its
+    // whole budget on reasoning and emitted no answer — stop_reason "max_tokens").
+    // Record it as an error so the round loop re-asks it and aggregate counts it,
+    // instead of it masquerading as a completed key. Keep generationId/usage for audit.
+    if (!response) {
+      return {
+        ...base,
+        timestamp: new Date().toISOString(),
+        generationId: message.id ?? null,
+        response: "",
+        usage,
+        error: `empty response (stop_reason=${message.stop_reason ?? "unknown"})`,
+      };
+    }
     return {
       ...base,
       timestamp: new Date().toISOString(),
       generationId: message.id ?? null,
-      response: extractText(message),
-      usage: message.usage
-        ? { input: message.usage.input_tokens, output: message.usage.output_tokens }
-        : undefined,
+      response,
+      usage,
     };
   } catch (err) {
     return {
