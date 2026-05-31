@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { edgeLangWeights, isPseudo, vendorColor } from "@research/lib/geometry";
+import { edgeLangWeights, isNonNode, vendorColor } from "@research/lib/geometry";
 import type { GraphData, VendorId } from "@research/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +29,7 @@ export default function EdgeTable({
 }) {
   const rows = useMemo(() => {
     return graph.edges
-      .filter((e) => e.from !== e.to && !isPseudo(e.to))
+      .filter((e) => e.from !== e.to && !isNonNode(e.to))
       .map((e) => {
         const langs = edgeLangWeights(e); // sorted strongest-first, all langs
         const byCode = new Map(langs.map((l) => [l.code, l]));

@@ -12,6 +12,7 @@ import {
   edgeWeight,
   type GraphLayout,
   isDarkBackground,
+  isNonNode,
   type LangWeight,
   makeLayout,
   nodePositions,
@@ -57,19 +58,19 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   // Foreground palette adapts to the (custom) background so everything stays legible.
   const pal = paletteFor(cfg.background);
 
-  // Only draw nodes for real vendors (pseudo-vendors aren't placed on the ring).
-  // Dynamic `other:<slug>` brands ARE drawn (as labeled circles); only the
-  // analytical buckets and the bare `other` parent are excluded from the ring.
-  // A `hidden` set (vendors the user unchecked in the studio) drops more, so the
-  // export reflows around exactly the vendors left on screen.
+  // Nodes drawn on the ring: canonical vendors, the analytical buckets
+  // (unknown/refused), and dynamic `other:<slug>` brands. Only the structural
+  // non-nodes (self, the bare `other` parent) are excluded. The studio's `hidden`
+  // set drops more — and since unknown/refused/other:<brand> default to hidden in
+  // the picker, the export reflows around exactly the vendors left on screen.
   const hidden = new Set(options.hidden ?? []);
-  const realVendors = graph.vendors.filter(
-    (v) => !["self", "unknown", "refused", "other"].includes(v.id) && !hidden.has(v.id),
+  const ringVendors = graph.vendors.filter(
+    (v) => !isNonNode(v.id) && !hidden.has(v.id),
   );
   // Layout auto-scales to the vendor count (and the config's spacing) so the ring never crowds.
-  const layout = options.layout ?? makeLayout(realVendors.length, { ...cfg, chrome });
+  const layout = options.layout ?? makeLayout(ringVendors.length, { ...cfg, chrome });
   const { width, height } = layout;
-  const pos = nodePositions(realVendors, layout);
+  const pos = nodePositions(ringVendors, layout);
 
   // Confusion edges: from != to, to is a real vendor.
   //  - Language-filtered (langCode set): single rate for that language, p >= threshold.
@@ -77,7 +78,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   //    p >= threshold, and label it with the per-language rates. `p` (used for
   //    stroke width + draw order) is the strongest single-language rate.
   const drawable = graph.edges
-    .filter((e) => e.from !== e.to && !["self", "unknown", "refused", "other"].includes(e.to))
+    .filter((e) => e.from !== e.to && !isNonNode(e.to))
     .filter((e) => pos.has(e.from) && pos.has(e.to))
     .map((e) => {
       if (options.langCode) {
@@ -156,7 +157,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   }
 
   // Nodes
-  for (const v of realVendors) {
+  for (const v of ringVendors) {
     const p = pos.get(v.id)!;
     const nr = layout.nodeRadius;
     // The chip stays dark regardless of background: the maker logos are white/light

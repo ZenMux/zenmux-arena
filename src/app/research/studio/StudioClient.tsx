@@ -33,7 +33,12 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { DEFAULT_RENDER, type EdgeCurves, type RenderConfig } from "@research/lib/geometry";
+import {
+  DEFAULT_RENDER,
+  type EdgeCurves,
+  isOffByDefault,
+  type RenderConfig,
+} from "@research/lib/geometry";
 import type { GraphData, VendorId } from "@research/lib/types";
 import RelationshipGraph from "../RelationshipGraph";
 import EdgeTable from "./EdgeTable";
@@ -72,7 +77,13 @@ export default function StudioClient({
   const [exportError, setExportError] = useState<string | null>(null);
   // Lifted out of RelationshipGraph so the export reflects the user's edits:
   // which vendors are hidden, and any edges they've dragged into a new shape.
-  const [hidden, setHidden] = useState<Set<VendorId>>(() => new Set());
+  // Seeded with the off-by-default set (unknown/refused/other:<brand>) so the
+  // graph opens as just the canonical vendors — matching RelationshipGraph's own
+  // default. The studio remounts per run (key in page.tsx), so this re-seeds for
+  // each run's distinct other:<brand> set.
+  const [hidden, setHidden] = useState<Set<VendorId>>(
+    () => new Set(graph.vendors.filter((v) => isOffByDefault(v.id)).map((v) => v.id)),
+  );
   const [curves, setCurves] = useState<EdgeCurves>({});
 
   const set = useCallback(

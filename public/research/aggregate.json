@@ -1,6 +1,6 @@
 {
   "runId": "who-are-you/20260530T175319",
-  "generatedAt": "2026-05-31T04:13:18.457Z",
+  "generatedAt": "2026-05-31T16:50:25.025Z",
   "study": {
     "id": "who-are-you",
     "title": "Who Are You? Cross-Vendor Identity Confusion in Frontier LLMs",
@@ -413,8 +413,20 @@
       ]
     },
     {
+      "id": "unknown",
+      "name": "Unknown",
+      "logo": "",
+      "aliases": []
+    },
+    {
       "id": "other:microsoft",
       "name": "Microsoft",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "refused",
+      "name": "Refused",
       "logo": "",
       "aliases": []
     },

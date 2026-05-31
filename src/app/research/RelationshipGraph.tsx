@@ -10,7 +10,8 @@ import {
   edgeKey,
   edgeLangWeights,
   edgeWeight,
-  isPseudo,
+  isNonNode,
+  isOffByDefault,
   type LangWeight,
   makeLayout,
   nodePositions,
@@ -170,21 +171,27 @@ export default function RelationshipGraph({
   const [hoverNode, setHoverNode] = useState<VendorId | null>(null);
   const [hoverEdge, setHoverEdge] = useState<HoverEdge | null>(null);
 
-  const realVendors = useMemo(
-    () => graph.vendors.filter((v) => !isPseudo(v.id)),
+  // Every vendor eligible for a ring node + a picker row: canonical vendors,
+  // the analytical buckets (unknown/refused), and discovered other:<brand>s.
+  // Only the structural non-nodes (self, bare `other`) are excluded.
+  const pickableVendors = useMemo(
+    () => graph.vendors.filter((v) => !isNonNode(v.id)),
     [graph.vendors],
   );
 
-  // Which vendors are drawn on the ring. Defaults to all real vendors; the side
-  // picker toggles membership and the layout re-flows from the visible count.
-  // Controlled by the parent when provided (so the studio can export the same
-  // filtered set), otherwise self-contained.
-  const [internalHidden, setInternalHidden] = useState<Set<VendorId>>(() => new Set());
+  // Which vendors are drawn on the ring. The picker toggles membership and the
+  // layout re-flows from the visible count. Default-hidden = the off-by-default
+  // set (unknown/refused/other:<brand>), so the graph opens as just the canonical
+  // vendors and the user opts the rest in. Controlled by the parent when provided
+  // (so the studio can export the same filtered set), otherwise self-contained.
+  const [internalHidden, setInternalHidden] = useState<Set<VendorId>>(
+    () => new Set(graph.vendors.filter((v) => isOffByDefault(v.id)).map((v) => v.id)),
+  );
   const hidden = controlledHidden ?? internalHidden;
   const setHidden = onHiddenChange ?? setInternalHidden;
   const shownVendors = useMemo(
-    () => realVendors.filter((v) => !hidden.has(v.id)),
-    [realVendors, hidden],
+    () => pickableVendors.filter((v) => !hidden.has(v.id)),
+    [pickableVendors, hidden],
   );
   const toggleVendor = (id: VendorId) =>
     setHidden((prev) => {
@@ -217,7 +224,7 @@ export default function RelationshipGraph({
   const threshold = cfg.threshold;
   const edges = useMemo(() => {
     return graph.edges
-      .filter((e) => e.from !== e.to && !isPseudo(e.to))
+      .filter((e) => e.from !== e.to && !isNonNode(e.to))
       .filter((e) => pos.has(e.from) && pos.has(e.to))
       .map((e) => {
         if (lang) {
@@ -344,11 +351,11 @@ export default function RelationshipGraph({
       <div className={showVendorPicker ? "flex flex-col gap-4 lg:flex-row lg:items-start" : undefined}>
         {showVendorPicker && (
           <VendorPicker
-            vendors={realVendors}
+            vendors={pickableVendors}
             hidden={hidden}
             onToggle={toggleVendor}
             onAll={() => setHidden(new Set())}
-            onNone={() => setHidden(new Set(realVendors.map((v) => v.id)))}
+            onNone={() => setHidden(new Set(pickableVendors.map((v) => v.id)))}
             hoverNode={hoverNode}
             onHover={setHoverNode}
           />

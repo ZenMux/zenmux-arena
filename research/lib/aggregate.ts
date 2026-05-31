@@ -12,7 +12,14 @@ import type {
 } from "./types";
 import { makeOtherVendorMeta, VENDORS } from "./vendors";
 
+// Used for the confusion-rate denominator: a claim is "confusion" only if it's a
+// real DIFFERENT vendor — never self, and never the no-identity buckets.
 const PSEUDO: VendorId[] = ["self", "unknown", "refused"];
+
+// Aggregates that are NOT placed on the ring as nodes. `unknown`/`refused` ARE
+// now drawable nodes (opt-in in the picker), so only `self` (the derived
+// correct-claim bucket) and the bare `other` parent are excluded here.
+const NON_NODE: VendorId[] = ["self", "other"];
 
 /** Effective claimed vendor: `self` if the claim matches the model's true vendor. */
 function effectiveClaimed(claimed: VendorId, modelVendor: VendorId): VendorId {
@@ -152,7 +159,7 @@ export function aggregate(
   const nodeIds = new Set<VendorId>();
   for (const edge of edges) {
     nodeIds.add(edge.from);
-    if (!PSEUDO.includes(edge.to)) nodeIds.add(edge.to);
+    if (!NON_NODE.includes(edge.to)) nodeIds.add(edge.to);
   }
   for (const m of cfg.models) nodeIds.add(m.vendor);
   const vendors: VendorMeta[] = [...nodeIds]

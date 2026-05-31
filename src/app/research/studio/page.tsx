@@ -79,5 +79,8 @@ export default async function StudioPage({
     );
   }
 
-  return <StudioClient runs={runs} selectedRun={selected} graph={graph} />;
+  // key={selected} remounts the client when the user switches runs, so the
+  // lazily-seeded default-hidden set (and other per-run edit state) re-initializes
+  // against the new run's vendor list instead of carrying the previous run's over.
+  return <StudioClient key={selected} runs={runs} selectedRun={selected} graph={graph} />;
 }

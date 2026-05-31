@@ -355,6 +355,10 @@ export function vendorColor(id: VendorId): string {
     meta: "#0064e0",
     mistral: "#fa520f",
     agnes: "#6d28d9",
+    // Analytical buckets — muted gray so they read as "not a real vendor" when
+    // opted into the ring, instead of getting an arbitrary hashed hue below.
+    unknown: "#9ca3af",
+    refused: "#6b7280",
   };
   if (palette[id]) return palette[id]!;
   let h = 0;
@@ -372,6 +376,33 @@ const PSEUDO: VendorId[] = ["self", "unknown", "refused", "other"];
  */
 export function isPseudo(id: VendorId): boolean {
   return PSEUDO.includes(id);
+}
+
+/** Aggregates that can never be a ring node or an edge target. */
+const NON_NODE: VendorId[] = ["self", "other"];
+
+/**
+ * STRUCTURAL test: ids that never get a circle on the ring (nor land as an edge
+ * target). Only `self` (the derived correct-claim bucket) and the bare `other`
+ * parent qualify — `unknown`/`refused` and the dynamic `other:<slug>` brands ARE
+ * drawable nodes now. This is the node/edge-drawing gate; it must keep `self`
+ * excluded because self-edges (from=real vendor, to="self") are NOT caught by an
+ * `e.from !== e.to` filter.
+ */
+export function isNonNode(id: VendorId): boolean {
+  return NON_NODE.includes(id);
+}
+
+/**
+ * UI DEFAULT test: nodes that exist on the ring but start UNCHECKED in the vendor
+ * picker, so the default graph is just the canonical registry vendors. Covers the
+ * two analytical buckets plus every extractor-discovered `other:<slug>` brand.
+ * Registry-free on purpose (keeps this module client-safe): over the post-aggregate
+ * node domain — canonical ∪ {unknown,refused} ∪ {other:*} — "not canonical" is
+ * exactly this structural test, so no import of the vendor registry is needed.
+ */
+export function isOffByDefault(id: VendorId): boolean {
+  return id === "unknown" || id === "refused" || id.startsWith("other:");
 }
 
 /** Edge weight under an optional language filter (uses edge.byLang). */
