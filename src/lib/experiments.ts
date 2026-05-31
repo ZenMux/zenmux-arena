@@ -7,12 +7,7 @@
 // server components (the hub) and client components (the sidebar) without a
 // "use client" boundary leaking either way.
 
-import {
-  Fingerprint,
-  Languages,
-  ScanFace,
-  type LucideIcon,
-} from "lucide-react";
+import { Fingerprint, type LucideIcon } from "lucide-react";
 
 /** Where an experiment is in its lifecycle. `soon` cards are shown but inert. */
 export type ExperimentStatus = "live" | "soon";
@@ -48,28 +43,6 @@ export const EXPERIMENTS: Experiment[] = [
     href: "/research/studio",
     icon: Fingerprint,
     accent: "text-emerald-600 dark:text-emerald-400",
-  },
-  {
-    id: "lost-in-translation",
-    title: "Lost in Translation",
-    tagline: "Does a model's persona survive the language it speaks?",
-    description:
-      "Probe how a model's self-description, tone, and refusals shift as the prompt language changes — holding the question fixed and varying only the tongue.",
-    status: "soon",
-    href: null,
-    icon: Languages,
-    accent: "text-sky-600 dark:text-sky-400",
-  },
-  {
-    id: "mirror-test",
-    title: "The Mirror Test",
-    tagline: "Can a model recognize its own output?",
-    description:
-      "Show models their own and rivals' generations and ask them to pick which one they wrote — measuring self-recognition across the frontier.",
-    status: "soon",
-    href: null,
-    icon: ScanFace,
-    accent: "text-violet-600 dark:text-violet-400",
   },
 ];
 

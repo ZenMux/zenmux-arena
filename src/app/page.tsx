@@ -8,7 +8,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { EXPERIMENTS, PRIMARY_EXPERIMENT, type Experiment } from "@/lib/experiments";
 import type { GraphData } from "@research/lib/types";
+import { RandomArenaButton } from "./RandomArenaButton";
 
 /** Headline numbers for the live experiment's card, read from the published aggregate. */
 interface LiveStats {
@@ -48,7 +49,12 @@ function loadLiveStats(): LiveStats | null {
 
 export default function Home() {
   const stats = loadLiveStats();
-  const liveCount = EXPERIMENTS.filter((e) => e.status === "live").length;
+  const liveExperiments = EXPERIMENTS.filter((e) => e.status === "live");
+  const liveCount = liveExperiments.length;
+  // Serializable entry points handed to the client-side random CTA.
+  const liveHrefs = liveExperiments
+    .map((e) => e.href)
+    .filter((h): h is string => Boolean(h));
 
   return (
     <main className="relative flex flex-1 flex-col items-center overflow-hidden bg-background px-6 pb-24 pt-20 sm:pt-28">
@@ -91,29 +97,20 @@ export default function Home() {
             ZenMux Arena
           </Badge>
           <h1 className="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            Where frontier models
-            <br className="hidden sm:block" /> meet the same question.
+            The world&apos;s best AI,
+            <br className="hidden sm:block" /> put to playful tests.
           </h1>
           <p className="max-w-md text-pretty text-lg leading-8 text-muted-foreground">
-            A home for reproducible, cross-vendor experiments on how today&apos;s
-            leading LLMs actually behave — run through one unified endpoint.
+            ZenMux Arena runs the same fun, reproducible experiments across every
+            frontier model — then shows you exactly how differently they behave.
           </p>
         </div>
 
         <div className="flex flex-col items-center gap-3 sm:flex-row">
-          <Button asChild size="lg" className="group h-12 rounded-full px-6">
-            <Link href={PRIMARY_EXPERIMENT.href ?? "/research"}>
-              <Sparkles data-icon="inline-start" />
-              Enter the Arena
-              <ArrowRight
-                data-icon="inline-end"
-                className="transition-transform group-hover:translate-x-0.5"
-              />
-            </Link>
-          </Button>
+          <RandomArenaButton hrefs={liveHrefs} />
           <Button asChild variant="outline" size="lg" className="h-12 rounded-full px-6">
             <a href="https://zenmux.ai" target="_blank" rel="noopener noreferrer">
-              About ZenMux
+              Visit zenmux.ai
               <ArrowUpRight data-icon="inline-end" />
             </a>
           </Button>
@@ -128,7 +125,9 @@ export default function Home() {
               Experiments
             </h2>
             <p className="text-sm text-muted-foreground">
-              {liveCount} live · {EXPERIMENTS.length - liveCount} in the works
+              {EXPERIMENTS.length - liveCount > 0
+                ? `${liveCount} live · ${EXPERIMENTS.length - liveCount} in the works`
+                : `${liveCount} live · more on the way`}
             </p>
           </div>
         </div>
