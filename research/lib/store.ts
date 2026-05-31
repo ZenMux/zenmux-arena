@@ -112,38 +112,38 @@ export interface CompactResult {
 }
 
 /**
- * Rewrite a records JSONL so each key keeps exactly ONE record, dropping stale
- * duplicates — in particular an errored attempt that was later resolved by a
- * successful retry. Without this, the append-only log keeps every failed 429 row
- * forever even after the key succeeded.
+ * Rewrite a keyed JSONL file so each key keeps exactly ONE row, dropping stale
+ * duplicates — in particular an errored attempt later resolved by a successful retry.
+ * Without this, the append-only log keeps every failed row forever even after the key
+ * succeeds.
  *
- * Dedup priority (NOT plain last-write-wins): a SUCCESS always beats a non-success
- * for the same key regardless of order; among records of the same success-status the
- * later (freshest) one wins. First-seen key order is preserved so the file stays
- * stable/diffable. The rewrite is atomic (temp file + rename) so a crash can't leave
- * a half-written file. Returns kept/removed counts. No-op (and no rewrite) if the file
- * is missing or already has no duplicates.
+ * Dedup priority (NOT plain last-write-wins): a "good" row (per `isGood`) always beats
+ * a non-good row for the same key regardless of order; among rows of the same good/bad
+ * status the later (freshest) one wins. First-seen key order is preserved so the file
+ * stays stable/diffable. The rewrite is atomic (temp file + rename) so a crash can't
+ * leave a half-written file. No-op (no rewrite) if the file is missing or already has
+ * no duplicates.
  */
-export function compactRecords(file: string): CompactResult {
+function compactJsonl<T extends { key: string }>(file: string, isGood: (it: T) => boolean): CompactResult {
   if (!fs.existsSync(file)) return { kept: 0, removed: 0 };
-  const records = loadJsonl<RawRecord>(file);
+  const items = loadJsonl<T>(file);
 
-  const best = new Map<string, RawRecord>();
+  const best = new Map<string, T>();
   const order: string[] = [];
-  for (const r of records) {
-    const prev = best.get(r.key);
+  for (const it of items) {
+    const prev = best.get(it.key);
     if (!prev) {
-      best.set(r.key, r);
-      order.push(r.key);
+      best.set(it.key, it);
+      order.push(it.key);
       continue;
     }
-    // A success supersedes a non-success; otherwise the newer record wins (it is
-    // later in the file). Equivalent: replace unless the incumbent is the only success.
-    if (isSuccess(prev) && !isSuccess(r)) continue;
-    best.set(r.key, r);
+    // A good row supersedes a non-good one; otherwise the newer row wins (it is later
+    // in the file). Equivalent: keep the incumbent only if it is the sole good row.
+    if (isGood(prev) && !isGood(it)) continue;
+    best.set(it.key, it);
   }
 
-  const removed = records.length - order.length;
+  const removed = items.length - order.length;
   if (removed <= 0) return { kept: order.length, removed: 0 };
 
   const body = order.map((k) => JSON.stringify(best.get(k)!)).join("\n") + "\n";
@@ -151,6 +151,24 @@ export function compactRecords(file: string): CompactResult {
   fs.writeFileSync(tmp, body);
   fs.renameSync(tmp, file); // atomic on the same filesystem
   return { kept: order.length, removed };
+}
+
+/**
+ * Compact records.jsonl: one row per key, a successful answer superseding an earlier
+ * errored/empty row (e.g. a 429 that later succeeded). See `compactJsonl`.
+ */
+export function compactRecords(file: string): CompactResult {
+  return compactJsonl<RawRecord>(file, isSuccess);
+}
+
+/**
+ * Compact extractions.jsonl: one row per key, a cleanly-parsed extraction superseding
+ * an earlier `parseError` row (e.g. an extractor API failure later retried OK). A key
+ * whose every attempt parse-errored keeps its latest salvage row (with `parseError`
+ * set) so no data is lost. See `compactJsonl`.
+ */
+export function compactExtractions(file: string): CompactResult {
+  return compactJsonl<ExtractionResult>(file, (e) => !e.parseError);
 }
 
 /**

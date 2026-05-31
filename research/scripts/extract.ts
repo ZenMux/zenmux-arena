@@ -1,12 +1,18 @@
 // Extraction pass: for each answered record, extract the claimed identity via deepseek.
-// Appends to extractions.jsonl, resumable. Re-runnable without re-querying answer models.
+// Writes extractions.jsonl, resumable. Re-runnable without re-querying answer models.
+//
+// Like study:run, this self-heals: it loops up to --max-rounds, each round re-trying
+// only the keys still missing or carrying a parseError, and COMPACTS the file at every
+// round boundary so a key that parse-errored then succeeded keeps a single clean row
+// (the stale error row is physically dropped, not left behind). A key whose every
+// attempt parse-errors keeps its latest salvage row so no data is lost.
 //
 // GATE: refuses to run unless records.jsonl is COMPLETE (every model×lang×repeat has a
 // successful record). Override with --force.
 //
 // Usage:
 //   pnpm study:extract [--config config/study.yaml] [--run <stamp|latest>]
-//                      [--re-extract] [--force]
+//                      [--re-extract] [--force] [--max-rounds <n>]
 
 import { enumerateTasks } from "../lib/ask";
 import { parseArgs } from "../lib/args";
@@ -17,12 +23,13 @@ import { runBatched } from "../lib/limiter";
 import {
   appendJsonl,
   checkCompleteness,
+  compactExtractions,
   completedExtractionKeys,
   dedupeByKey,
   loadJsonl,
   resolveRun,
 } from "../lib/store";
-import type { ExtractionResult, RawRecord } from "../lib/types";
+import type { ExtractionResult, RawRecord, StudyConfig } from "../lib/types";
 
 async function main() {
   const args = parseArgs();
@@ -57,34 +64,88 @@ async function main() {
     process.exit(1);
   }
 
-  const done = args.has("re-extract")
-    ? new Set<string>()
-    : completedExtractionKeys(loadJsonl<ExtractionResult>(paths.extractions));
-  const todo = records.filter((r) => !done.has(r.key));
-
   const langName = new Map(cfg.languages.map((l) => [l.code, l.name]));
-
   // Global concurrency for extraction = batchSize × modelConcurrency (bounded, batched).
   const concurrency = Math.max(1, cfg.api.batchSize * cfg.api.modelConcurrency);
+  const maxRounds = args.num("max-rounds", 5);
+  const reExtract = args.has("re-extract");
 
   console.log("─".repeat(72));
   console.log(`[extract] extractor=${cfg.extractor.model}`);
-  console.log(`[extract] answered=${records.length}  done=${done.size}  todo=${todo.length}  concurrency=${concurrency}`);
+  console.log(`[extract] answered=${records.length}  concurrency=${concurrency}  maxRounds=${maxRounds}${reExtract ? "  (re-extract: all)" : ""}`);
   console.log("─".repeat(72));
-  if (todo.length === 0) {
-    console.log("[extract] nothing to do — all answers extracted.");
-    return;
-  }
 
   const client = makeClient(cfg);
+
+  // Compact once up front: collapse the append-only log so each key keeps one row
+  // (a clean retry supersedes its earlier parseError row), cleaning pre-existing
+  // stale rows even on a resume that has nothing left to do.
+  {
+    const c = compactExtractions(paths.extractions);
+    if (c.removed > 0) console.log(`[extract] compacted extractions: kept ${c.kept} key(s), removed ${c.removed} stale row(s).`);
+  }
+
+  // Round loop: each round re-extracts only keys still missing or carrying a
+  // parseError, until everything parses cleanly or we run out of rounds. Mirrors
+  // study:run's self-healing behavior.
+  for (let round = 1; round <= maxRounds; round++) {
+    // `--re-extract` only forces a full redo on the FIRST round; later rounds always
+    // target just the not-yet-clean keys (avoid re-doing already-clean extractions).
+    const done = reExtract && round === 1
+      ? new Set<string>()
+      : completedExtractionKeys(loadJsonl<ExtractionResult>(paths.extractions));
+    const todo = records.filter((r) => !done.has(r.key));
+
+    if (todo.length === 0) {
+      console.log(`[extract] round ${round}: all ${records.length} answers extracted — nothing to do.`);
+      break;
+    }
+
+    console.log(`[extract] ═══ round ${round}/${maxRounds}: ${done.size}/${records.length} clean, ${todo.length} to (re)extract ═══`);
+    const { parseErrors } = await runExtractRound(client, cfg, paths.runId, paths.extractions, todo, langName, concurrency);
+
+    // Compact at the round boundary (no writes in flight): a key that parse-errored
+    // this round but parsed cleanly on retry collapses to its single clean row.
+    const c = compactExtractions(paths.extractions);
+    if (c.removed > 0) console.log(`[extract] round ${round}: compacted — removed ${c.removed} stale row(s).`);
+
+    if (parseErrors === 0) {
+      console.log(`[extract] ✔ round ${round}: all extractions parsed cleanly.`);
+      break;
+    }
+    if (round === maxRounds) {
+      console.log(`[extract] ⚠ reached max-rounds=${maxRounds} with ${parseErrors} parseError(s) remaining (kept as salvage).`);
+    }
+  }
+
+  const finalExt = dedupeByKey(loadJsonl<ExtractionResult>(paths.extractions));
+  const clean = [...finalExt.values()].filter((e) => !e.parseError).length;
+  const stuck = [...finalExt.values()].filter((e) => e.parseError).length;
+  console.log("─".repeat(72));
+  console.log(`[extract] FINAL: ${clean}/${records.length} clean, ${stuck} parseError (salvaged) → ${paths.extractions}`);
+  if (clean < records.length) {
+    console.log(`[extract] some answers still lack a clean extraction. Re-run: pnpm study:extract --run ${paths.stamp}`);
+  }
+}
+
+/** Run one extraction round over `todo`, appending each result; returns parseError count. */
+async function runExtractRound(
+  client: ReturnType<typeof makeClient>,
+  cfg: StudyConfig,
+  runId: string,
+  extractionsFile: string,
+  todo: RawRecord[],
+  langName: Map<string, string>,
+  concurrency: number,
+): Promise<{ completed: number; parseErrors: number }> {
   let completed = 0;
   let parseErrors = 0;
   const startedAt = Date.now();
   const since = () => `${((Date.now() - startedAt) / 1000).toFixed(0)}s`;
 
   await runBatched(todo, concurrency, async (record) => {
-    const result = await extract(client, cfg, paths.runId, record, langName.get(record.langCode) ?? record.langCode);
-    appendJsonl(paths.extractions, result);
+    const result = await extract(client, cfg, runId, record, langName.get(record.langCode) ?? record.langCode);
+    appendJsonl(extractionsFile, result);
     completed++;
     if (result.parseError) parseErrors++;
     const claim =
@@ -100,8 +161,7 @@ async function main() {
     );
   });
 
-  console.log("─".repeat(72));
-  console.log(`[extract] finished in ${since()} — wrote ${completed} extractions (${parseErrors} parse issues) → ${paths.extractions}`);
+  return { completed, parseErrors };
 }
 
 main().catch((e) => {
