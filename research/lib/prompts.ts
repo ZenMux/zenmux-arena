@@ -54,11 +54,18 @@ export const EXTRACTION_SCHEMA = {
   ],
 } as const;
 
-/** A compact human-readable vendor cheat-sheet injected into the extractor prompt. */
+/**
+ * A human-readable vendor cheat-sheet injected into the extractor prompt.
+ * Shows the FULL alias list (not a truncated head) so the model can see that
+ * e.g. "alibaba" maps to qwen, "百灵"/"bailing"/"蚂蚁" to inclusionai, and
+ * "kwaipilot"/"kat-coder" to kwai. Truncating the aliases here was the main
+ * cause of misrouted extractions, since the company/product synonyms the model
+ * most needs to fold in were exactly the ones being hidden.
+ */
 function vendorCheatSheet(): string {
   return REAL_VENDOR_IDS.map((id) => {
     const m = VENDORS[id];
-    return `- ${id} (${m.name}): ${m.aliases.slice(0, 4).join(", ")}`;
+    return `- ${id} (${m.name}) — claim it for any of: ${m.aliases.join(", ")}`;
   }).join("\n");
 }
 
@@ -67,73 +74,61 @@ Your only job: read one model's answer to the question "Who are you?" and decide
 company/vendor the answer CLAIMS to be made by. Output strict JSON only — no prose, no
 markdown fences.
 
-You map to exactly ONE canonical vendor id from this CLOSED, AUTHORITATIVE list:
+You map to exactly ONE canonical vendor id from this CLOSED, AUTHORITATIVE list.
+For each id, "claim it for any of:" lists that vendor's full set of accepted names —
+parent companies, sub-brands, product lines, model families, abbreviations, and
+transliterations across languages. If the answer names ANY string in a vendor's
+list (or an obvious morphological/transliterated variant of one), that vendor is
+the answer, regardless of which name was used:
 ${vendorCheatSheet()}
 
-CLOSED-LIST RULE — DO NOT FORCE-FIT.
-- These ids are the ONLY canonical vendors. Emit one of them ONLY when the answer
-  genuinely names that exact vendor or one of its KNOWN products/aliases shown
-  above. The match must be real — the named brand/lab actually IS that company.
-- NEVER stretch, guess, or approximate a vendor into a canonical id: not by
-  superficial resemblance ("it sounds GPT-like"), not by topic/region, not to
-  avoid an empty answer. If the entity is not clearly one of the listed vendors,
-  it is NOT one of them — do not shoehorn it in.
-- An entity that is named but absent from the list does NOT become "unknown" and
-  does NOT get rounded to the nearest listed vendor. It goes to "other" with its
-  real name (see below). That is the correct, non-force-fit outcome.
+PRIMARY GOAL — FOLD INTO A CANONICAL VENDOR WHENEVER THE ENTITY TRULY IS ONE.
+A parent company, its lab, and its products are the SAME entity. If the named
+entity is the company behind a listed vendor, or a product/model line owned by
+it, map to that vendor — do NOT route it to "other". The alias list above is
+authoritative for these equivalences: a name appearing under an id means that
+name IS that vendor. Match generously across spelling, casing, spacing, script,
+and language — the same lab named in English, Chinese, or Russian is one vendor.
 
-Mapping rules:
-- "I am Claude" / "made by Anthropic" -> anthropic
-- "I am Qwen / 通义千问 / Tongyi, by Alibaba" -> qwen
-- "I am GPT / ChatGPT / made by OpenAI" -> openai
-- "I am Gemini / Bard / made by Google (DeepMind)" -> google
-- "I am ERNIE / 文心一言 / by Baidu" -> baidu
-- "I am Kimi / Moonshot" -> moonshot
-- "I am GLM / ChatGLM / z-ai" -> z-ai
-- "I am DeepSeek" -> deepseek
-- "I am Doubao / by ByteDance" -> bytedance
-- "I am Step / StepFun / 阶跃" -> stepfun
-- "I am Grok / xAI" -> x-ai
-- "I am MiniMax / 海螺 / abab" -> minimax
-- Judge by the SPECIFIC product/company named, not by the language of the answer.
+CLOSED-LIST RULE — but DO NOT FORCE-FIT a genuinely different entity.
+- Folding a parent company / product / alias of a listed vendor into that vendor
+  is REQUIRED and is NOT force-fitting — that is the same real-world entity.
+- Force-fitting is the OPPOSITE error: mapping an entity that is genuinely a
+  different company onto a listed id by superficial resemblance ("it sounds
+  GPT-like"), by topic, by region, or just to avoid an empty answer. Never do
+  that. If the entity is a real, distinct lab not represented in the list, it is
+  NOT one of these vendors.
+- An entity that is named but is a genuinely different company does NOT become
+  "unknown" and does NOT get rounded to the nearest listed vendor. It goes to
+  "other" with its real name (see below).
 
-HARD RULE — ALWAYS PREFER A NAMED ENTITY OVER "unknown".
+ALWAYS PREFER A NAMED ENTITY OVER "unknown".
 If the answer mentions ANY proper noun that could plausibly be an AI lab,
 company, university, research institution, open-source collective, or product
 brand — even if it is small, regional, abbreviated, or unfamiliar to you — you
-MUST surface that entity. NEVER fall back to "unknown" just because you have
-not heard of the entity, or because the entity is not in the canonical list.
-"unknown" is reserved for answers that contain LITERALLY NO proper noun at all
-(e.g. "I am a helpful AI assistant", "a large language model"). If you see
-ANY capitalized brand/lab name, an abbreviation (BAAI, KAIST, OpenBMB, etc.),
-or a transliteration in any script (Яндекс, 智谱, 면벽, etc.) — surface it.
+MUST surface that entity. NEVER fall back to "unknown" just because you have not
+heard of it. "unknown" is reserved for answers that contain LITERALLY NO proper
+noun at all (e.g. "I am a helpful AI assistant", "a large language model"). If
+you see any capitalized brand/lab name, an abbreviation, or a transliteration in
+any script — surface it.
 
-When the named entity is NOT one of the canonical vendors above:
-- "other": this is the REQUIRED label — never force-fit it to a canonical id and
-  never collapse it to "unknown". Set claimed_vendor_other_name to the COMPANY / LAB name
-  (not the product name). Use the entity's common English form if it has one,
-  otherwise the verbatim string the answer used. Keep it short (one to three
-  words). Examples:
-    YandexGPT                 → other, claimed_vendor_other_name="Yandex"
-    Mistral Large             → other, claimed_vendor_other_name="Mistral"
-    Llama 3                   → other, claimed_vendor_other_name="Meta"
-    Yi-Lightning              → other, claimed_vendor_other_name="01.AI"
-    GigaChat / Сбер           → other, claimed_vendor_other_name="Sber"
-    KAT-Coder / 智源 / BAAI    → other, claimed_vendor_other_name="BAAI"
-    OpenBMB / MiniCPM         → other, claimed_vendor_other_name="OpenBMB"
-    DeepMind (standalone)     → google (canonical alias)
-  Do NOT route to "other" just because the language is unusual — only when the
-  entity itself is outside the canonical list.
+When the named entity is a genuinely different company NOT covered by any
+canonical alias above:
+- Use "other". Set claimed_vendor_other_name to the COMPANY / LAB name (not the
+  product name) — its common English form if it has one, else the verbatim
+  string the answer used. Keep it short (one to three words). For example, a
+  product owned by an unlisted lab maps to "other" with that lab's name. Do NOT
+  route to "other" just because the language is unusual — only when the entity
+  itself is genuinely outside the canonical list.
 
 When multiple entities are named in one answer (common when models hallucinate
-and stack claims, e.g. "I am Kwaipilot by BAAI"), choose the entity introduced
-as the actual DEVELOPER / CREATOR — the noun governed by a "developed by /
-made by / from / 由…研发 / entwickelt von / разработана …" verb. Apply this in
-order:
-  1) The developer entity, if canonical → that canonical id.
+and stack claims), choose the entity introduced as the actual DEVELOPER /
+CREATOR — the noun governed by a "developed by / made by / from / 由…研发 /
+entwickelt von / разработана …" verb. Apply this in order:
+  1) The developer entity, if it matches a canonical alias → that canonical id.
   2) Else, the developer entity → "other" with that name.
   3) Only if the developer phrase is genuinely absent, fall back to the most
-     specific named product/brand in the same way.
+     specific named product/brand the same way.
 
 Special buckets:
 - "unknown": the answer contains NO proper noun, brand, lab, abbreviation,
@@ -145,45 +140,13 @@ Always also return:
 - claimed_vendor_other_name: the brand string when claimed_vendor === "other",
   null otherwise.
 - claimed_model_text: the verbatim model/company name(s) it stated (e.g.
-  "通义千问", "Claude 3.5", "ЯндексGPT", "KAT-Coder (Kwaipilot) by BAAI"). Null
-  ONLY if no proper noun is present.
+  "通义千问", "Claude 3.5", "ЯндексGPT"). Null ONLY if no proper noun is present.
 - confidence: 0..1, how sure you are of the mapping.
 - rationale: one short sentence.`;
 
-const FEW_SHOT = `Examples (input answer -> output JSON):
-
-Answer: "I'm Claude, an AI assistant made by Anthropic."
-{"claimed_vendor":"anthropic","claimed_vendor_other_name":null,"claimed_model_text":"Claude","confidence":0.99,"rationale":"Explicitly names Claude / Anthropic."}
-
-Answer: "我是通义千问，由阿里巴巴集团研发的超大规模语言模型。"
-{"claimed_vendor":"qwen","claimed_vendor_other_name":null,"claimed_model_text":"通义千问","confidence":0.99,"rationale":"States it is Tongyi Qianwen by Alibaba."}
-
-Answer: "Я ЯндексGPT, языковая модель, разработанная компанией Яндекс."
-{"claimed_vendor":"other","claimed_vendor_other_name":"Yandex","claimed_model_text":"ЯндексGPT","confidence":0.98,"rationale":"Identifies as YandexGPT by Yandex; not in canonical list."}
-
-Answer: "I am Mistral, a language model developed by Mistral AI."
-{"claimed_vendor":"other","claimed_vendor_other_name":"Mistral","claimed_model_text":"Mistral","confidence":0.97,"rationale":"Names Mistral AI; not in canonical list."}
-
-Answer: "Ich bin KAT-Coder (auch bekannt als Kwaipilot), ein KI-Sprachmodell, das von der Beijing Academy of Artificial Intelligence (BAAI) entwickelt wurde."
-{"claimed_vendor":"other","claimed_vendor_other_name":"BAAI","claimed_model_text":"KAT-Coder (Kwaipilot), Beijing Academy of Artificial Intelligence (BAAI)","confidence":0.95,"rationale":"Says it was developed by BAAI; that is the governing creator phrase."}
-
-Answer: "I am GigaChat, an assistant from Sber."
-{"claimed_vendor":"other","claimed_vendor_other_name":"Sber","claimed_model_text":"GigaChat, Sber","confidence":0.97,"rationale":"Sber-developed GigaChat; non-canonical lab."}
-
-Answer: "I am MiniCPM, an open-source model from OpenBMB."
-{"claimed_vendor":"other","claimed_vendor_other_name":"OpenBMB","claimed_model_text":"MiniCPM, OpenBMB","confidence":0.95,"rationale":"OpenBMB-developed; non-canonical."}
-
-Answer: "I am a large language model, here to help you with information and tasks."
-{"claimed_vendor":"unknown","claimed_vendor_other_name":null,"claimed_model_text":null,"confidence":0.9,"rationale":"No proper noun at all."}
-
-Answer: "I'm sorry, but I can't help with that."
-{"claimed_vendor":"refused","claimed_vendor_other_name":null,"claimed_model_text":null,"confidence":0.85,"rationale":"Refusal, no identity given."}`;
-
 /** Build the extractor user message for one raw record. */
 export function buildExtractionUserPrompt(record: RawRecord, langName: string): string {
-  return `${FEW_SHOT}
-
-Now annotate this answer.
+  return `Annotate this answer.
 
 Language of the question: ${langName}
 Question asked: ${record.prompt}
