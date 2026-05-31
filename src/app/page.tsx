@@ -1,10 +1,57 @@
+// ZenMux Arena — the hub. A unified entry point for a growing set of
+// cross-vendor LLM experiments (not just "Who Are You?"). The live study links
+// straight into its richest surface, the graph studio; future studies show as
+// inert "coming soon" cards. The experiment list is the shared registry in
+// src/lib/experiments.ts, so cards here and the shell sidebar never drift.
+
+import fs from "node:fs";
+import path from "node:path";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, FlaskConical } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { EXPERIMENTS, PRIMARY_EXPERIMENT, type Experiment } from "@/lib/experiments";
+import type { GraphData } from "@research/lib/types";
+
+/** Headline numbers for the live experiment's card, read from the published aggregate. */
+interface LiveStats {
+  totalAnswers: number;
+  selfRate: number;
+  models: number;
+  languages: number;
+}
+
+function loadLiveStats(): LiveStats | null {
+  const p = path.join(process.cwd(), "public", "research", "aggregate.json");
+  if (!fs.existsSync(p)) return null;
+  try {
+    const g = JSON.parse(fs.readFileSync(p, "utf8")) as GraphData;
+    return {
+      totalAnswers: g.summary.totalAnswers,
+      selfRate: g.summary.overallSelfRate,
+      models: g.models.length,
+      languages: g.languages.length,
+    };
+  } catch {
+    return null;
+  }
+}
 
 export default function Home() {
+  const stats = loadLiveStats();
+  const liveCount = EXPERIMENTS.filter((e) => e.status === "live").length;
+
   return (
-    <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-white px-6 py-24 text-center dark:bg-black">
+    <main className="relative flex flex-1 flex-col items-center overflow-hidden bg-background px-6 pb-24 pt-20 sm:pt-28">
       {/* Soft ambient backdrop — a single radial wash, kept subtle. */}
       <div
         aria-hidden
@@ -12,13 +59,13 @@ export default function Home() {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent dark:via-neutral-800"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent"
       />
 
-      <div className="relative flex w-full max-w-xl flex-col items-center gap-10">
-        {/* Wordmark — theme-aware. Note the asset naming: ZenMux-Light.png is the
-            DARK wordmark (for light backgrounds), ZenMux.png is the WHITE wordmark
-            (for dark backgrounds) — same convention as the graph export (svg.ts). */}
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <section className="relative flex w-full max-w-2xl flex-col items-center gap-8 text-center">
+        {/* Wordmark — theme-aware. ZenMux-Light.png is the DARK wordmark (light
+            bg), ZenMux.png is the WHITE one (dark bg) — same as the graph export. */}
         <div>
           <Image
             src="/maker-logo/ZenMux-Light.png"
@@ -39,75 +86,184 @@ export default function Home() {
         </div>
 
         <div className="flex flex-col items-center gap-5">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 px-3 py-1 text-xs font-medium tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+          <Badge variant="outline" className="gap-1.5 py-1 pl-2 pr-2.5">
             <span className="size-1.5 rounded-full bg-emerald-500" />
             ZenMux Arena
-          </span>
-          <h1 className="text-balance text-4xl font-semibold tracking-tight text-neutral-900 sm:text-5xl dark:text-neutral-50">
+          </Badge>
+          <h1 className="text-balance text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
             Where frontier models
             <br className="hidden sm:block" /> meet the same question.
           </h1>
-          <p className="max-w-md text-pretty text-lg leading-8 text-neutral-500 dark:text-neutral-400">
-            Reproducible, cross-vendor studies of how today&apos;s leading LLMs
-            actually behave — run through one unified endpoint.
+          <p className="max-w-md text-pretty text-lg leading-8 text-muted-foreground">
+            A home for reproducible, cross-vendor experiments on how today&apos;s
+            leading LLMs actually behave — run through one unified endpoint.
           </p>
         </div>
 
         <div className="flex flex-col items-center gap-3 sm:flex-row">
-          <Link
-            href="/research"
-            className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-neutral-900 px-6 text-sm font-medium text-white transition-colors hover:bg-neutral-700 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
-          >
-            <FlaskConical className="size-4" />
-            Enter the Arena
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-          <a
-            href="https://zenmux.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-12 items-center justify-center rounded-full border border-neutral-200 px-6 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-900"
-          >
-            About ZenMux
-          </a>
+          <Button asChild size="lg" className="group h-12 rounded-full px-6">
+            <Link href={PRIMARY_EXPERIMENT.href ?? "/research"}>
+              <Sparkles data-icon="inline-start" />
+              Enter the Arena
+              <ArrowRight
+                data-icon="inline-end"
+                className="transition-transform group-hover:translate-x-0.5"
+              />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="h-12 rounded-full px-6">
+            <a href="https://zenmux.ai" target="_blank" rel="noopener noreferrer">
+              About ZenMux
+              <ArrowUpRight data-icon="inline-end" />
+            </a>
+          </Button>
         </div>
-      </div>
+      </section>
 
-      {/* Featured study card */}
-      <Link
-        href="/research"
-        className="group relative mt-16 flex w-full max-w-xl items-center gap-4 rounded-2xl border border-neutral-200 bg-white/70 p-5 text-left backdrop-blur transition-all hover:border-neutral-300 hover:shadow-sm dark:border-neutral-800 dark:bg-neutral-950/70 dark:hover:border-neutral-700"
-      >
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
-          <FlaskConical className="size-5" />
+      {/* ── Experiments ───────────────────────────────────────────────────── */}
+      <section className="relative mt-20 w-full max-w-5xl">
+        <div className="mb-5 flex items-end justify-between gap-4 px-1">
+          <div>
+            <h2 className="text-sm font-semibold tracking-tight text-foreground">
+              Experiments
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {liveCount} live · {EXPERIMENTS.length - liveCount} in the works
+            </p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs uppercase tracking-[0.18em] text-neutral-400">
-            Featured study
-          </p>
-          <h2 className="mt-1 truncate font-medium text-neutral-900 dark:text-neutral-100">
-            Who Are You? — Cross-Vendor Identity Confusion
-          </h2>
-          <p className="truncate text-sm text-neutral-500 dark:text-neutral-400">
-            One question, many vendors, ten languages.
-          </p>
-        </div>
-        <ArrowRight className="size-4 shrink-0 text-neutral-400 transition-transform group-hover:translate-x-0.5" />
-      </Link>
 
-      <footer className="relative mt-16 text-xs text-neutral-400">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {EXPERIMENTS.map((exp) => (
+            <ExperimentCard
+              key={exp.id}
+              experiment={exp}
+              stats={exp.id === PRIMARY_EXPERIMENT.id ? stats : null}
+            />
+          ))}
+        </div>
+      </section>
+
+      <footer className="relative mt-20 text-xs text-muted-foreground">
         Built by{" "}
-        <strong className="font-medium text-neutral-500 dark:text-neutral-400">
-          thinkthinking
-        </strong>{" "}
+        <strong className="font-medium text-foreground/80">thinkthinking</strong>{" "}
         ·{" "}
         <a
           href="https://zenmux.ai"
-          className="underline decoration-dotted underline-offset-4 hover:text-neutral-600 dark:hover:text-neutral-300"
+          className="underline decoration-dotted underline-offset-4 transition-colors hover:text-foreground"
         >
           ZenMux.ai
         </a>
       </footer>
     </main>
   );
+}
+
+/* ── Experiment card ──────────────────────────────────────────────────────
+   Live cards are one big stretched-link click target (whole card → studio);
+   "soon" cards are inert with a Coming soon badge. */
+
+function ExperimentCard({
+  experiment,
+  stats,
+}: {
+  experiment: Experiment;
+  stats: LiveStats | null;
+}) {
+  const live = experiment.status === "live" && experiment.href;
+  const Icon = experiment.icon;
+
+  return (
+    <Card
+      className={cn(
+        "group relative gap-0 overflow-hidden transition-all",
+        live
+          ? "hover:border-foreground/20 hover:shadow-md focus-within:border-foreground/20 focus-within:shadow-md"
+          : "opacity-75",
+      )}
+    >
+      <CardHeader className="gap-0">
+        <div className="flex items-center justify-between">
+          <span
+            aria-hidden
+            className={cn(
+              "flex size-11 items-center justify-center rounded-xl border border-border bg-muted/40",
+              experiment.accent,
+            )}
+          >
+            <Icon className="size-5" />
+          </span>
+          {live ? (
+            <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          ) : (
+            <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">
+              Coming soon
+            </Badge>
+          )}
+        </div>
+        <CardTitle className="mt-4 text-base">{experiment.title}</CardTitle>
+        <CardDescription className="mt-1 text-pretty">
+          {experiment.tagline}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="mt-4">
+        <p className="text-pretty text-sm leading-relaxed text-muted-foreground">
+          {experiment.description}
+        </p>
+
+        {/* Live stats strip — only when we have published numbers. */}
+        {live && stats && (
+          <dl className="mt-4 grid grid-cols-4 gap-2 border-t border-border/70 pt-4">
+            <Metric label="Answers" value={fmt(stats.totalAnswers)} />
+            <Metric label="Self-ID" value={`${Math.round(stats.selfRate * 100)}%`} accent />
+            <Metric label="Models" value={String(stats.models)} />
+            <Metric label="Langs" value={String(stats.languages)} />
+          </dl>
+        )}
+      </CardContent>
+
+      {/* Stretched link: makes the whole card one click target while keeping
+          semantic Card markup. The label carries the full accessible name. */}
+      {live && (
+        <Link
+          href={experiment.href!}
+          className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <span className="sr-only">Open {experiment.title}</span>
+        </Link>
+      )}
+    </Card>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div>
+      <dd
+        className={cn(
+          "text-sm font-bold tabular-nums",
+          accent ? "text-emerald-600 dark:text-emerald-400" : "text-foreground",
+        )}
+      >
+        {value}
+      </dd>
+      <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+    </div>
+  );
+}
+
+/** 2600 → "2.6k", small numbers unchanged. */
+function fmt(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k` : String(n);
 }

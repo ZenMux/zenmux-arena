@@ -8,7 +8,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ListChecks } from "lucide-react";
+import { ListChecks } from "lucide-react";
 import StudyBadge from "../StudyBadge";
 import {
   discoverRuns,
@@ -68,38 +68,28 @@ export default async function BrowsePage({
     data.models.find((m) => m.id === model) ?? data.models[0];
 
   return (
-    <main className="min-h-screen bg-white dark:bg-black">
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/85 backdrop-blur dark:border-neutral-800 dark:bg-black/70">
-        <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-4 px-4 sm:px-6">
-          <Link
-            href="/research"
-            className="inline-flex items-center gap-1.5 text-sm text-neutral-500 transition-colors hover:text-neutral-900 dark:hover:text-neutral-100"
-          >
-            <ArrowLeft className="size-4" />
-            Report
-          </Link>
-          <span className="h-5 w-px bg-neutral-200 dark:bg-neutral-800" />
-          <div className="flex items-center gap-2">
-            <ListChecks className="size-4 text-neutral-400" />
-            <h1 className="text-sm font-semibold tracking-tight">Raw answers</h1>
-          </div>
-          <RunPicker runs={runs} selected={selectedRun} />
-          <div className="ml-auto hidden font-mono text-[11px] text-neutral-400 sm:block">
-            {data.models.length} models · n={data.totalAnswers}
-          </div>
+    <div className="flex-1">
+      {/* View toolbar — run picker + counts. Title/back-nav live in the shell. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border/70 px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-2">
+          <ListChecks className="size-4 text-muted-foreground" />
+          <h1 className="text-sm font-semibold tracking-tight">Raw answers</h1>
         </div>
-      </header>
+        <RunPicker runs={runs} selected={selectedRun} />
+        <div className="ml-auto hidden font-mono text-[11px] text-muted-foreground sm:block">
+          {data.models.length} models · n={data.totalAnswers}
+        </div>
+      </div>
 
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         <ModelSidebar models={data.models} run={selectedRun} selectedId={selectedModel.id} />
         <ModelDetail model={selectedModel} />
       </div>
 
-      <footer className="mx-auto max-w-[1600px] border-t border-neutral-200 px-4 py-10 sm:px-6 dark:border-neutral-800">
+      <footer className="mx-auto max-w-[1600px] border-t border-border px-4 py-10 sm:px-6">
         <StudyBadge align="left" meta={`run ${data.ref.id}`} />
       </footer>
-    </main>
+    </div>
   );
 }
 
@@ -422,16 +412,9 @@ function VendorChip({ vendor, size }: { vendor: VendorDisplay; size: number }) {
 
 function EmptyShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-24">
-      <Link
-        href="/research"
-        className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
-      >
-        <ArrowLeft className="size-4" />
-        Report
-      </Link>
+    <div className="mx-auto max-w-3xl px-6 py-24">
       <h1 className="text-2xl font-bold">{title}</h1>
       {children}
-    </main>
+    </div>
   );
 }

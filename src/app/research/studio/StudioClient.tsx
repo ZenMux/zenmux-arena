@@ -3,17 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import {
-  ArrowLeft,
   Download,
   ImageDown,
   LoaderCircle,
   Move,
   Pipette,
   RotateCcw,
-  SlidersHorizontal,
   Spline,
 } from "lucide-react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -135,31 +132,12 @@ export default function StudioClient({
   const curveCount = Object.keys(curves).length;
   const hiddenCount = hidden.size;
 
-  return (
-    <div className="min-h-screen bg-background">
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-4 px-4 sm:px-6">
-          <Link
-            href="/research"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Report
-          </Link>
-          <Separator orientation="vertical" className="h-5" />
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="size-4 text-muted-foreground" />
-            <h1 className="text-sm font-semibold tracking-tight">Graph Studio</h1>
-          </div>
-          <div className="ml-auto flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
-            <span className="hidden sm:inline">n={graph.summary.totalAnswers}</span>
-            <span className="hidden sm:inline text-border">·</span>
-            <span>{graph.vendors.filter((v) => !["self", "unknown", "refused", "other"].includes(v.id)).length} vendors</span>
-          </div>
-        </div>
-      </header>
+  const realVendorCount = graph.vendors.filter(
+    (v) => !["self", "unknown", "refused", "other"].includes(v.id),
+  ).length;
 
+  return (
+    <div className="flex-1">
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[300px_minmax(0,1fr)]">
         {/* ── Control console ───────────────────────────────────────────── */}
         <aside className="lg:sticky lg:top-20 lg:h-fit">
@@ -429,16 +407,18 @@ export default function StudioClient({
         </aside>
 
         {/* ── Canvas + data ─────────────────────────────────────────────── */}
-        <main className="min-w-0">
+        <section className="min-w-0">
           <Tabs defaultValue="graph" className="gap-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <TabsList>
                 <TabsTrigger value="graph">Graph</TabsTrigger>
                 <TabsTrigger value="table">Edge detail</TabsTrigger>
               </TabsList>
-              <p className="hidden font-mono text-[11px] text-muted-foreground sm:block">
-                {graph.study.title}
-              </p>
+              <div className="hidden items-center gap-2 font-mono text-[11px] text-muted-foreground sm:flex">
+                <span>n={graph.summary.totalAnswers}</span>
+                <span className="text-border">·</span>
+                <span>{realVendorCount} vendors</span>
+              </div>
             </div>
 
             <TabsContent value="graph">
@@ -477,7 +457,7 @@ export default function StudioClient({
               </Card>
             </TabsContent>
           </Tabs>
-        </main>
+        </section>
       </div>
     </div>
   );

@@ -2,7 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SlidersHorizontal, Table2 } from "lucide-react";
+import { ArrowUpRight, SlidersHorizontal, Table2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { GraphData } from "@research/lib/types";
 import RelationshipGraph from "./RelationshipGraph";
 import StudyBadge from "./StudyBadge";
@@ -36,11 +37,11 @@ export default function ResearchPage() {
 
   if (!graph) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-24">
+      <div className="mx-auto max-w-3xl px-6 py-24">
         <h1 className="text-2xl font-bold">Who Are You?</h1>
-        <p className="mt-4 text-neutral-500">
+        <p className="mt-4 text-muted-foreground">
           No results yet. Run the study pipeline to generate{" "}
-          <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">
+          <code className="rounded bg-muted px-1">
             public/research/aggregate.json
           </code>
           :
@@ -48,7 +49,7 @@ export default function ResearchPage() {
         <pre className="mt-4 overflow-x-auto rounded-lg bg-neutral-900 p-4 text-sm text-neutral-100">
           export ZENMUX_API_KEY=...{"\n"}pnpm study:test
         </pre>
-      </main>
+      </div>
     );
   }
 
@@ -62,29 +63,28 @@ export default function ResearchPage() {
     .sort((a, b) => b.rate - a.rate);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <div className="mx-auto max-w-5xl px-6 py-16">
       {/* Header */}
       <header className="mb-12 text-center">
-        <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">ZenMux Arena · Research</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground/70">ZenMux Arena · Research</p>
         <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{graph.study.title}</h1>
         {graph.study.description && (
-          <p className="mx-auto mt-4 max-w-2xl text-neutral-500">{graph.study.description}</p>
+          <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">{graph.study.description}</p>
         )}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-          <Link
-            href="/research/studio"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-900"
-          >
-            <SlidersHorizontal className="size-4" />
-            Open graph studio
-          </Link>
-          <Link
-            href="/research/browse"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-900"
-          >
-            <Table2 className="size-4" />
-            Browse raw answers
-          </Link>
+          <Button asChild>
+            <Link href="/research/studio">
+              <SlidersHorizontal data-icon="inline-start" />
+              Open graph studio
+              <ArrowUpRight data-icon="inline-end" />
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/research/browse">
+              <Table2 data-icon="inline-start" />
+              Browse raw answers
+            </Link>
+          </Button>
         </div>
       </header>
 
@@ -97,7 +97,7 @@ export default function ResearchPage() {
       </section>
 
       {/* Graph */}
-      <section className="mb-16 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-8 dark:border-neutral-800 dark:bg-neutral-950">
+      <section className="mb-16 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-8">
         <RelationshipGraph graph={graph} showVendorPicker />
       </section>
 
@@ -135,17 +135,17 @@ export default function ResearchPage() {
             ])}
           />
         ) : (
-          <p className="text-neutral-500">No cross-vendor confusion above threshold.</p>
+          <p className="text-muted-foreground">No cross-vendor confusion above threshold.</p>
         )}
       </section>
 
       {/* Branding footer */}
-      <footer className="mt-20 flex flex-col items-center border-t border-neutral-200 pt-10 dark:border-neutral-800">
+      <footer className="mt-20 flex flex-col items-center border-t border-border pt-10">
         <StudyBadge
           meta={`run ${graph.runId} · generated ${graph.generatedAt.slice(0, 19).replace("T", " ")}`}
         />
       </footer>
-    </main>
+    </div>
   );
 }
 
@@ -155,25 +155,25 @@ function vname(graph: GraphData, id: string): string {
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className={`text-2xl font-bold ${accent ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
         {value}
       </div>
-      <div className="mt-1 text-xs uppercase tracking-wide text-neutral-400">{label}</div>
+      <div className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>
   );
 }
 
 function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800">
+    <div className="overflow-hidden rounded-xl border border-border">
       <table className="w-full border-collapse text-sm">
         <thead>
-          <tr className="border-b border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900">
+          <tr className="border-b border-border bg-muted/50">
             {headers.map((h, i) => (
               <th
                 key={h}
-                className={`px-4 py-2 font-semibold text-neutral-600 dark:text-neutral-300 ${i === 0 ? "text-left" : "text-right"}`}
+                className={`px-4 py-2 font-semibold text-muted-foreground ${i === 0 ? "text-left" : "text-right"}`}
               >
                 {h}
               </th>
@@ -182,11 +182,11 @@ function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
         </thead>
         <tbody>
           {rows.map((r, ri) => (
-            <tr key={ri} className="border-b border-neutral-100 last:border-0 dark:border-neutral-900">
+            <tr key={ri} className="border-b border-border/60 last:border-0">
               {r.map((c, ci) => (
                 <td
                   key={ci}
-                  className={`px-4 py-2 ${ci === 0 ? "text-left font-medium" : "text-right tabular-nums text-neutral-600 dark:text-neutral-300"}`}
+                  className={`px-4 py-2 ${ci === 0 ? "text-left font-medium" : "text-right tabular-nums text-muted-foreground"}`}
                 >
                   {c}
                 </td>

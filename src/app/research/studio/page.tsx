@@ -55,7 +55,7 @@ export default async function StudioPage({
 
   if (runs.length === 0) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-24">
+      <div className="mx-auto max-w-3xl px-6 py-24">
         <h1 className="text-2xl font-bold">Graph Studio</h1>
         <p className="mt-4 text-muted-foreground">
           No runs found. Generate one with the study pipeline, then reload:
@@ -63,7 +63,7 @@ export default async function StudioPage({
         <pre className="mt-4 overflow-x-auto rounded-lg bg-neutral-900 p-4 text-sm text-neutral-100">
           export ZENMUX_API_KEY=...{"\n"}pnpm study:test
         </pre>
-      </main>
+      </div>
     );
   }
 
@@ -72,10 +72,10 @@ export default async function StudioPage({
 
   if (!graph) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-24">
+      <div className="mx-auto max-w-3xl px-6 py-24">
         <h1 className="text-2xl font-bold">Graph Studio</h1>
         <p className="mt-4 text-destructive">Could not read aggregate.json for {selected}.</p>
-      </main>
+      </div>
     );
   }
 

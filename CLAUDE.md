@@ -36,6 +36,22 @@ There is **no test runner** — `study:test` is the data pipeline, not a unit-te
 - `study:run` only: `--model-concurrency <n>`, `--batch-size <n>`, `--max-rounds <n>` (default 5)
 - `study:extract`/`study:aggregate`: `--force` to bypass the completeness gate; `study:extract --re-extract` to redo all extractions
 
+## Use the installed skills — don't hand-roll what a skill owns
+
+This repo vendors a set of agent skills (`.claude/skills/` → symlinks into `.agents/skills/`, pinned in `skills-lock.json`). They are not optional reading — for the matching task, **invoke the skill first** rather than writing UI/animation/Next.js code from memory. The skill carries the current, version-correct conventions; your training data may be stale.
+
+| When you are about to… | Invoke | Why |
+|---|---|---|
+| Add / change a **shadcn component** (anything under `src/components/ui/`, or `shadcn add`) | `/shadcn` | This project has `components.json` (style `radix-nova`, base `neutral`, `radix-ui` + `lucide`). The skill knows the registry/MCP, correct `add` flow, and how to compose/debug — never copy-paste a component by hand. |
+| **Design or beautify** any page/component (`/research`, `/research/studio`, root `page.tsx`, the OG image) | `/ui-ux-pro-max` | Color systems, font pairing, layout, spacing, interaction states, accessibility for the exact stack (Next.js + Tailwind + shadcn). Use it to *plan* before building and to *review* after. |
+| Build a **distinctive new surface** from scratch (landing/hero, a poster, a fresh page) | `/frontend-design` | Production-grade, non-generic visual design — pairs well with `/ui-ux-pro-max`. |
+| **Audit accessibility / UX** of UI you just wrote | `/web-design-guidelines` | Checks against the Web Interface Guidelines (a11y, semantics, states). |
+| Touch **Next.js conventions** (RSC vs client boundary, `force-dynamic`, metadata, route handlers, `next/image`) | `/next-best-practices` | The viewer is Next.js 16 / React 19; the studio/browse pages lean on RSC + `force-dynamic`. |
+| **Optimize React/Next perf** (re-renders, data fetching, bundle, server-serialization like browse's "only selected model") | `/vercel-react-best-practices` | Performance patterns specific to this stack. |
+| Build any **animation / motion / video** | `/remotion-best-practices` | Remotion + React motion conventions. (No Remotion in the repo yet — reach for this if you add any.) |
+
+Rule of thumb: **frontend work → skill first.** A change to `src/app/**` or `src/components/**` should almost always start by consulting `/shadcn` and/or `/ui-ux-pro-max`. The research pipeline (`research/**`) has no skill — that's plain TypeScript you own directly. There are also ZenMux-internal skills (`zenmux-*`) for setup/usage/feedback; use them when the task is about ZenMux tooling itself, not this study.
+
 ## Architecture
 
 Two halves sharing `research/lib/types.ts` as the single source of truth:
@@ -76,7 +92,17 @@ Every run lives in its own timestamped dir: `results/<study.id>/<stamp>/` (e.g. 
 A separate model (config `extractor.model`, e.g. `deepseek/deepseek-v4-pro`) labels each answer. It's prompted for JSON matching `EXTRACTION_SCHEMA`, but parsing is **defensive**: try strict JSON → first balanced `{...}` → last-resort alias scan of the raw text. Unexpected vendor labels are normalized via `vendorFromText` or fall to `unknown`. Never assume the extractor returns clean JSON.
 
 ### Graph rendering (`research/lib/svg.ts`, `geometry.ts`) — web-only
-`buildGraphSvg` (in `svg.ts`) hand-builds the SVG (no chart lib); the `/api/export` route rasterizes it → PNG via `@resvg/resvg-js` at N× scale, or returns the raw SVG. **This is the only renderer** — there is no `study:render` CLI anymore. The studio (`/research/studio`) drives both the live preview (`RelationshipGraph.tsx`) and the export with one shared `RenderConfig`, so the export is WYSIWYG. CJK glyphs need `research/assets/NotoSansSC-Regular.otf`; if missing, the export warns and Chinese text may not appear. Logos are inlined into the exported SVG as base64 data URIs (`logoDataUri`); the interactive web graph uses `logoWebPath` URLs instead. The exported image footer carries the attribution badge + repo URL from `research/lib/branding.ts` (shared with the on-screen `StudyBadge`).
+`buildGraphSvg` (in `svg.ts`) hand-builds the SVG (no chart lib); the `/api/export` route rasterizes it → PNG via `@resvg/resvg-js` at N× scale, or returns the raw SVG. **This is the only renderer** — there is no `study:render` CLI anymore. The studio (`/research/studio`) drives both the live preview (`RelationshipGraph.tsx`) and the export with one shared `RenderConfig`, so the export is WYSIWYG.
+- **`RenderConfig` + `DEFAULT_RENDER` + `EdgeCurves` live in `geometry.ts`** (not `types.ts`) — they're the contract between `StudioClient.tsx` (state), `svg.ts` (Node render), and `/api/export` (`{ ...DEFAULT_RENDER, ...body.config }`). Change the shape in one place and all three must agree. Per-edge drag reshapes travel as a `curves` map keyed by `edgeKey`.
+- CJK glyphs need `research/assets/NotoSansSC-Regular.otf`; if missing, the export warns and Chinese text may not appear.
+- Logos are inlined into the exported SVG as base64 data URIs (`logoDataUri`); the interactive web graph uses `logoWebPath` URLs instead.
+- The exported image footer carries the attribution badge + repo URL from `research/lib/branding.ts` — **pure constants, no imports**, shared verbatim with the on-screen `StudyBadge.tsx` so footer and image never drift. `report.ts` embeds `./graph.png` in `report.md`, but the pipeline never produces that file — it's the studio export you drop alongside the report.
+
+### Frontend stack (the viewer half)
+- **Next.js 16 + React 19 + Tailwind v4 + shadcn/ui.** Tailwind v4 is configured via `@tailwindcss/postcss` and CSS-first config in `src/app/globals.css` (no `tailwind.config.js`); `components.json` style is `radix-nova`, base color `neutral`, icons `lucide-react`, primitives `radix-ui`. **Add/modify components through `/shadcn`, not by hand** (see the skills table above).
+- `cn()` in `src/lib/utils.ts` (`clsx` + `tailwind-merge`) is the standard className combiner — use it everywhere.
+- **RSC-first.** Studio and browse pages are server components that read the filesystem (`results/**`, `public/research/**`) and are `force-dynamic` so freshly-generated runs show up on reload without a rebuild. Push only what the client needs across the boundary — browse deliberately serializes *only the selected model's* answers (see `browse/data.ts`, mtime-cached). Consult `/next-best-practices` before moving the server/client boundary.
+- Wordmark asset naming is **counterintuitive**: `ZenMux-Light.png` is the *dark* wordmark (for light backgrounds) and `ZenMux.png` is the *white* one — see the comment in `src/app/page.tsx` before swapping them.
 
 ### Pages (`src/app/research/`)
 - `/research` — the report page (headline stats, interactive graph, summary tables, `StudyBadge` footer).
