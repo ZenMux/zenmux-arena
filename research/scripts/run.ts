@@ -17,7 +17,7 @@
 import { ask, enumerateTasks, tasksForModelLang } from "../lib/ask";
 import { parseArgs } from "../lib/args";
 import { makeClient } from "../lib/client";
-import { loadConfig } from "../lib/config";
+import { bootstrapStudyId, loadRunConfig } from "../lib/config";
 import { makeLimiter, runBatched } from "../lib/limiter";
 import {
   appendJsonl,
@@ -33,33 +33,43 @@ import type { RawRecord, StudyConfig } from "../lib/types";
 
 async function main() {
   const args = parseArgs();
-  const cfg = loadConfig(args.get("config"));
-  if (args.has("model-concurrency")) cfg.api.modelConcurrency = args.num("model-concurrency", cfg.api.modelConcurrency);
-  if (args.has("batch-size")) cfg.api.batchSize = args.num("batch-size", cfg.api.batchSize);
   const maxRounds = args.num("max-rounds", 5);
 
-  // Resolve run directory.
+  // Discover study.id from the current config WITHOUT fully loading it yet — the run
+  // directory path depends on study.id, and we want to load config from the run's
+  // pinned snapshot (if any), not necessarily the current file.
+  const studyId = bootstrapStudyId(args.get("config"));
+
+  // Resolve run directory (stamp).
   const runArg = args.get("run");
   let stamp: string;
   if (!runArg) {
     stamp = newStamp(new Date());
   } else if (runArg === "latest") {
-    const latest = latestStamp(cfg.study.id);
+    const latest = latestStamp(studyId);
     if (!latest) {
-      console.error(`[run] no existing run for study "${cfg.study.id}" to resume.`);
+      console.error(`[run] no existing run for study "${studyId}" to resume.`);
       process.exit(1);
     }
     stamp = latest;
   } else {
     stamp = runArg;
   }
-  const paths = runPaths(cfg.study.id, stamp);
+  const paths = runPaths(studyId, stamp);
+
+  // Load config from the run's pinned snapshot if present; otherwise load the current
+  // config and pin a copy into the run dir. A resumed run thus always uses the exact
+  // config it was created with, immune to later edits of config/study.yaml.
+  const { config: cfg, pinned } = loadRunConfig(paths.config, args.get("config"));
+  if (args.has("model-concurrency")) cfg.api.modelConcurrency = args.num("model-concurrency", cfg.api.modelConcurrency);
+  if (args.has("batch-size")) cfg.api.batchSize = args.num("batch-size", cfg.api.batchSize);
 
   const allTasks = enumerateTasks(cfg);
   const expectedKeys = allTasks.map((t) => t.key);
 
   console.log("─".repeat(72));
   console.log(`[run] run=${paths.runId}  dir=${paths.dir}`);
+  console.log(`[run] config: ${pinned ? `pinned snapshot → ${paths.config}` : `loaded pinned snapshot ${paths.config}`}`);
   console.log(`[run] models=${cfg.models.length}  languages=${cfg.languages.length}  repeats=${cfg.repeats}  → total=${allTasks.length}`);
   console.log(`[run] modelConcurrency=${cfg.api.modelConcurrency}  batchSize=${cfg.api.batchSize}  maxRetries=${cfg.api.maxRetries}  maxRounds=${maxRounds}`);
   console.log("─".repeat(72));

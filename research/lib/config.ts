@@ -12,6 +12,59 @@ function fail(msg: string): never {
   throw new Error(`[config] ${msg}`);
 }
 
+/** Resolve a config path (relative to cwd) to an absolute path. */
+function absConfigPath(configPath = DEFAULT_CONFIG_PATH): string {
+  return path.isAbsolute(configPath) ? configPath : path.join(process.cwd(), configPath);
+}
+
+/**
+ * Read ONLY `study.id` from a config file, with no full validation and no API-key
+ * gate. Needed to locate the run directory (results/<study.id>/<stamp>/) *before* we
+ * know which config to fully load — the run dir path itself depends on study.id, so
+ * this breaks the chicken-and-egg between "where is the run" and "load its snapshot".
+ */
+export function bootstrapStudyId(configPath = DEFAULT_CONFIG_PATH): string {
+  const abs = absConfigPath(configPath);
+  if (!fs.existsSync(abs)) fail(`config file not found: ${abs}`);
+  let parsed: unknown;
+  try {
+    parsed = YAML.parse(fs.readFileSync(abs, "utf8"));
+  } catch (e) {
+    fail(`failed to parse YAML at ${abs}: ${(e as Error).message}`);
+  }
+  const id = (parsed as { study?: { id?: unknown } })?.study?.id;
+  if (typeof id !== "string" || !id) fail("study.id is required");
+  return id;
+}
+
+/**
+ * Load the config a run should use, pinning a snapshot into the run directory so the
+ * run is reproducible regardless of later edits to config/study.yaml:
+ *  - If `snapshotPath` already exists → load FROM the snapshot (ignore `sourcePath`),
+ *    so a resumed run always uses the exact config it was created with.
+ *  - Otherwise → load from `sourcePath` (the current config/study.yaml or --config),
+ *    and copy its RAW bytes to `snapshotPath` (preserving comments/formatting) so the
+ *    next run/extract/aggregate on this stamp reads the pinned copy.
+ *
+ * The copy is silent (no warning) — including for pre-existing runs created before
+ * snapshots existed; they simply get pinned to the current config on first touch.
+ * Returns the validated StudyConfig plus whether a snapshot was just created.
+ */
+export function loadRunConfig(
+  snapshotPath: string,
+  sourcePath = DEFAULT_CONFIG_PATH,
+): { config: StudyConfig; pinned: boolean } {
+  if (fs.existsSync(snapshotPath)) {
+    return { config: loadConfig(snapshotPath), pinned: false };
+  }
+  // First touch of this run dir: load the source, then pin its raw bytes.
+  const config = loadConfig(sourcePath);
+  const srcAbs = absConfigPath(sourcePath);
+  fs.mkdirSync(path.dirname(snapshotPath), { recursive: true });
+  fs.copyFileSync(srcAbs, snapshotPath);
+  return { config, pinned: true };
+}
+
 function isVendorId(v: unknown): v is VendorId {
   return typeof v === "string" && v in VENDORS;
 }

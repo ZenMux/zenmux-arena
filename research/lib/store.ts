@@ -13,6 +13,8 @@ export interface RunPaths {
   /** Timestamp subdirectory name. */
   stamp: string;
   dir: string;
+  /** Pinned config snapshot for this run (results/<studyId>/<stamp>/study.yaml). */
+  config: string;
   records: string;
   extractions: string;
   aggregate: string;
@@ -28,6 +30,7 @@ export function runPaths(studyId: string, stamp: string): RunPaths {
     studyId,
     stamp,
     dir,
+    config: path.join(dir, "study.yaml"),
     records: path.join(dir, "records.jsonl"),
     extractions: path.join(dir, "extractions.jsonl"),
     aggregate: path.join(dir, "aggregate.json"),

@@ -5,19 +5,22 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "../lib/args";
-import { loadConfig } from "../lib/config";
+import { bootstrapStudyId, loadRunConfig } from "../lib/config";
 import { buildReport } from "../lib/report";
 import { resolveRun } from "../lib/store";
 import type { GraphData } from "../lib/types";
 
 async function main() {
   const args = parseArgs();
-  const cfg = loadConfig(args.get("config"));
-  const paths = resolveRun(cfg.study.id, args.get("run"));
+  const studyId = bootstrapStudyId(args.get("config"));
+  const paths = resolveRun(studyId, args.get("run"));
   if (!paths) {
-    console.error(`[report] no run found for study "${cfg.study.id}".`);
+    console.error(`[report] no run found for study "${studyId}".`);
     process.exit(1);
   }
+  // Load the run's pinned config snapshot (back-filled for older runs). Not strictly
+  // needed today since report reads aggregate.json, but keeps all four scripts uniform.
+  loadRunConfig(paths.config, args.get("config"));
 
   if (!fs.existsSync(paths.aggregate)) {
     console.error(`[report] ${paths.aggregate} not found. Run study:aggregate first.`);

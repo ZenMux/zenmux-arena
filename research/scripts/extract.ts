@@ -17,7 +17,7 @@
 import { enumerateTasks } from "../lib/ask";
 import { parseArgs } from "../lib/args";
 import { makeClient } from "../lib/client";
-import { loadConfig } from "../lib/config";
+import { bootstrapStudyId, loadRunConfig } from "../lib/config";
 import { extract } from "../lib/extract";
 import { runBatched } from "../lib/limiter";
 import {
@@ -33,12 +33,15 @@ import type { ExtractionResult, RawRecord, StudyConfig } from "../lib/types";
 
 async function main() {
   const args = parseArgs();
-  const cfg = loadConfig(args.get("config"));
-  const paths = resolveRun(cfg.study.id, args.get("run"));
+  const studyId = bootstrapStudyId(args.get("config"));
+  const paths = resolveRun(studyId, args.get("run"));
   if (!paths) {
-    console.error(`[extract] no run found for study "${cfg.study.id}". Run study:run first.`);
+    console.error(`[extract] no run found for study "${studyId}". Run study:run first.`);
     process.exit(1);
   }
+  // Load config from this run's pinned snapshot (created by study:run; back-filled from
+  // the current config if this is an older run that predates snapshots).
+  const { config: cfg } = loadRunConfig(paths.config, args.get("config"));
 
   const allRecords = [...dedupeByKey(loadJsonl<RawRecord>(paths.records)).values()];
 

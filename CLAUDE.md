@@ -70,6 +70,8 @@ config/study.yaml
 ```
 Every run lives in its own timestamped dir: `results/<study.id>/<stamp>/` (e.g. `results/who-are-you/20260529T070756/`). `aggregate` and `report` also **publish** copies to `public/research/` (`aggregate.json`, `report.md`) — that's what the web page reads. The graph image (`graph.png` for the OG image, plus any manual exports) comes from the studio's export route, not the pipeline.
 
+**Config is pinned per run.** On a fresh run, `study:run` snapshots `config/study.yaml` into the run dir as `study.yaml`; all four scripts (`run`/`extract`/`aggregate`/`report`) then load config **from that snapshot** on resume, not from the live `config/study.yaml`. So editing the live config never retroactively changes an in-flight run's model/lang/repeat set (which would corrupt the completeness gate, since the resume key doesn't encode the prompt). The scripts discover `study.id` via `bootstrapStudyId` (a lightweight parse with no API-key gate), locate the run dir, then `loadRunConfig` reads-or-creates the snapshot. Older runs that predate snapshots get back-filled silently from the current config on first touch. To use a *new* config, start a fresh run (no `--run`).
+
 ### Key invariants — understand these before changing the pipeline
 
 - **The resume key** is `${modelId}::${langCode}::${repeat}` (`makeKey` in `research/lib/ask.ts`). It ties a record to its extraction across passes and drives idempotent resume/dedup. Don't change its shape without updating `store.ts` dedup/completeness logic.
