@@ -1,8 +1,12 @@
 # Who Are You? — Cross-Vendor Identity Confusion in Frontier LLMs
 
-一项系统研究：把同一个问题「**我是谁？**」翻译成 10 种语言，分别问多家厂商的最新模型各 10 次，
-再用 `deepseek/deepseek-v4-pro` 提取每条回答里**自称的身份**（例如 Claude Opus 自称是"通义千问"），
-统计「A 厂模型 → 自称 B 厂」的概率，最终产出一篇 arxiv 风格报告 + 一张环形关系图。
+一项系统研究：把同一个问题「**你是谁？**」翻译成 10 种语言，分别问多家厂商的最新模型各 30 次，
+再用提取器模型（config 里的 `extractor.model`，当前为 `gpt-5.5:openai`）提取每条回答里**自称的身份**
+（例如 Claude Opus 自称是"通义千问"），统计「A 厂模型 → 自称 B 厂」的概率，
+最终产出一篇 arxiv 风格报告 + 一张环形关系图。
+
+> 当前刺激为**裸问题「你是谁？」**（自发自述基线形态）——只问开放式身份，不追加"请说出模型名和公司"。
+> 改用更强的"probed"形态请见 `config/study.yaml` 里 `languages:` 上方的说明。
 
 所有模型调用走 **ZenMux 的 Anthropic Messages 协议**（`https://zenmux.ai/api/anthropic`）。
 
@@ -24,15 +28,19 @@ export ZENMUX_API_KEY=sk-...
 
 ```yaml
 models:
-  - { id: "anthropic/claude-opus-4.8", vendor: anthropic, label: "Claude Opus 4.8" }
-  - { id: "qwen/qwen3.7-max",          vendor: qwen,      label: "Qwen3.7 Max" }
-  - { id: "openai/gpt-5.5",            vendor: openai,    label: "GPT-5.5" }
+  - { id: "anthropic/claude-opus-4.8:anthropic", vendor: anthropic, label: "Claude Opus 4.8" }
+  - { id: "qwen/qwen3.7-max:alibaba",            vendor: qwen,      label: "Qwen3.7 Max" }
+  - { id: "openai/gpt-5.5:openai",               vendor: openai,    label: "GPT-5.5" }
   # ...
 ```
 
-`vendor` 必须是 `research/lib/vendors.ts` 里的规范厂商 id（anthropic / openai / google / deepseek /
-qwen / baidu-ernie / doubao / moonshot / z-ai / stepfun / x-ai / minimax / kwai / xiaomi / tencent /
-inclusion）。语言、重复次数、提取器模型也都在该文件里配置。
+> `id` 用 ZenMux 的完整模型 id，含 `:provider` 路由后缀（如 `:anthropic` / `:openai` / `:alibaba`）。
+> `vendor` 是该模型的**真实归属厂商**（用于和提取器判定的"自称厂商"对比，算混淆率），二者各司其职。
+
+`vendor` 必须是 `research/lib/vendors.ts` 里的规范厂商 **id**（注意 id 与显示名不同，校验认的是 id）：
+anthropic / openai / google / deepseek / qwen / baidu / bytedance / moonshot / z-ai / stepfun /
+x-ai / minimax / kwai / xiaomi / tencent / inclusionai / meta / mistral / agnes。
+语言、重复次数（`repeats`）、提取器模型（`extractor.model`）也都在 `config/study.yaml` 里配置。
 
 ---
 
@@ -127,6 +135,28 @@ arxiv 风格：摘要、方法论、三线表（各模型/各语言自识别率�
 > 注意：`study:test` 会**新建**一次 run 并依次跑完三步；若问答未跑完（超过 max-rounds 仍有失败），
 > 链条会在门禁处停下，不会在残缺数据上提取/聚合。
 
+### 多 config 文件（重要）
+
+`--config` **只在新建 run 时生效**：`study:run` 不带 `--run` 时会把该 config 快照进 run 目录，此后该 run 的
+config 就被钉死；续跑（`--run`）时读的是快照，传 `--config` 仅用于（靠 `study.id`）定位 run 目录，不会改配置。
+
+> ⚠️ **不要用 `pnpm study:test --config foo.yaml`**。`study:test` 是 `run && extract && aggregate` 三条
+> 命令用 `&&` 串起来的，npm/pnpm 把额外参数拼到**整条链末尾**，于是 `--config foo.yaml` 只落到最后的
+> `aggregate` 上，前面的 `run`/`extract` 仍用默认 `config/study.yaml` —— 你指定的 config 被**静默忽略**。
+
+多 config 时改走分步命令，每条都显式带 `--config`：
+
+```bash
+export ZENMUX_API_KEY=sk-...
+pnpm study:run       --config config/who-are-you-bare.yaml             # 建新 run + 拍该 config 的快照
+pnpm study:extract   --config config/who-are-you-bare.yaml --run latest
+pnpm study:aggregate --config config/who-are-you-bare.yaml --run latest
+pnpm study:report    --config config/who-are-you-bare.yaml --run latest
+```
+
+> 建议给不同实验设**不同的 `study.id`**（run 目录是 `results/<study.id>/<时间戳>/`）。若多份 config 共用同一个
+> `study.id`，它们会挤在同一目录下，`--run latest` 会跨配置串味。
+
 ---
 
 ## 4. 在线交互页
@@ -148,7 +178,7 @@ pnpm dev
 ```
 config/study.yaml          # 实验配置（编辑这里）
 research/
-  lib/                     # 核心库：types/vendors/config/prompts/client/limiter/store/ask/extract/aggregate/svg/geometry/report/branding
+  lib/                     # 核心库：types/vendors/config/args/prompts/client/limiter/store/ask/extract/aggregate/svg/geometry/report/branding
   scripts/                 # run / extract / aggregate / report
   assets/NotoSansSC-*.otf  # resvg 导出 PNG 内中文用的字体
 results/<study.id>/<时间戳>/  # 每次测试的产物（records/extractions/aggregate/report）
