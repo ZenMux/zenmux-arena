@@ -9,6 +9,7 @@
     "lint": "eslint",
     "study:run": "tsx research/scripts/run.ts",
     "study:extract": "tsx research/scripts/extract.ts",
+    "study:mix": "tsx research/scripts/mix.ts",
     "study:aggregate": "tsx research/scripts/aggregate.ts",
     "study:report": "tsx research/scripts/report.ts",
     "study:test": "tsx research/scripts/run.ts && tsx research/scripts/extract.ts && tsx research/scripts/aggregate.ts"

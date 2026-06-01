@@ -102,6 +102,39 @@ pnpm study:run --run 20260529T045756
 
 确实想在不完整数据上强跑，可加 `--force`。
 
+#### 合并多次测试（mix）
+
+测试常常分阶段攒：先跑一次 26 个模型的大 run，过几天补一个新模型，再加跑几次提高 `repeats`。
+`study:mix` 把这些 run **汇总成一个最终结果**，让你一次看全。它**不调用任何 API**、也**不自动聚合**——
+合并完你再手动 `study:aggregate --run mix-<时间戳>`（和管线其余部分一样刻意分步）。
+
+```bash
+# 指定要合并的 run（逗号分隔的时间戳）
+pnpm study:mix --runs 20260531T175027,20260601T012758
+# 或合并该 study 下所有「原生」run（自动跳过已有的 mix-* 目录）
+pnpm study:mix --all
+```
+
+产物是一个新的 **`results/<study.id>/mix-<时间戳>/`** 目录（时间戳命名、绝不覆盖），里面照常有
+`records.jsonl` / `extractions.jsonl` / `study.yaml`，外加一个 **`mix.json`** 清单（记录来源 run、
+各自贡献的样本数、以及方法论警告）。之后按常规聚合即可：
+
+```bash
+pnpm study:aggregate --run mix-<时间戳>     # mix.json 让聚合自动放宽「矩形完整性门禁」
+pnpm study:report    --run mix-<时间戳>
+```
+
+几个关键点：
+
+- **合并的单位是 `generationId`（每次 API 调用的 `message.id`），不是续跑 key。** 续跑 key
+  `模型::语言::repeat` 刻意不编码 run/prompt，所以同一模型的两次 run 会产生**撞 key**——直接按 key 去重
+  会**静默丢掉重叠的样本**。mix 改按 `generationId` 池化回答、按 `sourceGenerationId` 池化提取并对齐，
+  然后**按 (模型,语言) 重新编号 `repeat`**，使合并目录的 key 重新全局唯一——所以聚合 / 网页 / 导出都无需改动
+  即可识别它。每条记录都保留原始 key + 来源 run（写在 `mixSource` 里）供溯源。
+- **跨刺激合并只警告、不拦截。** 若被合并的 run 在同一语言用了不同的 prompt（如裸「你是谁？」对上 probed 形态），
+  mix 会逐语言打印警告并把所有变体记进 `mix.json`，但仍继续——是否跨刺激家族池化是你的方法论选择。
+- 合并目录会被网页 **studio / browse 自动发现**；browse 里每条回答还会标出它来自哪次源 run。
+
 ### 阶段二 · 撰写报告
 
 ```bash
@@ -124,13 +157,15 @@ arxiv 风格：摘要、方法论、三线表（各模型/各语言自识别率�
 | `pnpm study:report` | 阶段二：生成 arxiv 风格报告 |
 | `pnpm study:run` | 仅问答（自动补全 + 重试轮次） |
 | `pnpm study:extract` | 仅身份提取（需 records 完整） |
-| `pnpm study:aggregate` | 仅聚合（需 records 完整） |
+| `pnpm study:mix` | 把多次 run 池化成一个合并结果（不调 API、不自动聚合） |
+| `pnpm study:aggregate` | 仅聚合（需 records 完整；mix 目录自动放宽门禁） |
 
 通用参数：
 - `--config <path>`：配置文件（默认 `config/study.yaml`）
 - `--run <时间戳>`：指定 run 目录续跑；`--run latest` 用最近一次。`study:run` 不带则新建。
 - `study:run` 专属：`--model-concurrency <n>`、`--batch-size <n>`、`--max-rounds <n>`
 - `study:extract` / `study:aggregate`：`--force` 跳过完整性门禁
+- `study:mix` 专属：`--runs <时间戳,时间戳,…>`（要合并的源 run）**或** `--all`（合并全部原生 run，跳过 `mix-*`）
 
 > 注意：`study:test` 会**新建**一次 run 并依次跑完三步；若问答未跑完（超过 max-rounds 仍有失败），
 > 链条会在门禁处停下，不会在残缺数据上提取/聚合。
@@ -169,7 +204,7 @@ pnpm dev
 
 - **[/research](http://localhost:3000/research)** — 报告页：头条指标、交互式关系图（节点 hover 高亮关联边、边 hover 显示精确概率、可按语言筛选）、汇总表格。
 - **[/research/studio](http://localhost:3000/research/studio)** — Graph Studio：实时调参（间距/节点大小/曲率/阈值/配色/标签模式/背景），拖动改边形状，隐藏厂商，然后**导出 PNG/SVG**（所见即所得，导出图脚注自带 ZenMux 标识 + 源码地址）。**关系图就在这里出图**。
-- **[/research/browse](http://localhost:3000/research/browse)** — 原始回答浏览：按模型 slug 浏览每条 `records.jsonl` 回答，按语言分组，每条回答下方展示 `extractions.jsonl` 里的提取结果（自称厂商、自称文本、置信度、理由；无对应结果时显示「无」）。
+- **[/research/browse](http://localhost:3000/research/browse)** — 原始回答浏览：按模型 slug 浏览每条 `records.jsonl` 回答，按语言分组，每条回答下方展示 `extractions.jsonl` 里的提取结果（自称厂商、自称文本、置信度、理由；无对应结果时显示「无」）。浏览 **mix 合并目录**时，每条回答还会标出它来自哪次源 run（`mixSource` 溯源）。
 
 ---
 
@@ -178,10 +213,11 @@ pnpm dev
 ```
 config/study.yaml          # 实验配置（编辑这里）
 research/
-  lib/                     # 核心库：types/vendors/config/args/prompts/client/limiter/store/ask/extract/aggregate/svg/geometry/report/branding
-  scripts/                 # run / extract / aggregate / report
+  lib/                     # 核心库：types/vendors/config/args/prompts/client/limiter/store/ask/extract/mix/aggregate/svg/geometry/report/branding
+  scripts/                 # run / extract / mix / aggregate / report
   assets/NotoSansSC-*.otf  # resvg 导出 PNG 内中文用的字体
-results/<study.id>/<时间戳>/  # 每次测试的产物（records/extractions/aggregate/report）
+results/<study.id>/<时间戳>/    # 每次测试的产物（records/extractions/aggregate/report）
+results/<study.id>/mix-<时间戳>/ # study:mix 合并多次 run 的产物（多一个 mix.json 清单）
 public/research/           # 发布物：aggregate.json + report.md（+ 网页导出的 graph.png 作 OG 图）
 src/app/research/          # Next.js 交互页：报告页 / studio（出图+导出）/ browse（原始回答浏览）
 ```

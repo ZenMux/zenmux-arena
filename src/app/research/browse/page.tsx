@@ -293,8 +293,18 @@ function AnswerRow({ answer }: { answer: JoinedAnswer }) {
   return (
     <div className="px-4 py-3.5">
       <div className="flex items-start gap-3">
-        <span className="mt-0.5 shrink-0 rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
-          #{answer.repeat}
+        <span className="mt-0.5 flex shrink-0 flex-col items-start gap-1">
+          <span className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-neutral-500 dark:bg-neutral-900 dark:text-neutral-400">
+            #{answer.repeat}
+          </span>
+          {answer.sourceStamp && (
+            <span
+              className="rounded bg-indigo-50 px-1.5 py-0.5 font-mono text-[9px] text-indigo-500 dark:bg-indigo-950/50 dark:text-indigo-400"
+              title={`Pooled from run ${answer.sourceStamp}`}
+            >
+              {answer.sourceStamp}
+            </span>
+          )}
         </span>
         <div className="min-w-0 flex-1">
           {answer.error ? (

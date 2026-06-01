@@ -22,6 +22,10 @@ pnpm study:run        # ask pass only (auto-retry rounds + resume)
 pnpm study:extract    # identity-extraction pass only (needs complete records)
 pnpm study:aggregate  # join + summarize only (needs complete records)
 
+# Pool several runs gathered in stages into one merged result (no API calls):
+pnpm study:mix --runs <stampA,stampB,...>   # or --all to pool every native run
+pnpm study:aggregate --run mix-<stamp>      # then aggregate/report the mix as usual
+
 # Web viewer (also where the graph is rendered + exported as PNG/SVG):
 pnpm dev              # http://localhost:3000/research  ·  /research/studio  ·  /research/browse
 pnpm build && pnpm start
@@ -35,6 +39,7 @@ There is **no test runner** — `study:test` is the data pipeline, not a unit-te
 - `--run <stamp|latest>` — resume an existing run directory; `study:run` without it creates a fresh timestamped run, the others default to `latest`
 - `study:run` only: `--model-concurrency <n>`, `--batch-size <n>`, `--max-rounds <n>` (default 5)
 - `study:extract`/`study:aggregate`: `--force` to bypass the completeness gate; `study:extract --re-extract` to redo all extractions
+- `study:mix`: `--runs <stamp,stamp,…>` (comma-separated source stamps) **or** `--all` (every native run, skipping prior `mix-*` dirs). Writes a new `mix-<stamp>/` dir; never resumes/overwrites.
 
 ## Use the installed skills — don't hand-roll what a skill owns
 
@@ -72,12 +77,23 @@ Every run lives in its own timestamped dir: `results/<study.id>/<stamp>/` (e.g. 
 
 **Config is pinned per run.** On a fresh run, `study:run` snapshots `config/study.yaml` into the run dir as `study.yaml`; all four scripts (`run`/`extract`/`aggregate`/`report`) then load config **from that snapshot** on resume, not from the live `config/study.yaml`. So editing the live config never retroactively changes an in-flight run's model/lang/repeat set (which would corrupt the completeness gate, since the resume key doesn't encode the prompt). The scripts discover `study.id` via `bootstrapStudyId` (a lightweight parse with no API-key gate), locate the run dir, then `loadRunConfig` reads-or-creates the snapshot. Older runs that predate snapshots get back-filled silently from the current config on first touch. To use a *new* config, start a fresh run (no `--run`).
 
+### Mixing runs (`research/lib/mix.ts` + `research/scripts/mix.ts`) — pooling staged runs
+
+A study is often gathered in stages (a big run, a follow-up that adds one model, a top-up that adds repeats). `study:mix` pools several runs into one merged result so you can read a single final aggregate. It makes **no API calls** and does **not** auto-aggregate — you run `study:aggregate --run mix-<stamp>` afterward (deliberately manual, like the rest of the pipeline).
+
+- **The merge unit is `generationId` (the API's `message.id`), NOT the resume key.** The resume key `model::lang::repeat` deliberately excludes the run + prompt, so two runs of the *same* model produce **colliding keys** — a naive concat+dedupe-by-key would silently drop the overlap (e.g. two `minimax-m3` runs share 300 keys). Mix instead pools answered records by `generationId` (globally unique, verified non-null), pools extractions by `sourceGenerationId`, and joins record↔extraction on `generationId === sourceGenerationId`. Dedup extractions by `sourceGenerationId` (the *answer* labeled), never `extractorGenerationId`, or a re-extraction double-counts.
+- **Lockstep re-numbering is what makes a mix behave like a native run.** After pooling, every surviving answer gets a FRESH unique resume key by re-numbering `repeat` per `(model, lang)`; records and their extractions are re-keyed together. The merged dir thus has globally-unique keys again, so `aggregate`, the web `browse` join, and the studio `export` — all of which still join by key — work on a mix **unchanged**. Each row keeps its original key + source run in `mixSource` (provenance), and its original `generationId` untouched.
+- **A `mix.json` sidecar marks the dir as a mix.** `study:aggregate` keys off its presence to **skip the rectangular `model×lang×repeat` completeness gate** (a mix is ragged — per-model sample counts differ — so `enumerateTasks` would invent never-asked keys). The per-answer "every answered record has a clean extraction" gate still applies. The manifest also records per-source contributions and `promptVariants` per language.
+- **Cross-prompt mixing is warned, not blocked.** If pooled runs used different stimuli for the same language (e.g. bare "Who are you?" vs. the probed variant), `mix` logs a warning per language and records every variant in `mix.json` — but proceeds. Pooling across stimulus families is a real methodology choice; the merged config's `languages[].prompt` holds the *most common* variant as representative.
+- **Output is a new `mix-<stamp>/` dir** (timestamped, never overwritten, auto-discovered by studio/browse). `--all` pools every native run and skips existing `mix-*` dirs so a mix is never re-pooled into another mix.
+
 ### Key invariants — understand these before changing the pipeline
 
 - **The resume key** is `${modelId}::${langCode}::${repeat}` (`makeKey` in `research/lib/ask.ts`). It ties a record to its extraction across passes and drives idempotent resume/dedup. Don't change its shape without updating `store.ts` dedup/completeness logic.
 - **Everything is JSONL + append-only + resumable** (`research/lib/store.ts`). Records/extractions are de-duplicated last-write-wins by key; only successful records (non-empty `response`, no `error`) count as "done." Re-running fills only what's missing. `study:run` has an outer round loop (`--max-rounds`) on top of per-request exponential backoff.
 - **Completeness gate**: `study:extract` and `study:aggregate` refuse to run unless *every* expected `model×lang×repeat` key has a successful record (`checkCompleteness`). They exit non-zero, which halts the chained `study:test` before it can operate on partial data. `--force` overrides. When editing these scripts, preserve the non-zero exit on incomplete data.
 - **`ask`/`extract` never throw** — failures are returned as records/results with an `error`/`parseError` field set, so one bad call can't abort a batch.
+- **Merged ("mix") runs join by `generationId`, then re-number keys** so they pass as native runs downstream (see "Mixing runs" above). When touching dedup/join/gate logic, remember a `mix-*` dir is identified by its `mix.json` sidecar and is intentionally exempt from the rectangular completeness gate.
 
 ### Vendor taxonomy (`research/lib/vendors.ts`)
 - `VENDORS` is the canonical registry: each real vendor has a `name`, a `logo` filename under `public/maker-logo/`, and `aliases` (lowercased substrings, incl. Chinese names like 通义千问/文心一言) used to map free-text back to a canonical id.

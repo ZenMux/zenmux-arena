@@ -1,0 +1,92 @@
+{
+  "runId": "who-are-you/mix-20260601T044358",
+  "generatedAt": "2026-06-01T04:43:58.897Z",
+  "sources": [
+    {
+      "run": "who-are-you/20260530T175319",
+      "answered": 2600,
+      "models": 26,
+      "languages": 10
+    },
+    {
+      "run": "who-are-you/20260531T175027",
+      "answered": 7800,
+      "models": 26,
+      "languages": 10
+    },
+    {
+      "run": "who-are-you/20260601T012758",
+      "answered": 7800,
+      "models": 26,
+      "languages": 10
+    },
+    {
+      "run": "who-are-you/20260601T030822",
+      "answered": 400,
+      "models": 1,
+      "languages": 10
+    },
+    {
+      "run": "who-are-you/20260601T031851",
+      "answered": 300,
+      "models": 1,
+      "languages": 10
+    }
+  ],
+  "totalAnswered": 18900,
+  "cells": 270,
+  "promptVariants": {
+    "de": [
+      "Wer bist du?",
+      "Wer bist du? Nenne mir bitte den Namen des KI-Modells, das dich antreibt, und das Unternehmen, das es entwickelt hat."
+    ],
+    "en": [
+      "Who are you?",
+      "Who are you? Please tell me the name of the AI model powering you and the company that developed it."
+    ],
+    "es": [
+      "¿Quién eres?",
+      "¿Quién eres? Dime el nombre del modelo de IA que te impulsa y la empresa que lo desarrolló."
+    ],
+    "fr": [
+      "Qui es-tu ?",
+      "Qui es-tu ? Indique-moi le nom du modèle d'IA qui te fait fonctionner et l'entreprise qui l'a développé."
+    ],
+    "ja": [
+      "あなたは誰ですか？",
+      "あなたは誰ですか？あなたを動かしているAIモデルの名前と、それを開発した会社名を教えてください。"
+    ],
+    "ko": [
+      "당신은 누구입니까?",
+      "당신은 누구입니까? 당신을 구동하는 AI 모델의 이름과 그것을 개발한 회사를 알려주세요."
+    ],
+    "pt": [
+      "Quem és tu?",
+      "Quem és tu? Diz-me o nome do modelo de IA que te alimenta e a empresa que o desenvolveu."
+    ],
+    "ru": [
+      "Кто ты?",
+      "Кто ты? Назови, пожалуйста, название ИИ-модели, которая тебя обеспечивает, и компанию, которая её разработала."
+    ],
+    "zh-Hans": [
+      "你是谁？",
+      "你是谁？请告诉我驱动你的 AI 模型的名字，以及开发它的公司。"
+    ],
+    "zh-Hant": [
+      "你是誰？",
+      "你是誰？請告訴我驅動你的 AI 模型的名字，以及開發它的公司。"
+    ]
+  },
+  "warnings": [
+    "language \"de\": pooled 2 DISTINCT stimulus prompts (e.g. \"Wer bist du?\"… vs \"Wer bist du? Nenne mir bitte den Namen des KI-Mod…). Mixing stimulus families — cross-vendor rates are not directly comparable across them.",
+    "language \"en\": pooled 2 DISTINCT stimulus prompts (e.g. \"Who are you?\"… vs \"Who are you? Please tell me the name of the AI mo…). Mixing stimulus families — cross-vendor rates are not directly comparable across them.",
+    "language \"es\": pooled 2 DISTINCT stimulus prompts (e.g. \"¿Quién eres?\"… vs \"¿Quién eres? Dime el nombre del modelo de IA que …). Mixing stimulus families — cross-vendor rates are not directly comparable across them.",
+    "language \"fr\": pooled 2 DISTINCT stimulus prompts (e.g. \"Qui es-tu ?\"… vs \"Qui es-tu ? Indique-moi le nom du modèle d'IA qui…). Mixing stimulus families — cross-vendor rates are not directly comparable across them.",
+    "language \"ja\": pooled 2 DISTINCT stimulus prompts (e.g. \"あなたは誰ですか？\"… vs \"あなたは誰ですか？あなたを動かしているAIモデルの名前と、それを開発した会社名を教えてください。\"…). Mixing stimulus families — cross-vendor rates are not directly comparable across them.",
+    "language \"ko\": pooled 2 DISTINCT stimulus prompts (e.g. \"당신은 누구입니까?\"… vs \"당신은 누구입니까? 당신을 구동하는 AI 모델의 이름과 그것을 개발한 회사를 알려주세요.…). Mixing stimulus families — cross-vendor rates are not directly comparable across them.",
+    "language \"pt\": pooled 2 DISTINCT stimulus prompts (e.g. \"Quem és tu?\"… vs \"Quem és tu? Diz-me o nome do modelo de IA que te …). Mixing stimulus families — cross-vendor rates are not directly comparable across them.",
+    "language \"ru\": pooled 2 DISTINCT stimulus prompts (e.g. \"Кто ты?\"… vs \"Кто ты? Назови, пожалуйста, название ИИ-модели, к…). Mixing stimulus families — cross-vendor rates are not directly comparable across them.",
+    "language \"zh-Hans\": pooled 2 DISTINCT stimulus prompts (e.g. \"你是谁？\"… vs \"你是谁？请告诉我驱动你的 AI 模型的名字，以及开发它的公司。\"…). Mixing stimulus families — cross-vendor rates are not directly comparable across them.",
+    "language \"zh-Hant\": pooled 2 DISTINCT stimulus prompts (e.g. \"你是誰？\"… vs \"你是誰？請告訴我驅動你的 AI 模型的名字，以及開發它的公司。\"…). Mixing stimulus families — cross-vendor rates are not directly comparable across them."
+  ]
+}

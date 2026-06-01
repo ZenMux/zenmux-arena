@@ -47,6 +47,8 @@ export interface JoinedAnswer {
   extraction: ExtractionResult | null;
   /** Effective claimed vendor (`self` when the claim matches the model's true vendor). */
   effective: VendorDisplay | null;
+  /** Source run stamp when this answer came from a mix (provenance tag); null otherwise. */
+  sourceStamp: string | null;
 }
 
 export interface LangGroup {
@@ -202,6 +204,9 @@ function build(
     }
     const ext = extByKey.get(r.key) ?? null;
     const repeat = Number(r.key.split("::").pop());
+    // On a mix, the row carries provenance (which source run it was pooled from). Show
+    // just the stamp segment ("<study>/<stamp>" → "<stamp>") as a compact tag.
+    const sourceStamp = r.mixSource ? r.mixSource.run.split("/").pop() ?? r.mixSource.run : null;
     const ans: JoinedAnswer = {
       key: r.key,
       repeat: Number.isFinite(repeat) ? repeat : 0,
@@ -211,6 +216,7 @@ function build(
       error: r.error,
       extraction: ext,
       effective: effectiveOf(ext, r.modelVendor),
+      sourceStamp,
     };
     const list = acc.byLang.get(r.langCode) ?? [];
     list.push(ans);

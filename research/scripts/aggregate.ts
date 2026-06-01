@@ -4,6 +4,13 @@
 // GATE: refuses to run unless records.jsonl is COMPLETE (every model×lang×repeat has a
 // successful record). Override with --force.
 //
+// MIX RUNS: a merged run (produced by `study:mix`, identified by a mix.json sidecar) is
+// RAGGED by construction — different models carry different sample counts — so the
+// rectangular model×lang×repeat completeness gate does not apply and is skipped. The
+// per-answer "every answered record has a clean extraction" gate STILL applies (it is
+// keyed off real answered records, not a dense grid), so a mix can't aggregate with
+// unlabeled answers.
+//
 // Usage: pnpm study:aggregate [--config config/study.yaml] [--run <stamp|latest>] [--force]
 
 import fs from "node:fs";
@@ -13,7 +20,7 @@ import { enumerateTasks } from "../lib/ask";
 import { parseArgs } from "../lib/args";
 import { bootstrapStudyId, loadRunConfig } from "../lib/config";
 import { checkCompleteness, dedupeByKey, loadJsonl, resolveRun } from "../lib/store";
-import type { ExtractionResult, RawRecord } from "../lib/types";
+import type { ExtractionResult, MixManifest, RawRecord } from "../lib/types";
 
 async function main() {
   const args = parseArgs();
@@ -33,13 +40,35 @@ async function main() {
     process.exit(1);
   }
 
+  // ── Mix detection: a mix.json sidecar marks a merged run. ───────────────────
+  const mixPath = path.join(paths.dir, "mix.json");
+  let mix: MixManifest | null = null;
+  if (fs.existsSync(mixPath)) {
+    try {
+      mix = JSON.parse(fs.readFileSync(mixPath, "utf8")) as MixManifest;
+    } catch {
+      mix = null;
+    }
+  }
+
   // ── Completeness gate ──────────────────────────────────────────────────────
-  const expectedKeys = enumerateTasks(cfg).map((t) => t.key);
-  const comp = checkCompleteness(expectedKeys, records);
-  console.log(`[aggregate] run=${paths.runId}  records ok=${comp.ok}/${comp.expected}  missing=${comp.missing.length}  errored=${comp.errored.length}`);
-  if (!comp.complete && !args.has("force")) {
-    console.error(`[aggregate] ✗ ABORT: records.jsonl incomplete; refusing to aggregate partial data. Finish: pnpm study:run --run ${paths.stamp}  (or --force)`);
-    process.exit(2);
+  // For a NATIVE run, assert the dense model×lang×repeat grid is fully populated. For
+  // a MIX run, skip this gate: the data is ragged (per-model sample counts differ), so
+  // enumerateTasks would invent never-asked keys and the gate could never pass.
+  if (mix) {
+    console.log(`[aggregate] run=${paths.runId}  MIX of ${mix.sources.length} run(s): ${mix.sources.map((s) => s.run.split("/").pop()).join(", ")}`);
+    console.log(`[aggregate]   pooled answered=${mix.totalAnswered}  cells=${mix.cells}  (rectangular completeness gate skipped for mixes)`);
+    if (mix.warnings.length) {
+      console.log(`[aggregate]   ⚠ ${mix.warnings.length} mix warning(s) — e.g. ${mix.warnings[0].slice(0, 90)}…`);
+    }
+  } else {
+    const expectedKeys = enumerateTasks(cfg).map((t) => t.key);
+    const comp = checkCompleteness(expectedKeys, records);
+    console.log(`[aggregate] run=${paths.runId}  records ok=${comp.ok}/${comp.expected}  missing=${comp.missing.length}  errored=${comp.errored.length}`);
+    if (!comp.complete && !args.has("force")) {
+      console.error(`[aggregate] ✗ ABORT: records.jsonl incomplete; refusing to aggregate partial data. Finish: pnpm study:run --run ${paths.stamp}  (or --force)`);
+      process.exit(2);
+    }
   }
   // Abort if extractions lag behind the answered records. Compare by KEY SET, not by
   // raw counts: an orphan extraction (one whose record is gone) or a duplicate would

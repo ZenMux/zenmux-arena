@@ -123,6 +123,19 @@ export interface StudyConfig {
 // Raw record (one answer from one model in one language)
 // ---------------------------------------------------------------------------
 
+/**
+ * Provenance stamp added by the `mix` step (and only by it). When several runs are
+ * pooled into one merged run, the resume key is RE-NUMBERED (the original
+ * `model::lang::repeat` keys collide across runs by design — see `makeKey`), so the
+ * original identity is preserved here for audit. Absent on native (un-mixed) runs.
+ */
+export interface MixSource {
+  /** The source run this row came from, e.g. "who-are-you/20260601T012758". */
+  run: string;
+  /** The row's ORIGINAL resume key in its source run, before mix re-numbering. */
+  origKey: string;
+}
+
 export interface RawRecord {
   /** `${modelId}::${langCode}::${repeat}` — the resume key shared by both passes. */
   key: string;
@@ -142,6 +155,8 @@ export interface RawRecord {
   usage?: { input: number; output: number };
   /** Set if the call failed after all retries (response will be ""). */
   error?: string;
+  /** Present only on rows produced by `mix` (see MixSource). */
+  mixSource?: MixSource;
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +194,8 @@ export interface ExtractionResult {
   rawExtractorOutput: string;
   /** Set if JSON parse/validation failed (a salvage value may still be present). */
   parseError?: string;
+  /** Present only on rows produced by `mix` (see MixSource). Mirrors the joined record's. */
+  mixSource?: MixSource;
 }
 
 // ---------------------------------------------------------------------------
@@ -245,4 +262,46 @@ export interface GraphData {
   edges: Edge[];
   cells: ModelLangCell[];
   summary: StudySummary;
+}
+
+// ---------------------------------------------------------------------------
+// Mix manifest (written by `mix` as mix.json alongside the merged jsonl)
+// ---------------------------------------------------------------------------
+
+/** Per-source-run contribution to a mix. */
+export interface MixSourceSummary {
+  /** Source run id, "<study>/<stamp>". */
+  run: string;
+  /** Answered records pooled from this run (post per-run key-dedupe). */
+  answered: number;
+  /** Distinct models contributed. */
+  models: number;
+  /** Distinct languages contributed. */
+  languages: number;
+}
+
+/**
+ * Sidecar written to a merged run dir (`results/<study>/mix-<stamp>/mix.json`). Its
+ * mere presence marks the dir as a MIX — `aggregate` keys off it to relax the
+ * rectangular completeness gate (a mix is ragged: different models have different
+ * sample counts). Holds the merge audit trail + any methodology warnings.
+ */
+export interface MixManifest {
+  /** This merged run's own id, "<study>/mix-<stamp>". */
+  runId: string;
+  generatedAt: string;
+  /** Source runs that were pooled, in the order given on the CLI. */
+  sources: MixSourceSummary[];
+  /** Total answered records after cross-run pooling (dedup by generationId). */
+  totalAnswered: number;
+  /** Distinct (model,lang) cells in the merged data. */
+  cells: number;
+  /**
+   * Per language, the distinct stimulus prompts seen across the pooled runs. A
+   * language with >1 entry means different stimuli were merged (e.g. bare vs.
+   * probed) — surfaced as a warning, not blocked. Keyed by langCode.
+   */
+  promptVariants: Record<string, string[]>;
+  /** Human-readable methodology warnings (e.g. mixed prompt families). */
+  warnings: string[];
 }
