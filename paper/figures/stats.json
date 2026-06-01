@@ -1,0 +1,4048 @@
+{
+  "meta": {
+    "runId": "who-are-you/mix-20260601T062425",
+    "generatedAt": "2026-06-01T06:25:21.644Z",
+    "totalAnswers": 29700,
+    "nModels": 27,
+    "nVendors": 16,
+    "nLanguages": 10
+  },
+  "summary": {
+    "overallSelfRate": 0.8521885521885522,
+    "confusionRate": 0.07111111111111111,
+    "refusedRate": 0.05299663299663299,
+    "unknownRate": 0.023703703703703703
+  },
+  "byVariant": {
+    "bare": {
+      "n": 14040,
+      "self": 0.8931623931623932,
+      "cross": 0.03198005698005698,
+      "refused": 0.025925925925925925,
+      "unknown": 0.04893162393162393
+    },
+    "probed": {
+      "n": 4860,
+      "self": 0.8681069958847737,
+      "cross": 0.056584362139917695,
+      "refused": 0.07263374485596708,
+      "unknown": 0.002674897119341564
+    },
+    "debrand": {
+      "n": 10800,
+      "self": 0.7917592592592593,
+      "cross": 0.12851851851851853,
+      "refused": 0.07935185185185185,
+      "unknown": 0.00037037037037037035
+    }
+  },
+  "byLang": {
+    "de": {
+      "n": 2970,
+      "self": 0.87003367003367,
+      "cross": 0.07441077441077441,
+      "refused": 0.047474747474747475,
+      "unknown": 0.00808080808080808
+    },
+    "en": {
+      "n": 2970,
+      "self": 0.8828282828282829,
+      "cross": 0.0531986531986532,
+      "refused": 0.047474747474747475,
+      "unknown": 0.016498316498316498
+    },
+    "es": {
+      "n": 2970,
+      "self": 0.8390572390572391,
+      "cross": 0.07912457912457913,
+      "refused": 0.055218855218855216,
+      "unknown": 0.0265993265993266
+    },
+    "fr": {
+      "n": 2970,
+      "self": 0.798989898989899,
+      "cross": 0.12794612794612795,
+      "refused": 0.06060606060606061,
+      "unknown": 0.012457912457912458
+    },
+    "ja": {
+      "n": 2970,
+      "self": 0.827946127946128,
+      "cross": 0.06801346801346801,
+      "refused": 0.06161616161616162,
+      "unknown": 0.04242424242424243
+    },
+    "ko": {
+      "n": 2970,
+      "self": 0.8249158249158249,
+      "cross": 0.08350168350168351,
+      "refused": 0.056228956228956226,
+      "unknown": 0.03535353535353535
+    },
+    "pt": {
+      "n": 2970,
+      "self": 0.8356902356902357,
+      "cross": 0.08181818181818182,
+      "refused": 0.050505050505050504,
+      "unknown": 0.03198653198653199
+    },
+    "ru": {
+      "n": 2970,
+      "self": 0.8171717171717172,
+      "cross": 0.08787878787878788,
+      "refused": 0.052525252525252523,
+      "unknown": 0.04242424242424243
+    },
+    "zh-Hans": {
+      "n": 2970,
+      "self": 0.9191919191919192,
+      "cross": 0.017508417508417508,
+      "refused": 0.048484848484848485,
+      "unknown": 0.014814814814814815
+    },
+    "zh-Hant": {
+      "n": 2970,
+      "self": 0.906060606060606,
+      "cross": 0.03771043771043771,
+      "refused": 0.04983164983164983,
+      "unknown": 0.006397306397306397
+    }
+  },
+  "byVendor": {
+    "anthropic": {
+      "n": 3300,
+      "self": 0.973939393939394,
+      "cross": 0.01787878787878788,
+      "refused": 0.0009090909090909091,
+      "unknown": 0.007272727272727273
+    },
+    "baidu": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "bytedance": {
+      "n": 4400,
+      "self": 0.8859090909090909,
+      "cross": 0.11068181818181819,
+      "refused": 0.0011363636363636363,
+      "unknown": 0.0022727272727272726
+    },
+    "deepseek": {
+      "n": 2200,
+      "self": 0.925,
+      "cross": 0.07,
+      "refused": 0.005,
+      "unknown": 0
+    },
+    "google": {
+      "n": 2200,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "inclusionai": {
+      "n": 2200,
+      "self": 0.1831818181818182,
+      "cross": 0.0013636363636363637,
+      "refused": 0.6572727272727272,
+      "unknown": 0.15818181818181817
+    },
+    "kwai": {
+      "n": 1100,
+      "self": 0.7763636363636364,
+      "cross": 0.21636363636363637,
+      "refused": 0.006363636363636364,
+      "unknown": 0.0009090909090909091
+    },
+    "minimax": {
+      "n": 2200,
+      "self": 0.9495454545454546,
+      "cross": 0.031363636363636364,
+      "refused": 0.01818181818181818,
+      "unknown": 0.0009090909090909091
+    },
+    "moonshot": {
+      "n": 1100,
+      "self": 0.9972727272727273,
+      "cross": 0,
+      "refused": 0.0018181818181818182,
+      "unknown": 0.0009090909090909091
+    },
+    "openai": {
+      "n": 3300,
+      "self": 0.9233333333333333,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0.07666666666666666
+    },
+    "qwen": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "stepfun": {
+      "n": 1100,
+      "self": 0.9481818181818182,
+      "cross": 0.05181818181818182,
+      "refused": 0,
+      "unknown": 0
+    },
+    "tencent": {
+      "n": 1100,
+      "self": 0.32181818181818184,
+      "cross": 0.6645454545454546,
+      "refused": 0,
+      "unknown": 0.013636363636363636
+    },
+    "x-ai": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "xiaomi": {
+      "n": 1100,
+      "self": 0.9727272727272728,
+      "cross": 0.02727272727272727,
+      "refused": 0,
+      "unknown": 0
+    },
+    "z-ai": {
+      "n": 1100,
+      "self": 0.6418181818181818,
+      "cross": 0.2581818181818182,
+      "refused": 0.05454545454545454,
+      "unknown": 0.045454545454545456
+    }
+  },
+  "byModel": {
+    "anthropic/claude-haiku-4.5:anthropic": {
+      "n": 1100,
+      "self": 0.9990909090909091,
+      "cross": 0.0009090909090909091,
+      "refused": 0,
+      "unknown": 0
+    },
+    "anthropic/claude-opus-4.8:anthropic": {
+      "n": 1100,
+      "self": 0.9554545454545454,
+      "cross": 0.028181818181818183,
+      "refused": 0.0018181818181818182,
+      "unknown": 0.014545454545454545
+    },
+    "anthropic/claude-sonnet-4.6:anthropic": {
+      "n": 1100,
+      "self": 0.9672727272727273,
+      "cross": 0.024545454545454544,
+      "refused": 0.0009090909090909091,
+      "unknown": 0.007272727272727273
+    },
+    "baidu/ernie-5.1:baidu": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "bytedance/doubao-seed-2.0-code:volcengine": {
+      "n": 1100,
+      "self": 0.5490909090909091,
+      "cross": 0.4409090909090909,
+      "refused": 0.0009090909090909091,
+      "unknown": 0.00909090909090909
+    },
+    "bytedance/doubao-seed-2.0-lite:volcengine": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "bytedance/doubao-seed-2.0-mini:volcengine": {
+      "n": 1100,
+      "self": 0.9945454545454545,
+      "cross": 0.0018181818181818182,
+      "refused": 0.0036363636363636364,
+      "unknown": 0
+    },
+    "bytedance/doubao-seed-2.0-pro:volcengine": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "deepseek/deepseek-v4-flash:deepseek": {
+      "n": 1100,
+      "self": 0.9663636363636363,
+      "cross": 0.02909090909090909,
+      "refused": 0.004545454545454545,
+      "unknown": 0
+    },
+    "deepseek/deepseek-v4-pro:deepseek": {
+      "n": 1100,
+      "self": 0.8836363636363637,
+      "cross": 0.11090909090909092,
+      "refused": 0.005454545454545455,
+      "unknown": 0
+    },
+    "google/gemini-3.1-pro-preview:google-vertex": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "google/gemini-3.5-flash:google-vertex": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "inclusionai/ling-2.6-1t:theta": {
+      "n": 1100,
+      "self": 0.1890909090909091,
+      "cross": 0.0027272727272727275,
+      "refused": 0.65,
+      "unknown": 0.15818181818181817
+    },
+    "inclusionai/ring-2.6-1t:theta": {
+      "n": 1100,
+      "self": 0.17727272727272728,
+      "cross": 0,
+      "refused": 0.6645454545454546,
+      "unknown": 0.15818181818181817
+    },
+    "kuaishou/kat-coder-pro-v2:streamlake": {
+      "n": 1100,
+      "self": 0.7763636363636364,
+      "cross": 0.21636363636363637,
+      "refused": 0.006363636363636364,
+      "unknown": 0.0009090909090909091
+    },
+    "minimax/minimax-m2.7:minimax": {
+      "n": 1100,
+      "self": 0.9363636363636364,
+      "cross": 0.025454545454545455,
+      "refused": 0.03636363636363636,
+      "unknown": 0.0018181818181818182
+    },
+    "minimax/minimax-m3:minimax": {
+      "n": 1100,
+      "self": 0.9627272727272728,
+      "cross": 0.03727272727272727,
+      "refused": 0,
+      "unknown": 0
+    },
+    "moonshotai/kimi-k2.6:moonshotai": {
+      "n": 1100,
+      "self": 0.9972727272727273,
+      "cross": 0,
+      "refused": 0.0018181818181818182,
+      "unknown": 0.0009090909090909091
+    },
+    "openai/chat-latest:openai": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "openai/gpt-5.3-codex:openai": {
+      "n": 1100,
+      "self": 0.8918181818181818,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0.10818181818181818
+    },
+    "openai/gpt-5.5:openai": {
+      "n": 1100,
+      "self": 0.8781818181818182,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0.12181818181818181
+    },
+    "qwen/qwen3.7-max:alibaba": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "stepfun/step-3.7-flash:stepfun": {
+      "n": 1100,
+      "self": 0.9481818181818182,
+      "cross": 0.05181818181818182,
+      "refused": 0,
+      "unknown": 0
+    },
+    "tencent/hy3-preview:tencent-cloud": {
+      "n": 1100,
+      "self": 0.32181818181818184,
+      "cross": 0.6645454545454546,
+      "refused": 0,
+      "unknown": 0.013636363636363636
+    },
+    "x-ai/grok-4.3:x-ai": {
+      "n": 1100,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "xiaomi/mimo-v2.5-pro:xiaomi": {
+      "n": 1100,
+      "self": 0.9727272727272728,
+      "cross": 0.02727272727272727,
+      "refused": 0,
+      "unknown": 0
+    },
+    "z-ai/glm-5.1:bigmodel": {
+      "n": 1100,
+      "self": 0.6418181818181818,
+      "cross": 0.2581818181818182,
+      "refused": 0.05454545454545454,
+      "unknown": 0.045454545454545456
+    }
+  },
+  "byVendorVariant": {
+    "anthropic|bare": {
+      "n": 1560,
+      "self": 0.9621794871794872,
+      "cross": 0.026282051282051282,
+      "refused": 0.001282051282051282,
+      "unknown": 0.010256410256410256
+    },
+    "anthropic|probed": {
+      "n": 540,
+      "self": 0.95,
+      "cross": 0.03333333333333333,
+      "refused": 0.001851851851851852,
+      "unknown": 0.014814814814814815
+    },
+    "anthropic|debrand": {
+      "n": 1200,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "baidu|bare": {
+      "n": 520,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "baidu|probed": {
+      "n": 180,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "baidu|debrand": {
+      "n": 400,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "bytedance|bare": {
+      "n": 2080,
+      "self": 0.9552884615384616,
+      "cross": 0.03942307692307692,
+      "refused": 0.0004807692307692308,
+      "unknown": 0.004807692307692308
+    },
+    "bytedance|probed": {
+      "n": 720,
+      "self": 0.9222222222222223,
+      "cross": 0.07777777777777778,
+      "refused": 0,
+      "unknown": 0
+    },
+    "bytedance|debrand": {
+      "n": 1600,
+      "self": 0.779375,
+      "cross": 0.218125,
+      "refused": 0.0025,
+      "unknown": 0
+    },
+    "deepseek|bare": {
+      "n": 1040,
+      "self": 0.9971153846153846,
+      "cross": 0.0028846153846153848,
+      "refused": 0,
+      "unknown": 0
+    },
+    "deepseek|probed": {
+      "n": 360,
+      "self": 0.9805555555555555,
+      "cross": 0.016666666666666666,
+      "refused": 0.002777777777777778,
+      "unknown": 0
+    },
+    "deepseek|debrand": {
+      "n": 800,
+      "self": 0.80625,
+      "cross": 0.18125,
+      "refused": 0.0125,
+      "unknown": 0
+    },
+    "google|bare": {
+      "n": 1040,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "google|probed": {
+      "n": 360,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "google|debrand": {
+      "n": 800,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "inclusionai|bare": {
+      "n": 1040,
+      "self": 0.3817307692307692,
+      "cross": 0,
+      "refused": 0.28942307692307695,
+      "unknown": 0.32884615384615384
+    },
+    "inclusionai|probed": {
+      "n": 360,
+      "self": 0.011111111111111112,
+      "cross": 0,
+      "refused": 0.975,
+      "unknown": 0.013888888888888888
+    },
+    "inclusionai|debrand": {
+      "n": 800,
+      "self": 0.0025,
+      "cross": 0.00375,
+      "refused": 0.9925,
+      "unknown": 0.00125
+    },
+    "kwai|bare": {
+      "n": 520,
+      "self": 0.9384615384615385,
+      "cross": 0.05961538461538462,
+      "refused": 0,
+      "unknown": 0.0019230769230769232
+    },
+    "kwai|probed": {
+      "n": 180,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "kwai|debrand": {
+      "n": 400,
+      "self": 0.465,
+      "cross": 0.5175,
+      "refused": 0.0175,
+      "unknown": 0
+    },
+    "minimax|bare": {
+      "n": 1040,
+      "self": 0.9596153846153846,
+      "cross": 0.03942307692307692,
+      "refused": 0,
+      "unknown": 0.0009615384615384616
+    },
+    "minimax|probed": {
+      "n": 360,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "minimax|debrand": {
+      "n": 800,
+      "self": 0.91375,
+      "cross": 0.035,
+      "refused": 0.05,
+      "unknown": 0.00125
+    },
+    "moonshot|bare": {
+      "n": 520,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "moonshot|probed": {
+      "n": 180,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "moonshot|debrand": {
+      "n": 400,
+      "self": 0.9925,
+      "cross": 0,
+      "refused": 0.005,
+      "unknown": 0.0025
+    },
+    "openai|bare": {
+      "n": 1560,
+      "self": 0.8384615384615385,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0.16153846153846155
+    },
+    "openai|probed": {
+      "n": 540,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "openai|debrand": {
+      "n": 1200,
+      "self": 0.9991666666666666,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0.0008333333333333334
+    },
+    "qwen|bare": {
+      "n": 520,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "qwen|probed": {
+      "n": 180,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "qwen|debrand": {
+      "n": 400,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "stepfun|bare": {
+      "n": 520,
+      "self": 0.9730769230769231,
+      "cross": 0.026923076923076925,
+      "refused": 0,
+      "unknown": 0
+    },
+    "stepfun|probed": {
+      "n": 180,
+      "self": 0.9944444444444445,
+      "cross": 0.005555555555555556,
+      "refused": 0,
+      "unknown": 0
+    },
+    "stepfun|debrand": {
+      "n": 400,
+      "self": 0.895,
+      "cross": 0.105,
+      "refused": 0,
+      "unknown": 0
+    },
+    "tencent|bare": {
+      "n": 520,
+      "self": 0.5173076923076924,
+      "cross": 0.45384615384615384,
+      "refused": 0,
+      "unknown": 0.028846153846153848
+    },
+    "tencent|probed": {
+      "n": 180,
+      "self": 0.17777777777777778,
+      "cross": 0.8222222222222222,
+      "refused": 0,
+      "unknown": 0
+    },
+    "tencent|debrand": {
+      "n": 400,
+      "self": 0.1325,
+      "cross": 0.8675,
+      "refused": 0,
+      "unknown": 0
+    },
+    "x-ai|bare": {
+      "n": 520,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "x-ai|probed": {
+      "n": 180,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "x-ai|debrand": {
+      "n": 400,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "xiaomi|bare": {
+      "n": 520,
+      "self": 1,
+      "cross": 0,
+      "refused": 0,
+      "unknown": 0
+    },
+    "xiaomi|probed": {
+      "n": 180,
+      "self": 0.9944444444444445,
+      "cross": 0.005555555555555556,
+      "refused": 0,
+      "unknown": 0
+    },
+    "xiaomi|debrand": {
+      "n": 400,
+      "self": 0.9275,
+      "cross": 0.0725,
+      "refused": 0,
+      "unknown": 0
+    },
+    "z-ai|bare": {
+      "n": 520,
+      "self": 0.7865384615384615,
+      "cross": 0.0019230769230769232,
+      "refused": 0.11538461538461539,
+      "unknown": 0.09615384615384616
+    },
+    "z-ai|probed": {
+      "n": 180,
+      "self": 0.75,
+      "cross": 0.25,
+      "refused": 0,
+      "unknown": 0
+    },
+    "z-ai|debrand": {
+      "n": 400,
+      "self": 0.405,
+      "cross": 0.595,
+      "refused": 0,
+      "unknown": 0
+    }
+  },
+  "crossMatrix": {
+    "anthropic": {
+      "self": 3214,
+      "openai": 12,
+      "unknown": 24,
+      "deepseek": 29,
+      "refused": 3,
+      "mistral": 18
+    },
+    "baidu": {
+      "self": 1100
+    },
+    "bytedance": {
+      "self": 3898,
+      "openai": 317,
+      "anthropic": 112,
+      "unknown": 10,
+      "refused": 5,
+      "other": 32,
+      "meta": 7,
+      "google": 19
+    },
+    "deepseek": {
+      "self": 2035,
+      "other": 1,
+      "openai": 30,
+      "meta": 2,
+      "qwen": 3,
+      "anthropic": 83,
+      "refused": 11,
+      "google": 33,
+      "mistral": 1,
+      "x-ai": 1
+    },
+    "google": {
+      "self": 2200
+    },
+    "inclusionai": {
+      "self": 403,
+      "refused": 1446,
+      "unknown": 348,
+      "openai": 1,
+      "meta": 1,
+      "anthropic": 1
+    },
+    "kwai": {
+      "self": 854,
+      "deepseek": 10,
+      "qwen": 148,
+      "openai": 47,
+      "z-ai": 13,
+      "other": 5,
+      "google": 2,
+      "baidu": 3,
+      "bytedance": 5,
+      "tencent": 1,
+      "mistral": 1,
+      "moonshot": 3,
+      "refused": 7,
+      "unknown": 1
+    },
+    "minimax": {
+      "self": 2089,
+      "anthropic": 52,
+      "refused": 40,
+      "openai": 15,
+      "xiaomi": 1,
+      "unknown": 2,
+      "deepseek": 1
+    },
+    "moonshot": {
+      "self": 1097,
+      "refused": 2,
+      "unknown": 1
+    },
+    "openai": {
+      "self": 3047,
+      "unknown": 253
+    },
+    "qwen": {
+      "self": 1100
+    },
+    "stepfun": {
+      "self": 1043,
+      "google": 12,
+      "meta": 13,
+      "openai": 5,
+      "other": 9,
+      "anthropic": 4,
+      "qwen": 4,
+      "tencent": 2,
+      "bytedance": 1,
+      "mistral": 3,
+      "x-ai": 1,
+      "deepseek": 3
+    },
+    "tencent": {
+      "self": 354,
+      "unknown": 15,
+      "other": 153,
+      "moonshot": 26,
+      "openai": 32,
+      "bytedance": 9,
+      "anthropic": 321,
+      "google": 72,
+      "meta": 16,
+      "deepseek": 61,
+      "x-ai": 25,
+      "mistral": 3,
+      "minimax": 2,
+      "qwen": 9,
+      "z-ai": 1,
+      "xiaomi": 1
+    },
+    "x-ai": {
+      "self": 1100
+    },
+    "xiaomi": {
+      "self": 1070,
+      "anthropic": 30
+    },
+    "z-ai": {
+      "self": 706,
+      "google": 275,
+      "openai": 1,
+      "anthropic": 4,
+      "refused": 60,
+      "unknown": 50,
+      "other": 1,
+      "qwen": 3
+    }
+  },
+  "crossEdges": [
+    {
+      "from": "tencent",
+      "to": "anthropic",
+      "count": 321,
+      "total": 1100,
+      "probability": 0.2918181818181818,
+      "byLang": {
+        "de": {
+          "count": 33,
+          "total": 110,
+          "p": 0.3
+        },
+        "en": {
+          "count": 38,
+          "total": 110,
+          "p": 0.34545454545454546
+        },
+        "es": {
+          "count": 50,
+          "total": 110,
+          "p": 0.45454545454545453
+        },
+        "fr": {
+          "count": 42,
+          "total": 110,
+          "p": 0.38181818181818183
+        },
+        "ja": {
+          "count": 73,
+          "total": 110,
+          "p": 0.6636363636363637
+        },
+        "ko": {
+          "count": 33,
+          "total": 110,
+          "p": 0.3
+        },
+        "pt": {
+          "count": 16,
+          "total": 110,
+          "p": 0.14545454545454545
+        },
+        "ru": {
+          "count": 6,
+          "total": 110,
+          "p": 0.05454545454545454
+        },
+        "zh-Hant": {
+          "count": 30,
+          "total": 110,
+          "p": 0.2727272727272727
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 321,
+          "total": 1100,
+          "p": 0.2918181818181818
+        }
+      }
+    },
+    {
+      "from": "bytedance",
+      "to": "openai",
+      "count": 317,
+      "total": 4400,
+      "probability": 0.07204545454545455,
+      "byLang": {
+        "de": {
+          "count": 41,
+          "total": 440,
+          "p": 0.09318181818181819
+        },
+        "en": {
+          "count": 20,
+          "total": 440,
+          "p": 0.045454545454545456
+        },
+        "es": {
+          "count": 40,
+          "total": 440,
+          "p": 0.09090909090909091
+        },
+        "fr": {
+          "count": 76,
+          "total": 440,
+          "p": 0.17272727272727273
+        },
+        "ja": {
+          "count": 24,
+          "total": 440,
+          "p": 0.05454545454545454
+        },
+        "ko": {
+          "count": 25,
+          "total": 440,
+          "p": 0.056818181818181816
+        },
+        "pt": {
+          "count": 42,
+          "total": 440,
+          "p": 0.09545454545454546
+        },
+        "ru": {
+          "count": 28,
+          "total": 440,
+          "p": 0.06363636363636363
+        },
+        "zh-Hans": {
+          "count": 3,
+          "total": 440,
+          "p": 0.006818181818181818
+        },
+        "zh-Hant": {
+          "count": 18,
+          "total": 440,
+          "p": 0.04090909090909091
+        }
+      },
+      "byModel": {
+        "bytedance/doubao-seed-2.0-code:volcengine": {
+          "count": 316,
+          "total": 1100,
+          "p": 0.2872727272727273
+        },
+        "bytedance/doubao-seed-2.0-mini:volcengine": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "google",
+      "count": 275,
+      "total": 1100,
+      "probability": 0.25,
+      "byLang": {
+        "de": {
+          "count": 18,
+          "total": 110,
+          "p": 0.16363636363636364
+        },
+        "en": {
+          "count": 22,
+          "total": 110,
+          "p": 0.2
+        },
+        "es": {
+          "count": 50,
+          "total": 110,
+          "p": 0.45454545454545453
+        },
+        "fr": {
+          "count": 38,
+          "total": 110,
+          "p": 0.34545454545454546
+        },
+        "ja": {
+          "count": 17,
+          "total": 110,
+          "p": 0.15454545454545454
+        },
+        "ko": {
+          "count": 41,
+          "total": 110,
+          "p": 0.37272727272727274
+        },
+        "pt": {
+          "count": 36,
+          "total": 110,
+          "p": 0.32727272727272727
+        },
+        "ru": {
+          "count": 25,
+          "total": 110,
+          "p": 0.22727272727272727
+        },
+        "zh-Hans": {
+          "count": 6,
+          "total": 110,
+          "p": 0.05454545454545454
+        },
+        "zh-Hant": {
+          "count": 22,
+          "total": 110,
+          "p": 0.2
+        }
+      },
+      "byModel": {
+        "z-ai/glm-5.1:bigmodel": {
+          "count": 275,
+          "total": 1100,
+          "p": 0.25
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "qwen",
+      "count": 148,
+      "total": 1100,
+      "probability": 0.13454545454545455,
+      "byLang": {
+        "de": {
+          "count": 5,
+          "total": 110,
+          "p": 0.045454545454545456
+        },
+        "en": {
+          "count": 21,
+          "total": 110,
+          "p": 0.19090909090909092
+        },
+        "es": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "fr": {
+          "count": 14,
+          "total": 110,
+          "p": 0.12727272727272726
+        },
+        "ja": {
+          "count": 10,
+          "total": 110,
+          "p": 0.09090909090909091
+        },
+        "ko": {
+          "count": 47,
+          "total": 110,
+          "p": 0.42727272727272725
+        },
+        "pt": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "ru": {
+          "count": 48,
+          "total": 110,
+          "p": 0.43636363636363634
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 148,
+          "total": 1100,
+          "p": 0.13454545454545455
+        }
+      }
+    },
+    {
+      "from": "bytedance",
+      "to": "anthropic",
+      "count": 112,
+      "total": 4400,
+      "probability": 0.025454545454545455,
+      "byLang": {
+        "de": {
+          "count": 12,
+          "total": 440,
+          "p": 0.02727272727272727
+        },
+        "en": {
+          "count": 14,
+          "total": 440,
+          "p": 0.031818181818181815
+        },
+        "es": {
+          "count": 5,
+          "total": 440,
+          "p": 0.011363636363636364
+        },
+        "fr": {
+          "count": 22,
+          "total": 440,
+          "p": 0.05
+        },
+        "ja": {
+          "count": 18,
+          "total": 440,
+          "p": 0.04090909090909091
+        },
+        "ko": {
+          "count": 12,
+          "total": 440,
+          "p": 0.02727272727272727
+        },
+        "pt": {
+          "count": 8,
+          "total": 440,
+          "p": 0.01818181818181818
+        },
+        "ru": {
+          "count": 8,
+          "total": 440,
+          "p": 0.01818181818181818
+        },
+        "zh-Hant": {
+          "count": 13,
+          "total": 440,
+          "p": 0.029545454545454545
+        }
+      },
+      "byModel": {
+        "bytedance/doubao-seed-2.0-code:volcengine": {
+          "count": 112,
+          "total": 1100,
+          "p": 0.10181818181818182
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:microsoft",
+      "count": 86,
+      "total": 1100,
+      "probability": 0.07818181818181819,
+      "byLang": {
+        "de": {
+          "count": 7,
+          "total": 110,
+          "p": 0.06363636363636363
+        },
+        "es": {
+          "count": 29,
+          "total": 110,
+          "p": 0.2636363636363636
+        },
+        "fr": {
+          "count": 45,
+          "total": 110,
+          "p": 0.4090909090909091
+        },
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "pt": {
+          "count": 4,
+          "total": 110,
+          "p": 0.03636363636363636
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 86,
+          "total": 1100,
+          "p": 0.07818181818181819
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "anthropic",
+      "count": 83,
+      "total": 2200,
+      "probability": 0.03772727272727273,
+      "byLang": {
+        "es": {
+          "count": 9,
+          "total": 220,
+          "p": 0.04090909090909091
+        },
+        "fr": {
+          "count": 14,
+          "total": 220,
+          "p": 0.06363636363636363
+        },
+        "de": {
+          "count": 12,
+          "total": 220,
+          "p": 0.05454545454545454
+        },
+        "en": {
+          "count": 13,
+          "total": 220,
+          "p": 0.05909090909090909
+        },
+        "ja": {
+          "count": 19,
+          "total": 220,
+          "p": 0.08636363636363636
+        },
+        "ko": {
+          "count": 3,
+          "total": 220,
+          "p": 0.013636363636363636
+        },
+        "pt": {
+          "count": 5,
+          "total": 220,
+          "p": 0.022727272727272728
+        },
+        "ru": {
+          "count": 5,
+          "total": 220,
+          "p": 0.022727272727272728
+        },
+        "zh-Hans": {
+          "count": 2,
+          "total": 220,
+          "p": 0.00909090909090909
+        },
+        "zh-Hant": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "deepseek/deepseek-v4-flash:deepseek": {
+          "count": 3,
+          "total": 1100,
+          "p": 0.0027272727272727275
+        },
+        "deepseek/deepseek-v4-pro:deepseek": {
+          "count": 80,
+          "total": 1100,
+          "p": 0.07272727272727272
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "google",
+      "count": 72,
+      "total": 1100,
+      "probability": 0.06545454545454546,
+      "byLang": {
+        "de": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "en": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "es": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "fr": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        },
+        "ja": {
+          "count": 10,
+          "total": 110,
+          "p": 0.09090909090909091
+        },
+        "ko": {
+          "count": 17,
+          "total": 110,
+          "p": 0.15454545454545454
+        },
+        "pt": {
+          "count": 11,
+          "total": 110,
+          "p": 0.1
+        },
+        "ru": {
+          "count": 18,
+          "total": 110,
+          "p": 0.16363636363636364
+        },
+        "zh-Hant": {
+          "count": 9,
+          "total": 110,
+          "p": 0.08181818181818182
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 72,
+          "total": 1100,
+          "p": 0.06545454545454546
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "deepseek",
+      "count": 61,
+      "total": 1100,
+      "probability": 0.05545454545454546,
+      "byLang": {
+        "es": {
+          "count": 5,
+          "total": 110,
+          "p": 0.045454545454545456
+        },
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ja": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ko": {
+          "count": 13,
+          "total": 110,
+          "p": 0.11818181818181818
+        },
+        "pt": {
+          "count": 38,
+          "total": 110,
+          "p": 0.34545454545454546
+        },
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "zh-Hans": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 61,
+          "total": 1100,
+          "p": 0.05545454545454546
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "anthropic",
+      "count": 52,
+      "total": 2200,
+      "probability": 0.023636363636363636,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "en": {
+          "count": 6,
+          "total": 220,
+          "p": 0.02727272727272727
+        },
+        "es": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "fr": {
+          "count": 41,
+          "total": 220,
+          "p": 0.18636363636363637
+        },
+        "ru": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "zh-Hans": {
+          "count": 2,
+          "total": 220,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "minimax/minimax-m2.7:minimax": {
+          "count": 12,
+          "total": 1100,
+          "p": 0.01090909090909091
+        },
+        "minimax/minimax-m3:minimax": {
+          "count": 40,
+          "total": 1100,
+          "p": 0.03636363636363636
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "openai",
+      "count": 47,
+      "total": 1100,
+      "probability": 0.042727272727272725,
+      "byLang": {
+        "de": {
+          "count": 19,
+          "total": 110,
+          "p": 0.17272727272727273
+        },
+        "es": {
+          "count": 4,
+          "total": 110,
+          "p": 0.03636363636363636
+        },
+        "fr": {
+          "count": 11,
+          "total": 110,
+          "p": 0.1
+        },
+        "ja": {
+          "count": 6,
+          "total": 110,
+          "p": 0.05454545454545454
+        },
+        "pt": {
+          "count": 5,
+          "total": 110,
+          "p": 0.045454545454545456
+        },
+        "ru": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 47,
+          "total": 1100,
+          "p": 0.042727272727272725
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "google",
+      "count": 33,
+      "total": 2200,
+      "probability": 0.015,
+      "byLang": {
+        "de": {
+          "count": 2,
+          "total": 220,
+          "p": 0.00909090909090909
+        },
+        "es": {
+          "count": 4,
+          "total": 220,
+          "p": 0.01818181818181818
+        },
+        "fr": {
+          "count": 2,
+          "total": 220,
+          "p": 0.00909090909090909
+        },
+        "ja": {
+          "count": 3,
+          "total": 220,
+          "p": 0.013636363636363636
+        },
+        "ko": {
+          "count": 6,
+          "total": 220,
+          "p": 0.02727272727272727
+        },
+        "pt": {
+          "count": 3,
+          "total": 220,
+          "p": 0.013636363636363636
+        },
+        "ru": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "zh-Hans": {
+          "count": 3,
+          "total": 220,
+          "p": 0.013636363636363636
+        },
+        "zh-Hant": {
+          "count": 9,
+          "total": 220,
+          "p": 0.04090909090909091
+        }
+      },
+      "byModel": {
+        "deepseek/deepseek-v4-pro:deepseek": {
+          "count": 33,
+          "total": 1100,
+          "p": 0.03
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "openai",
+      "count": 32,
+      "total": 1100,
+      "probability": 0.02909090909090909,
+      "byLang": {
+        "de": {
+          "count": 6,
+          "total": 110,
+          "p": 0.05454545454545454
+        },
+        "es": {
+          "count": 4,
+          "total": 110,
+          "p": 0.03636363636363636
+        },
+        "fr": {
+          "count": 13,
+          "total": 110,
+          "p": 0.11818181818181818
+        },
+        "ja": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "pt": {
+          "count": 5,
+          "total": 110,
+          "p": 0.045454545454545456
+        },
+        "ru": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 32,
+          "total": 1100,
+          "p": 0.02909090909090909
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "anthropic",
+      "count": 30,
+      "total": 1100,
+      "probability": 0.02727272727272727,
+      "byLang": {
+        "de": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "es": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        },
+        "fr": {
+          "count": 4,
+          "total": 110,
+          "p": 0.03636363636363636
+        },
+        "ja": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        },
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "pt": {
+          "count": 7,
+          "total": 110,
+          "p": 0.06363636363636363
+        },
+        "ru": {
+          "count": 4,
+          "total": 110,
+          "p": 0.03636363636363636
+        },
+        "zh-Hans": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "zh-Hant": {
+          "count": 4,
+          "total": 110,
+          "p": 0.03636363636363636
+        }
+      },
+      "byModel": {
+        "xiaomi/mimo-v2.5-pro:xiaomi": {
+          "count": 30,
+          "total": 1100,
+          "p": 0.02727272727272727
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "openai",
+      "count": 30,
+      "total": 2200,
+      "probability": 0.013636363636363636,
+      "byLang": {
+        "de": {
+          "count": 5,
+          "total": 220,
+          "p": 0.022727272727272728
+        },
+        "en": {
+          "count": 2,
+          "total": 220,
+          "p": 0.00909090909090909
+        },
+        "es": {
+          "count": 6,
+          "total": 220,
+          "p": 0.02727272727272727
+        },
+        "fr": {
+          "count": 4,
+          "total": 220,
+          "p": 0.01818181818181818
+        },
+        "pt": {
+          "count": 5,
+          "total": 220,
+          "p": 0.022727272727272728
+        },
+        "ru": {
+          "count": 3,
+          "total": 220,
+          "p": 0.013636363636363636
+        },
+        "zh-Hant": {
+          "count": 4,
+          "total": 220,
+          "p": 0.01818181818181818
+        },
+        "ja": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "deepseek/deepseek-v4-flash:deepseek": {
+          "count": 24,
+          "total": 1100,
+          "p": 0.02181818181818182
+        },
+        "deepseek/deepseek-v4-pro:deepseek": {
+          "count": 6,
+          "total": 1100,
+          "p": 0.005454545454545455
+        }
+      }
+    },
+    {
+      "from": "anthropic",
+      "to": "deepseek",
+      "count": 29,
+      "total": 3300,
+      "probability": 0.008787878787878787,
+      "byLang": {
+        "zh-Hans": {
+          "count": 29,
+          "total": 330,
+          "p": 0.08787878787878788
+        }
+      },
+      "byModel": {
+        "anthropic/claude-opus-4.8:anthropic": {
+          "count": 29,
+          "total": 1100,
+          "p": 0.026363636363636363
+        }
+      }
+    },
+    {
+      "from": "bytedance",
+      "to": "other:yandex",
+      "count": 29,
+      "total": 4400,
+      "probability": 0.006590909090909091,
+      "byLang": {
+        "ru": {
+          "count": 29,
+          "total": 440,
+          "p": 0.0659090909090909
+        }
+      },
+      "byModel": {
+        "bytedance/doubao-seed-2.0-code:volcengine": {
+          "count": 29,
+          "total": 1100,
+          "p": 0.026363636363636363
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "moonshot",
+      "count": 26,
+      "total": 1100,
+      "probability": 0.023636363636363636,
+      "byLang": {
+        "de": {
+          "count": 24,
+          "total": 110,
+          "p": 0.21818181818181817
+        },
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "pt": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 26,
+          "total": 1100,
+          "p": 0.023636363636363636
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "x-ai",
+      "count": 25,
+      "total": 1100,
+      "probability": 0.022727272727272728,
+      "byLang": {
+        "es": {
+          "count": 4,
+          "total": 110,
+          "p": 0.03636363636363636
+        },
+        "pt": {
+          "count": 18,
+          "total": 110,
+          "p": 0.16363636363636364
+        },
+        "ru": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 25,
+          "total": 1100,
+          "p": 0.022727272727272728
+        }
+      }
+    },
+    {
+      "from": "bytedance",
+      "to": "google",
+      "count": 19,
+      "total": 4400,
+      "probability": 0.004318181818181818,
+      "byLang": {
+        "en": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        },
+        "fr": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        },
+        "ja": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        },
+        "ko": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        },
+        "pt": {
+          "count": 14,
+          "total": 440,
+          "p": 0.031818181818181815
+        },
+        "zh-Hant": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        }
+      },
+      "byModel": {
+        "bytedance/doubao-seed-2.0-code:volcengine": {
+          "count": 19,
+          "total": 1100,
+          "p": 0.017272727272727273
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:yandex",
+      "count": 18,
+      "total": 1100,
+      "probability": 0.016363636363636365,
+      "byLang": {
+        "ru": {
+          "count": 18,
+          "total": 110,
+          "p": 0.16363636363636364
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 18,
+          "total": 1100,
+          "p": 0.016363636363636365
+        }
+      }
+    },
+    {
+      "from": "anthropic",
+      "to": "mistral",
+      "count": 18,
+      "total": 3300,
+      "probability": 0.005454545454545455,
+      "byLang": {
+        "fr": {
+          "count": 18,
+          "total": 330,
+          "p": 0.05454545454545454
+        }
+      },
+      "byModel": {
+        "anthropic/claude-sonnet-4.6:anthropic": {
+          "count": 18,
+          "total": 1100,
+          "p": 0.016363636363636365
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "meta",
+      "count": 16,
+      "total": 1100,
+      "probability": 0.014545454545454545,
+      "byLang": {
+        "de": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "en": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "es": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "ja": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "ko": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        },
+        "pt": {
+          "count": 5,
+          "total": 110,
+          "p": 0.045454545454545456
+        },
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 16,
+          "total": 1100,
+          "p": 0.014545454545454545
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "openai",
+      "count": 15,
+      "total": 2200,
+      "probability": 0.006818181818181818,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "en": {
+          "count": 2,
+          "total": 220,
+          "p": 0.00909090909090909
+        },
+        "es": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "fr": {
+          "count": 4,
+          "total": 220,
+          "p": 0.01818181818181818
+        },
+        "ko": {
+          "count": 3,
+          "total": 220,
+          "p": 0.013636363636363636
+        },
+        "pt": {
+          "count": 2,
+          "total": 220,
+          "p": 0.00909090909090909
+        },
+        "ru": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "zh-Hant": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "minimax/minimax-m2.7:minimax": {
+          "count": 14,
+          "total": 1100,
+          "p": 0.012727272727272728
+        },
+        "minimax/minimax-m3:minimax": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "z-ai",
+      "count": 13,
+      "total": 1100,
+      "probability": 0.011818181818181818,
+      "byLang": {
+        "de": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "es": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        },
+        "fr": {
+          "count": 5,
+          "total": 110,
+          "p": 0.045454545454545456
+        },
+        "pt": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 13,
+          "total": 1100,
+          "p": 0.011818181818181818
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "meta",
+      "count": 13,
+      "total": 1100,
+      "probability": 0.011818181818181818,
+      "byLang": {
+        "de": {
+          "count": 6,
+          "total": 110,
+          "p": 0.05454545454545454
+        },
+        "en": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "es": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "fr": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        },
+        "pt": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 13,
+          "total": 1100,
+          "p": 0.011818181818181818
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:naver",
+      "count": 13,
+      "total": 1100,
+      "probability": 0.011818181818181818,
+      "byLang": {
+        "ko": {
+          "count": 13,
+          "total": 110,
+          "p": 0.11818181818181818
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 13,
+          "total": 1100,
+          "p": 0.011818181818181818
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "google",
+      "count": 12,
+      "total": 1100,
+      "probability": 0.01090909090909091,
+      "byLang": {
+        "de": {
+          "count": 5,
+          "total": 110,
+          "p": 0.045454545454545456
+        },
+        "pt": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ru": {
+          "count": 6,
+          "total": 110,
+          "p": 0.05454545454545454
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 12,
+          "total": 1100,
+          "p": 0.01090909090909091
+        }
+      }
+    },
+    {
+      "from": "anthropic",
+      "to": "openai",
+      "count": 12,
+      "total": 3300,
+      "probability": 0.0036363636363636364,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 330,
+          "p": 0.0030303030303030303
+        },
+        "zh-Hans": {
+          "count": 2,
+          "total": 330,
+          "p": 0.006060606060606061
+        },
+        "ru": {
+          "count": 9,
+          "total": 330,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "anthropic/claude-haiku-4.5:anthropic": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        },
+        "anthropic/claude-opus-4.8:anthropic": {
+          "count": 2,
+          "total": 1100,
+          "p": 0.0018181818181818182
+        },
+        "anthropic/claude-sonnet-4.6:anthropic": {
+          "count": 9,
+          "total": 1100,
+          "p": 0.008181818181818182
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "deepseek",
+      "count": 10,
+      "total": 1100,
+      "probability": 0.00909090909090909,
+      "byLang": {
+        "de": {
+          "count": 5,
+          "total": 110,
+          "p": 0.045454545454545456
+        },
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ja": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        },
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 10,
+          "total": 1100,
+          "p": 0.00909090909090909
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "bytedance",
+      "count": 9,
+      "total": 1100,
+      "probability": 0.008181818181818182,
+      "byLang": {
+        "de": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "en": {
+          "count": 5,
+          "total": 110,
+          "p": 0.045454545454545456
+        },
+        "pt": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 9,
+          "total": 1100,
+          "p": 0.008181818181818182
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "qwen",
+      "count": 9,
+      "total": 1100,
+      "probability": 0.008181818181818182,
+      "byLang": {
+        "pt": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "ru": {
+          "count": 7,
+          "total": 110,
+          "p": 0.06363636363636363
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 9,
+          "total": 1100,
+          "p": 0.008181818181818182
+        }
+      }
+    },
+    {
+      "from": "bytedance",
+      "to": "meta",
+      "count": 7,
+      "total": 4400,
+      "probability": 0.001590909090909091,
+      "byLang": {
+        "en": {
+          "count": 5,
+          "total": 440,
+          "p": 0.011363636363636364
+        },
+        "ja": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        },
+        "ru": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        }
+      },
+      "byModel": {
+        "bytedance/doubao-seed-2.0-code:volcengine": {
+          "count": 7,
+          "total": 1100,
+          "p": 0.006363636363636364
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "bytedance",
+      "count": 5,
+      "total": 1100,
+      "probability": 0.004545454545454545,
+      "byLang": {
+        "es": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        },
+        "fr": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 5,
+          "total": 1100,
+          "p": 0.004545454545454545
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "openai",
+      "count": 5,
+      "total": 1100,
+      "probability": 0.004545454545454545,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "en": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ru": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 5,
+          "total": 1100,
+          "p": 0.004545454545454545
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "anthropic",
+      "count": 4,
+      "total": 1100,
+      "probability": 0.0036363636363636364,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ru": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 4,
+          "total": 1100,
+          "p": 0.0036363636363636364
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "qwen",
+      "count": 4,
+      "total": 1100,
+      "probability": 0.0036363636363636364,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ru": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 4,
+          "total": 1100,
+          "p": 0.0036363636363636364
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:perplexity-ai",
+      "count": 4,
+      "total": 1100,
+      "probability": 0.0036363636363636364,
+      "byLang": {
+        "ko": {
+          "count": 4,
+          "total": 110,
+          "p": 0.03636363636363636
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 4,
+          "total": 1100,
+          "p": 0.0036363636363636364
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "anthropic",
+      "count": 4,
+      "total": 1100,
+      "probability": 0.0036363636363636364,
+      "byLang": {
+        "es": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ja": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "z-ai/glm-5.1:bigmodel": {
+          "count": 4,
+          "total": 1100,
+          "p": 0.0036363636363636364
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "baidu",
+      "count": 3,
+      "total": 1100,
+      "probability": 0.0027272727272727275,
+      "byLang": {
+        "en": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "es": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 3,
+          "total": 1100,
+          "p": 0.0027272727272727275
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "moonshot",
+      "count": 3,
+      "total": 1100,
+      "probability": 0.0027272727272727275,
+      "byLang": {
+        "fr": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 3,
+          "total": 1100,
+          "p": 0.0027272727272727275
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "mistral",
+      "count": 3,
+      "total": 1100,
+      "probability": 0.0027272727272727275,
+      "byLang": {
+        "ru": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 3,
+          "total": 1100,
+          "p": 0.0027272727272727275
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "deepseek",
+      "count": 3,
+      "total": 1100,
+      "probability": 0.0027272727272727275,
+      "byLang": {
+        "ru": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 3,
+          "total": 1100,
+          "p": 0.0027272727272727275
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "mistral",
+      "count": 3,
+      "total": 1100,
+      "probability": 0.0027272727272727275,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "pt": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 3,
+          "total": 1100,
+          "p": 0.0027272727272727275
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:sber",
+      "count": 3,
+      "total": 1100,
+      "probability": 0.0027272727272727275,
+      "byLang": {
+        "ru": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 3,
+          "total": 1100,
+          "p": 0.0027272727272727275
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "qwen",
+      "count": 3,
+      "total": 1100,
+      "probability": 0.0027272727272727275,
+      "byLang": {
+        "ru": {
+          "count": 3,
+          "total": 110,
+          "p": 0.02727272727272727
+        }
+      },
+      "byModel": {
+        "z-ai/glm-5.1:bigmodel": {
+          "count": 3,
+          "total": 1100,
+          "p": 0.0027272727272727275
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "qwen",
+      "count": 3,
+      "total": 2200,
+      "probability": 0.0013636363636363637,
+      "byLang": {
+        "en": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "ko": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "zh-Hans": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "deepseek/deepseek-v4-flash:deepseek": {
+          "count": 2,
+          "total": 1100,
+          "p": 0.0018181818181818182
+        },
+        "deepseek/deepseek-v4-pro:deepseek": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "other:baai",
+      "count": 2,
+      "total": 1100,
+      "probability": 0.0018181818181818182,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "pt": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 2,
+          "total": 1100,
+          "p": 0.0018181818181818182
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "google",
+      "count": 2,
+      "total": 1100,
+      "probability": 0.0018181818181818182,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        },
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 2,
+          "total": 1100,
+          "p": 0.0018181818181818182
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "tencent",
+      "count": 2,
+      "total": 1100,
+      "probability": 0.0018181818181818182,
+      "byLang": {
+        "ru": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 2,
+          "total": 1100,
+          "p": 0.0018181818181818182
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "other:g42",
+      "count": 2,
+      "total": 1100,
+      "probability": 0.0018181818181818182,
+      "byLang": {
+        "ru": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 2,
+          "total": 1100,
+          "p": 0.0018181818181818182
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "other:sber",
+      "count": 2,
+      "total": 1100,
+      "probability": 0.0018181818181818182,
+      "byLang": {
+        "ru": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 2,
+          "total": 1100,
+          "p": 0.0018181818181818182
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "minimax",
+      "count": 2,
+      "total": 1100,
+      "probability": 0.0018181818181818182,
+      "byLang": {
+        "ko": {
+          "count": 2,
+          "total": 110,
+          "p": 0.01818181818181818
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 2,
+          "total": 1100,
+          "p": 0.0018181818181818182
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "meta",
+      "count": 2,
+      "total": 2200,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "en": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        },
+        "ja": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "deepseek/deepseek-v4-flash:deepseek": {
+          "count": 2,
+          "total": 1100,
+          "p": 0.0018181818181818182
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "tencent",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "es": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "mistral",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "other:sberdevices",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "other:sberbank",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "kwai",
+      "to": "other:sberai",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "kuaishou/kat-coder-pro-v2:streamlake": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "other:ibm",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "other:naver",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "other:stage-south",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "other:01-ai",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "other:globallab",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "bytedance",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "x-ai",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "stepfun/step-3.7-flash:stepfun": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:khoa",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:leiwu",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:windsurf",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:kujato",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:wisero",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "es": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:juanjo-aguilella",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "es": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:lexy",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "es": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:spike",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "es": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:carbonako",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:lens",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:ailab",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:geo-intelligent-systems",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:ha-an",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:xiaohongshu",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:sk-telecom",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:wrtn-technologies",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:luma-ai",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:lg-ai-research",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:hashed-labs",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:gem",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:cu",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:nhn",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:lumima",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:nami",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:b10lyt",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:m31-labs",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:nunance",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "pt": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:replit",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "pt": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "other:manus",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "pt": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "z-ai",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "pt": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "tencent",
+      "to": "xiaomi",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "tencent/hy3-preview:tencent-cloud": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "openai",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "z-ai/glm-5.1:bigmodel": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "other:zhihu-ai",
+      "count": 1,
+      "total": 1100,
+      "probability": 0.0009090909090909091,
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 110,
+          "p": 0.00909090909090909
+        }
+      },
+      "byModel": {
+        "z-ai/glm-5.1:bigmodel": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "other:depth-first",
+      "count": 1,
+      "total": 2200,
+      "probability": 0.00045454545454545455,
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "deepseek/deepseek-v4-flash:deepseek": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "mistral",
+      "count": 1,
+      "total": 2200,
+      "probability": 0.00045454545454545455,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "deepseek/deepseek-v4-pro:deepseek": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "x-ai",
+      "count": 1,
+      "total": 2200,
+      "probability": 0.00045454545454545455,
+      "byLang": {
+        "ja": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "deepseek/deepseek-v4-pro:deepseek": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "inclusionai",
+      "to": "openai",
+      "count": 1,
+      "total": 2200,
+      "probability": 0.00045454545454545455,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "inclusionai/ling-2.6-1t:theta": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "inclusionai",
+      "to": "meta",
+      "count": 1,
+      "total": 2200,
+      "probability": 0.00045454545454545455,
+      "byLang": {
+        "ja": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "inclusionai/ling-2.6-1t:theta": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "inclusionai",
+      "to": "anthropic",
+      "count": 1,
+      "total": 2200,
+      "probability": 0.00045454545454545455,
+      "byLang": {
+        "ja": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "inclusionai/ling-2.6-1t:theta": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "xiaomi",
+      "count": 1,
+      "total": 2200,
+      "probability": 0.00045454545454545455,
+      "byLang": {
+        "en": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "minimax/minimax-m2.7:minimax": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "deepseek",
+      "count": 1,
+      "total": 2200,
+      "probability": 0.00045454545454545455,
+      "byLang": {
+        "es": {
+          "count": 1,
+          "total": 220,
+          "p": 0.004545454545454545
+        }
+      },
+      "byModel": {
+        "minimax/minimax-m2.7:minimax": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "bytedance",
+      "to": "other:maria",
+      "count": 1,
+      "total": 4400,
+      "probability": 0.00022727272727272727,
+      "byLang": {
+        "en": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        }
+      },
+      "byModel": {
+        "bytedance/doubao-seed-2.0-code:volcengine": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "bytedance",
+      "to": "other:microsoft",
+      "count": 1,
+      "total": 4400,
+      "probability": 0.00022727272727272727,
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        }
+      },
+      "byModel": {
+        "bytedance/doubao-seed-2.0-code:volcengine": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    },
+    {
+      "from": "bytedance",
+      "to": "other:b1c5sdh0",
+      "count": 1,
+      "total": 4400,
+      "probability": 0.00022727272727272727,
+      "byLang": {
+        "ja": {
+          "count": 1,
+          "total": 440,
+          "p": 0.0022727272727272726
+        }
+      },
+      "byModel": {
+        "bytedance/doubao-seed-2.0-mini:volcengine": {
+          "count": 1,
+          "total": 1100,
+          "p": 0.0009090909090909091
+        }
+      }
+    }
+  ]
+}

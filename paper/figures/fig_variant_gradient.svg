@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="540" viewBox="0 0 900 540" font-family="Noto Sans SC, Helvetica, Arial, sans-serif">
+<rect width="900" height="540" fill="#ffffff"/>
+<text x="70" y="46" font-size="30" font-weight="700" fill="#16161a">提问变体的身份梯度</text>
+<text x="70" y="76" font-size="16" fill="#6b7280">Outcome composition by stimulus variant · 提问越强，自指越低、混淆与拒答越高</text>
+<line x1="70" y1="410" x2="860" y2="410" stroke="#e5e7eb" stroke-width="1"/>
+<text x="58" y="414" text-anchor="end" font-size="13" fill="#9ca3af">0%</text>
+<line x1="70" y1="335" x2="860" y2="335" stroke="#e5e7eb" stroke-width="1"/>
+<text x="58" y="339" text-anchor="end" font-size="13" fill="#9ca3af">25%</text>
+<line x1="70" y1="260" x2="860" y2="260" stroke="#e5e7eb" stroke-width="1"/>
+<text x="58" y="264" text-anchor="end" font-size="13" fill="#9ca3af">50%</text>
+<line x1="70" y1="185" x2="860" y2="185" stroke="#e5e7eb" stroke-width="1"/>
+<text x="58" y="189" text-anchor="end" font-size="13" fill="#9ca3af">75%</text>
+<line x1="70" y1="110" x2="860" y2="110" stroke="#e5e7eb" stroke-width="1"/>
+<text x="58" y="114" text-anchor="end" font-size="13" fill="#9ca3af">100%</text>
+<rect x="126.67" y="142.05" width="150" height="267.95" fill="#2f6fb0"/>
+<text x="201.67" y="281.03" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">89.3%</text>
+<rect x="126.67" y="132.46" width="150" height="9.59" fill="#c0392b"/>
+<rect x="126.67" y="124.68" width="150" height="7.78" fill="#9aa0a6"/>
+<rect x="126.67" y="110" width="150" height="14.68" fill="#d8dbe0"/>
+<text x="201.67" y="438" text-anchor="middle" font-size="17" font-weight="700" fill="#16161a">变体一 · 裸问</text>
+<text x="201.67" y="460" text-anchor="middle" font-size="13" fill="#6b7280">Bare “Who are you?”</text>
+<text x="201.67" y="480" text-anchor="middle" font-size="12" fill="#9ca3af">n = 14040</text>
+<rect x="390" y="149.57" width="150" height="260.43" fill="#2f6fb0"/>
+<text x="465" y="284.78" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">86.8%</text>
+<rect x="390" y="132.59" width="150" height="16.98" fill="#c0392b"/>
+<rect x="390" y="110.8" width="150" height="21.79" fill="#9aa0a6"/>
+<rect x="390" y="110" width="150" height="0.8" fill="#d8dbe0"/>
+<text x="465" y="438" text-anchor="middle" font-size="17" font-weight="700" fill="#16161a">变体二 · 追问</text>
+<text x="465" y="460" text-anchor="middle" font-size="13" fill="#6b7280">Probed (name model + maker)</text>
+<text x="465" y="480" text-anchor="middle" font-size="12" fill="#9ca3af">n = 4860</text>
+<rect x="653.33" y="172.47" width="150" height="237.53" fill="#2f6fb0"/>
+<text x="728.33" y="296.24" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">79.2%</text>
+<rect x="653.33" y="133.92" width="150" height="38.56" fill="#c0392b"/>
+<text x="728.33" y="158.19" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">12.9%</text>
+<rect x="653.33" y="110.11" width="150" height="23.81" fill="#9aa0a6"/>
+<text x="728.33" y="127.01" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff">7.9%</text>
+<text x="728.33" y="438" text-anchor="middle" font-size="17" font-weight="700" fill="#16161a">变体三 · 去品牌越狱</text>
+<text x="728.33" y="460" text-anchor="middle" font-size="13" fill="#6b7280">De-brand / jailbreak</text>
+<text x="728.33" y="480" text-anchor="middle" font-size="12" fill="#9ca3af">n = 10800</text>
+<rect x="70" y="504" width="15" height="15" fill="#2f6fb0" rx="2"/>
+<text x="91" y="516" font-size="14" fill="#374151">自指 self</text>
+<rect x="193" y="504" width="15" height="15" fill="#c0392b" rx="2"/>
+<text x="214" y="516" font-size="14" fill="#374151">跨厂混淆 cross</text>
+<rect x="343" y="504" width="15" height="15" fill="#9aa0a6" rx="2"/>
+<text x="364" y="516" font-size="14" fill="#374151">拒答 refused</text>
+<rect x="493" y="504" width="15" height="15" fill="#d8dbe0" rx="2"/>
+<text x="514" y="516" font-size="14" fill="#374151">无身份 unknown</text>
+</svg>
