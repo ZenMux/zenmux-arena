@@ -227,6 +227,8 @@ export interface StudySummary {
   unknownRate: number;
   refusedRate: number;
   errorCount: number;
+  /** Answered records that had NO extraction and were counted as `unknown`. */
+  missingExtraction: number;
   perModelSelfRate: Record<string, number>;
   perLangSelfRate: Record<string, number>;
 }

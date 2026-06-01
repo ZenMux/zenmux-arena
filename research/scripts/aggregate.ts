@@ -39,10 +39,19 @@ async function main() {
     console.error(`[aggregate] ✗ ABORT: records.jsonl incomplete; refusing to aggregate partial data. Finish: pnpm study:run --run ${paths.stamp}  (or --force)`);
     process.exit(2);
   }
-  // Also warn if extractions lag behind the answered records.
-  const answered = records.filter((r) => r.response && !r.error).length;
-  if (extractions.filter((e) => !e.parseError).length < answered && !args.has("force")) {
-    console.error(`[aggregate] ✗ ABORT: extractions incomplete (${extractions.length}/${answered}). Run: pnpm study:extract --run ${paths.stamp}  (or --force)`);
+  // Abort if extractions lag behind the answered records. Compare by KEY SET, not by
+  // raw counts: an orphan extraction (one whose record is gone) or a duplicate would
+  // otherwise let a length comparison pass even though some answered key is unextracted.
+  const answeredRecords = records.filter((r) => r.response && !r.error);
+  const answeredKeys = new Set(answeredRecords.map((r) => r.key));
+  const cleanlyExtracted = new Set(extractions.filter((e) => !e.parseError).map((e) => e.key));
+  const unextracted = [...answeredKeys].filter((k) => !cleanlyExtracted.has(k));
+  if (unextracted.length > 0 && !args.has("force")) {
+    console.error(
+      `[aggregate] ✗ ABORT: ${unextracted.length}/${answeredKeys.size} answered key(s) lack a clean extraction. ` +
+        `Run: pnpm study:extract --run ${paths.stamp}  (or --force)`,
+    );
+    console.error(`[aggregate]   unextracted sample: ${unextracted.slice(0, 8).join(", ")}${unextracted.length > 8 ? " …" : ""}`);
     process.exit(2);
   }
 
@@ -56,13 +65,37 @@ async function main() {
 
   const s = graph.summary;
   console.log(`[aggregate] answers=${s.totalAnswers} errors=${s.errorCount}`);
+  if (s.missingExtraction > 0) {
+    console.log(`[aggregate] ⚠ ${s.missingExtraction} answered record(s) had no extraction — counted as unknown.`);
+  }
   console.log(
     `[aggregate] selfRate=${pct(s.overallSelfRate)} confusion=${pct(s.confusionRate)} ` +
       `unknown=${pct(s.unknownRate)} refused=${pct(s.refusedRate)}`,
   );
   console.log(`[aggregate] edges=${graph.edges.length} nodes=${graph.vendors.length}`);
-  const topConfusion = graph.edges.filter((e) => e.to !== "self" && !["unknown", "refused"].includes(e.to)).slice(0, 5);
-  for (const e of topConfusion) console.log(`[aggregate]   ${e.from} -> ${e.to}: ${pct(e.probability)} (${e.count}/${e.total})`);
+
+  // Full report — NO truncation, NO threshold. Everything in aggregate.json is shown,
+  // partitioned into the same buckets the data uses, sorted by probability desc.
+  const isPseudoTo = (to: string) => to === "self" || to === "unknown" || to === "refused";
+  const confusion = graph.edges.filter((e) => !isPseudoTo(e.to)); // real cross-vendor (incl. other:<brand>)
+  const buckets = graph.edges.filter((e) => isPseudoTo(e.to)); // self / unknown / refused sinks
+
+  console.log(`[aggregate] ── cross-vendor confusion edges (${confusion.length}) ──`);
+  if (confusion.length === 0) console.log(`[aggregate]   (none)`);
+  for (const e of confusion) {
+    console.log(`[aggregate]   ${e.from} -> ${e.to}: ${pct(e.probability)} (${e.count}/${e.total})`);
+  }
+
+  console.log(`[aggregate] ── self / unknown / refused edges (${buckets.length}) ──`);
+  for (const e of buckets) {
+    console.log(`[aggregate]   ${e.from} -> ${e.to}: ${pct(e.probability)} (${e.count}/${e.total})`);
+  }
+
+  // Node roster, so the printed view fully matches the vendors stored in aggregate.json.
+  const nodeNames = graph.vendors.map((v) => v.id).sort();
+  console.log(`[aggregate] ── nodes (${graph.vendors.length}) ──`);
+  console.log(`[aggregate]   ${nodeNames.join(", ")}`);
+
   console.log(`[aggregate] wrote ${paths.aggregate} and public/research/aggregate.json`);
 }
 

@@ -61,15 +61,24 @@ export function aggregate(
   };
 
   const joined: Joined[] = [];
+  let missingExtraction = 0;
   for (const record of answered) {
     const ext = extByKey.get(record.key);
-    if (!ext) continue; // not yet extracted
-    let claimed: VendorId = ext.claimedVendor;
-    if (claimed === "other") {
-      const dyn = registerOther(ext.claimedVendorOther);
-      // If the extractor said "other" but failed to name a brand, treat as unknown
-      // rather than letting a nameless dynamic node into the graph.
-      claimed = dyn ?? "unknown";
+    // An answered record with no extraction must NOT vanish from the stats — that
+    // would silently shrink totalAnswers and every ratio's denominator. Count it as
+    // `unknown` (no identifiable claim) so every answered record is represented.
+    let claimed: VendorId;
+    if (!ext) {
+      missingExtraction++;
+      claimed = "unknown";
+    } else {
+      claimed = ext.claimedVendor;
+      if (claimed === "other") {
+        const dyn = registerOther(ext.claimedVendorOther);
+        // If the extractor said "other" but failed to name a brand, treat as unknown
+        // rather than letting a nameless dynamic node into the graph.
+        claimed = dyn ?? "unknown";
+      }
     }
     joined.push({ record, claimed, effective: effectiveClaimed(claimed, record.modelVendor) });
   }
@@ -182,6 +191,7 @@ export function aggregate(
       unknownRate: total ? unknownCount / total : 0,
       refusedRate: total ? refusedCount / total : 0,
       errorCount,
+      missingExtraction,
       perModelSelfRate,
       perLangSelfRate,
     },
