@@ -19,7 +19,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { PRIMARY_EXPERIMENT } from "@/lib/experiments";
 
 const VIEW_LABEL: Record<string, string> = {
-  "/research": "Overview",
   "/research/studio": "Graph Studio",
   "/research/browse": "Raw Answers",
 };
@@ -43,7 +42,7 @@ export function ExperimentHeader() {
             <BreadcrumbSeparator className="hidden sm:block" />
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
-                <Link href="/research">{PRIMARY_EXPERIMENT.title}</Link>
+                <Link href="/research/studio">{PRIMARY_EXPERIMENT.title}</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />

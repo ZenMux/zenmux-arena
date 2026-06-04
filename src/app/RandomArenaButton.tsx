@@ -21,7 +21,7 @@ export function RandomArenaButton({ hrefs }: { hrefs: string[] }) {
   const router = useRouter();
   // Used both as the no-JS / right-click-open fallback target and as the lone
   // destination when there's only one live experiment.
-  const fallback = hrefs[0] ?? "/research";
+  const fallback = hrefs[0] ?? "/research/studio";
 
   function go(e: React.MouseEvent<HTMLAnchorElement>) {
     if (hrefs.length <= 1) return; // let the <Link> handle the single-arena case

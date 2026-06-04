@@ -37,6 +37,7 @@ interface ExportBody {
   config?: Partial<RenderConfig>;
   hidden?: string[]; // vendor ids unchecked in the studio
   curves?: Record<string, { bow?: number; along?: number }>; // per-edge drag reshapes
+  showEdgeLabels?: boolean; // whether to render edge labels
 }
 
 /** Keep only string ids, so a malformed `hidden` can't crash the renderer. */
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
   const hidden = sanitizeHidden(body.hidden);
   const curves = sanitizeCurves(body.curves);
 
-  const svg = buildGraphSvg(graph, { config, langCode, hidden, curves });
+  const svg = buildGraphSvg(graph, { config, langCode, hidden, curves, showEdgeLabels: body.showEdgeLabels });
   const stamp = run.split("/")[1] ?? "graph";
   const base = `who-are-you-${stamp}${langCode ? `-${langCode}` : ""}`;
 

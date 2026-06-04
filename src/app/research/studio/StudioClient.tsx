@@ -41,6 +41,7 @@ import {
 } from "@research/lib/geometry";
 import type { GraphData, VendorId } from "@research/lib/types";
 import RelationshipGraph from "../RelationshipGraph";
+import StudyBadge from "../StudyBadge";
 import EdgeTable from "./EdgeTable";
 
 export interface RunRef {
@@ -51,6 +52,15 @@ export interface RunRef {
 
 // Quick background swatches: paper white, soft off-white, near-black, deep navy, warm cream.
 const BG_PRESETS = ["#ffffff", "#f4f4f5", "#0a0a0a", "#0b1220", "#faf6ef"];
+
+/** Inline GitHub mark — lucide-react ships no `Github` icon. */
+function GithubIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className={className} fill="currentColor">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+    </svg>
+  );
+}
 
 /** Coerce any background string to a #rrggbb the native <input type=color> accepts. */
 function normalizeHex(c: string): string {
@@ -85,6 +95,7 @@ export default function StudioClient({
     () => new Set(graph.vendors.filter((v) => isOffByDefault(v.id)).map((v) => v.id)),
   );
   const [curves, setCurves] = useState<EdgeCurves>({});
+  const [showEdgeLabels, setShowEdgeLabels] = useState<boolean>(false);
 
   const set = useCallback(
     <K extends keyof RenderConfig>(key: K, value: RenderConfig[K]) =>
@@ -112,6 +123,7 @@ export default function StudioClient({
             config: cfg,
             hidden: [...hidden],
             curves,
+            showEdgeLabels,
           }),
         });
         if (!res.ok) {
@@ -136,7 +148,7 @@ export default function StudioClient({
         setExporting(null);
       }
     },
-    [selectedRun, lang, scale, cfg, hidden, curves],
+    [selectedRun, lang, scale, cfg, hidden, curves, showEdgeLabels],
   );
 
   const dirty = JSON.stringify(cfg) !== JSON.stringify(DEFAULT_RENDER);
@@ -257,7 +269,21 @@ export default function StudioClient({
               <ToggleRow label="Title & footer">
                 <Switch checked={cfg.chrome} onCheckedChange={(v) => set("chrome", v)} />
               </ToggleRow>
+              <ToggleRow label="Optimize order">
+                <Switch
+                  checked={cfg.optimizeOrder}
+                  onCheckedChange={(v) => set("optimizeOrder", v)}
+                />
+              </ToggleRow>
 
+              <ToggleRow label="Show edge labels">
+                <Switch
+                  checked={showEdgeLabels}
+                  onCheckedChange={setShowEdgeLabels}
+                />
+              </ToggleRow>
+
+              {showEdgeLabels && (
               <Field label="Edge labels">
                 <ToggleGroup
                   type="single"
@@ -278,6 +304,7 @@ export default function StudioClient({
                   </ToggleGroupItem>
                 </ToggleGroup>
               </Field>
+              )}
 
               <Field label="Background">
                 <div className="flex items-center gap-1.5">
@@ -422,19 +449,36 @@ export default function StudioClient({
           <Tabs defaultValue="graph" className="gap-4">
             <div className="flex items-center justify-between gap-3">
               <TabsList>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="graph">Graph</TabsTrigger>
                 <TabsTrigger value="table">Edge detail</TabsTrigger>
               </TabsList>
-              <div className="hidden items-center gap-2 font-mono text-[11px] text-muted-foreground sm:flex">
-                <span>n={graph.summary.totalAnswers}</span>
-                <span className="text-border">·</span>
-                <span>{realVendorCount} vendors</span>
+              <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground sm:flex">
+                <span className="hidden sm:inline">n={graph.summary.totalAnswers}</span>
+                <span className="hidden sm:inline text-border">·</span>
+                <span className="hidden sm:inline">{realVendorCount} vendors</span>
+                <a
+                  href="https://github.com/ZenMux/zenmux-arena"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="View source on GitHub"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <GithubIcon className="size-4" />
+                </a>
               </div>
             </div>
 
+            <TabsContent value="overview">
+              <OverviewTab graph={graph} />
+            </TabsContent>
+
             <TabsContent value="graph">
-              {/* The SVG paints its own (configurable) background edge-to-edge, so
-                  the wrapper just clips + frames it. */}
+              {/* The attribution badge is drawn inside the SVG chrome (below the
+                  title), so it's centered with the graph and baked into the export
+                  — no separate HTML badge here. The SVG paints its own
+                  (configurable) background edge-to-edge, so the wrapper just
+                  clips + frames it. */}
               <div className="overflow-hidden rounded-xl border border-border shadow-sm">
                 <RelationshipGraph
                   graph={graph}
@@ -447,6 +491,7 @@ export default function StudioClient({
                   curves={curves}
                   onCurvesChange={setCurves}
                   editableEdges
+                  showEdgeLabels={showEdgeLabels}
                 />
               </div>
             </TabsContent>
@@ -470,6 +515,188 @@ export default function StudioClient({
           </Tabs>
         </section>
       </div>
+    </div>
+  );
+}
+
+/* ── Overview tab (ex- /research report page) ─────────────────────────── */
+
+function OverviewTab({ graph }: { graph: GraphData }) {
+  const s = graph.summary;
+  const confusionEdges = graph.edges
+    .filter((e) => e.from !== e.to && !["self", "unknown", "refused"].includes(e.to))
+    .sort((a, b) => b.probability - a.probability)
+    .slice(0, 8);
+
+  const modelSelf = graph.models
+    .map((m) => ({ label: m.label ?? m.id, rate: s.perModelSelfRate[m.id] ?? 0 }))
+    .sort((a, b) => b.rate - a.rate);
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      {/* Header */}
+      <header className="mb-10 text-center">
+        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground/70">
+          ZenMux Arena · Research
+        </p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+          {graph.study.title}
+        </h1>
+        {graph.study.description && (
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
+            {graph.study.description}
+          </p>
+        )}
+        {/* Attribution — below the title/description for a cleaner layout. */}
+        <div className="mt-6 flex justify-center">
+          <StudyBadge />
+        </div>
+      </header>
+
+      {/* Headline stats */}
+      <section className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard label="Answers" value={String(s.totalAnswers)} />
+        <StatCard
+          label="Self-ID rate"
+          value={pct(s.overallSelfRate)}
+          accent
+        />
+        <StatCard label="Confusion rate" value={pct(s.confusionRate)} />
+        <StatCard
+          label="Unknown / Refused"
+          value={`${pct(s.unknownRate, 0)} / ${pct(s.refusedRate, 0)}`}
+        />
+      </section>
+
+      {/* Tables */}
+      <section className="mb-10 grid gap-8 md:grid-cols-2">
+        <div>
+          <h2 className="mb-3 text-base font-semibold">
+            Self-identification by model
+          </h2>
+          <MiniTable
+            headers={["Model", "Self rate"]}
+            rows={modelSelf.map((m) => [m.label, pct(m.rate)])}
+          />
+        </div>
+        <div>
+          <h2 className="mb-3 text-base font-semibold">
+            Self-identification by language
+          </h2>
+          <MiniTable
+            headers={["Language", "Self rate"]}
+            rows={graph.languages
+              .map((l) => ({ name: l.name, rate: s.perLangSelfRate[l.code] ?? 0 }))
+              .sort((a, b) => b.rate - a.rate)
+              .map((l) => [l.name, pct(l.rate)])}
+          />
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="mb-3 text-base font-semibold">
+          Top cross-vendor confusion
+        </h2>
+        {confusionEdges.length ? (
+          <MiniTable
+            headers={["From (true)", "Claims to be", "Probability", "Count"]}
+            rows={confusionEdges.map((e) => [
+              vname(graph, e.from),
+              vname(graph, e.to),
+              pct(e.probability),
+              `${e.count}/${e.total}`,
+            ])}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No cross-vendor confusion above threshold.
+          </p>
+        )}
+      </section>
+
+    </div>
+  );
+}
+
+function pct(x: number, d = 1): string {
+  return `${(x * 100).toFixed(d)}%`;
+}
+
+function vname(graph: GraphData, id: string): string {
+  return graph.vendors.find((v) => v.id === id)?.name ?? id;
+}
+
+function StatCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <div
+        className={`text-xl font-bold sm:text-2xl ${
+          accent ? "text-emerald-600 dark:text-emerald-400" : ""
+        }`}
+      >
+        {value}
+      </div>
+      <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function MiniTable({
+  headers,
+  rows,
+}: {
+  headers: string[];
+  rows: string[][];
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="border-b border-border bg-muted/50">
+            {headers.map((h, i) => (
+              <th
+                key={h}
+                className={`px-4 py-2 font-semibold text-muted-foreground ${
+                  i === 0 ? "text-left" : "text-right"
+                }`}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, ri) => (
+            <tr
+              key={ri}
+              className="border-b border-border/60 last:border-0"
+            >
+              {r.map((c, ci) => (
+                <td
+                  key={ci}
+                  className={`px-4 py-2 ${
+                    ci === 0
+                      ? "text-left font-medium"
+                      : "text-right tabular-nums text-muted-foreground"
+                  }`}
+                >
+                  {c}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

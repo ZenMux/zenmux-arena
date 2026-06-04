@@ -165,4 +165,4 @@ Run id `who-are-you/20260529T053713`. Raw answers (`records.jsonl`), extraction 
 
 ---
 
-以上研究由 **thinkthinking** | **ZenMux.ai** 测试
+by **thinkthinking** | **ZenMux.ai** 测试

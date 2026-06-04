@@ -54,6 +54,12 @@ export interface RenderConfig {
   chrome: boolean;
   /** Canvas background color (any CSS hex). Text/strokes adapt to its luminance. */
   background: string;
+  /**
+   * Reorder ring nodes so strongly-connected pairs sit far apart on
+   * the circle, improving edge readability. When false, nodes are
+   * evenly spaced in their natural (graph.vendors) order.
+   */
+  optimizeOrder: boolean;
 }
 
 export const DEFAULT_RENDER: RenderConfig = {
@@ -68,6 +74,7 @@ export const DEFAULT_RENDER: RenderConfig = {
   threshold: 0.01,
   chrome: true,
   background: "#ffffff",
+  optimizeOrder: true,
 };
 
 export function clamp(n: number, lo: number, hi: number): number {
@@ -136,6 +143,60 @@ export function paletteFor(background: string): Palette {
 }
 
 /**
+ * Geometry of the attribution badge drawn in the top chrome band, just below the
+ * subtitle and above the ring. Returned as plain coordinates so BOTH renderers —
+ * the React preview (RelationshipGraph.tsx) and the Node export (svg.ts) — place
+ * every piece identically; only the markup (web `<img>` path vs. base64 data URI,
+ * `<a>` links vs. none) differs. The chrome band is a fixed 130px tall, and the
+ * topmost ring node sits at y≈194, so this two-line badge lives in the ~100–194
+ * gap. Centered on `cx` (the canvas mid-line). Width budgets are approximate —
+ * they only balance the centered group, like the export footer's own estimates.
+ */
+export interface BadgeLayout {
+  /** Line 1 — attribution text ("by thinkthinking |"), left edge at x. */
+  attr: { x: number; y: number; fontSize: number };
+  /** Line 1 — ZenMux wordmark image rect, following the text. */
+  logo: { x: number; y: number; w: number; h: number };
+  /** Line 2 — GitHub mark + repo label, centered as a unit. */
+  repo: {
+    mark: { x: number; y: number; size: number };
+    text: { x: number; y: number; fontSize: number };
+  };
+}
+
+export function badgeLayout(cx: number): BadgeLayout {
+  // Line 1: "by thinkthinking |" + ZenMux wordmark, centered as a group. The
+  // brand shows ONCE (as the logo), so the text deliberately omits "ZenMux.ai".
+  const attrFont = 16;
+  const attrW = 122; // approx render width of "by thinkthinking |" at 16px
+  const gap1 = 8;
+  const logoW = 84;
+  const logoH = 25;
+  const line1 = 138; // text baseline
+  const group1 = attrW + gap1 + logoW;
+  const startX1 = cx - group1 / 2;
+
+  // Line 2: GitHub mark + repo label centered as a group.
+  const markSize = 13;
+  const gap2 = 6;
+  const repoW = 210; // approx render width of REPO_LABEL at 12.5px monospace
+  const line2 = 166; // text baseline
+  const group2 = markSize + gap2 + repoW;
+  const startX2 = cx - group2 / 2;
+
+  return {
+    attr: { x: startX1, y: line1, fontSize: attrFont },
+    // Wordmark sits on the text baseline: nudge it up so its optical center
+    // aligns with the lowercase text (logoH ≈ 25, baseline minus ~19).
+    logo: { x: startX1 + attrW + gap1, y: line1 - 19, w: logoW, h: logoH },
+    repo: {
+      mark: { x: startX2, y: line2 - markSize + 2, size: markSize },
+      text: { x: startX2 + markSize + gap2, y: line2, fontSize: 12.5 },
+    },
+  };
+}
+
+/**
  * Build a layout that auto-scales to the number of nodes so the ring (and the
  * interior the edges sweep through) stays uncrowded regardless of vendor count.
  * The ring radius grows so that adjacent circles + their name labels never
@@ -182,6 +243,124 @@ export function nodePositions(vendors: { id: VendorId }[], layout: GraphLayout):
     });
   });
   return out;
+}
+
+/**
+ * Signed shortest angular distance from `a` to `b` on a circle, in radians.
+ * Result is always in [-π, π], so sin(diff) correctly points "the short way".
+ */
+export function shortestAngularDiff(a: number, b: number): number {
+  let d = b - a;
+  // Normalise to [0, 2π) — the double-mod handles JS negative %.
+  d = ((d % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+  if (d > Math.PI) d -= 2 * Math.PI;
+  return d;
+}
+
+/**
+ * Reorder vendor nodes so that strongly-connected pairs sit as far apart as
+ * possible on the ring, improving edge readability.
+ *
+ * Uses gradient descent on continuous angular positions: minimises
+ * Σ w_ij · cos(d_ij) so connected nodes settle near opposite sides (cos π = -1),
+ * with a weak regularisation toward even spacing that keeps isolated nodes in
+ * place. After convergence the angles are sorted to produce the final ring order.
+ *
+ * Deterministic — same inputs always produce the same output.
+ */
+export function optimizeNodeOrder(
+  vendors: { id: VendorId }[],
+  edges: { from: VendorId; to: VendorId; probability: number }[],
+): { id: VendorId }[] {
+  const n = vendors.length;
+  if (n <= 2) return vendors.map((v) => ({ id: v.id }));
+
+  // ── Build symmetric weight matrix ───────────────────────────────
+  const idx = new Map(vendors.map((v, i) => [v.id, i]));
+  const W: number[][] = Array.from({ length: n }, () => new Array(n).fill(0));
+  for (const e of edges) {
+    const i = idx.get(e.from);
+    const j = idx.get(e.to);
+    if (i !== undefined && j !== undefined && i !== j) {
+      W[i][j] += e.probability;
+    }
+  }
+  // Symmetrise: total bidirectional confusion
+  let maxW = 0;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const w = W[i][j] + W[j][i];
+      W[i][j] = W[j][i] = w;
+      if (w > maxW) maxW = w;
+    }
+  }
+  // All-zero: nothing to optimise, return input order.
+  if (maxW === 0) return vendors.map((v) => ({ id: v.id }));
+
+  // Normalise by global max so the largest force is ≤ 1.0.
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++) W[i][j] /= maxW;
+
+  // Per-node weight sum for gradient normalisation (avoids high-degree
+  // nodes rocketing past their neighbours in a single step).
+  const sumW = W.map((row) => row.reduce((s, w) => s + w, 0));
+
+  // ── Gradient descent ────────────────────────────────────────────
+  const TWO_PI = 2 * Math.PI;
+  const LR = 0.01; // learning rate
+  const LAMBDA = 0.05; // regularisation strength
+  const ITER = 300;
+
+  const theta = vendors.map((_, i) => (TWO_PI * i) / n); // even spacing
+  const init = [...theta];
+
+  for (let iter = 0; iter < ITER; iter++) {
+    for (let i = 0; i < n; i++) {
+      // Edge repulsion: push i away from every connected node j.
+      let edgeGrad = 0;
+      for (let j = 0; j < n; j++) {
+        if (i === j || W[i][j] === 0) continue;
+        // sin(shortestDiff(j,i)) > 0 when j is ahead (short way),
+        // pushing i backward — away from j. Both directions handled
+        // by the shortest-diff sign.
+        edgeGrad += W[i][j] * Math.sin(shortestAngularDiff(theta[j], theta[i]));
+      }
+      // Normalise so the gradient magnitude doesn't grow with degree.
+      if (sumW[i] > 0) edgeGrad /= sumW[i];
+
+      // Regularisation: weak pull toward initial even-spacing anchor.
+      const regGrad = LAMBDA * Math.sin(shortestAngularDiff(theta[i], init[i]));
+
+      theta[i] += LR * (edgeGrad + regGrad);
+    }
+    // Re-wrap angles to [0, 2π) each iteration.
+    for (let i = 0; i < n; i++) {
+      theta[i] = ((theta[i] % TWO_PI) + TWO_PI) % TWO_PI;
+    }
+  }
+
+  // ── Sort by final angle, rotate so the top (−π/2) starts ───────
+  const indexed = vendors.map((v, i) => ({ id: v.id, angle: theta[i] }));
+  indexed.sort((a, b) => a.angle - b.angle);
+
+  // Find the node closest to 3π/2 (which is −π/2 mod 2π, the "top").
+  const target = (3 * Math.PI) / 2;
+  let topIdx = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < n; i++) {
+    const a = indexed[i].angle;
+    const d = Math.abs(a - target);
+    const dist = Math.min(d, TWO_PI - d);
+    if (dist < bestDist) {
+      bestDist = dist;
+      topIdx = i;
+    }
+  }
+
+  return [
+    ...indexed.slice(topIdx).map((x) => ({ id: x.id })),
+    ...indexed.slice(0, topIdx).map((x) => ({ id: x.id })),
+  ];
 }
 
 function round(n: number): number {

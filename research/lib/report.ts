@@ -341,7 +341,7 @@ export function buildReport(graph: GraphData): string {
   L.push("");
   L.push("---");
   L.push("");
-  L.push(`以上研究由 **thinkthinking** | **ZenMux.ai** 测试`);
+  L.push(`by **thinkthinking** | **ZenMux.ai** 测试`);
   L.push("");
 
   return L.join("\n");

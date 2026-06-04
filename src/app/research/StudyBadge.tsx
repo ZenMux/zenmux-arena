@@ -1,11 +1,18 @@
-// Attribution badge shown on the research pages — the on-screen twin of the
-// footer baked into the exported graph image (research/lib/svg.ts). Keeps the
-// ZenMux wordmark, the "以上研究由 thinkthinking | ZenMux.ai 测试" line, and a
-// clickable link to the public source repo. Pure presentational markup (no
-// hooks) so it works as a server component on both /research and /research/browse.
+// Attribution badge shown on the research pages — the HTML twin of the badge
+// baked into the exported graph image (research/lib/svg.ts) and drawn in the
+// studio's in-graph chrome (RelationshipGraph.tsx). First line reads
+// "by thinkthinking @ [ZenMux logo]" — the brand shows ONCE, as the clickable
+// logo (→ zenmux.ai); "thinkthinking" links to the author. Below it sits the
+// repo line. Pure presentational markup (no hooks) so it works as a server
+// component on both /research and /research/browse.
 
 import Image from "next/image";
-import { BADGE_TEXT, REPO_LABEL, REPO_URL } from "@research/lib/branding";
+import {
+  AUTHOR_URL,
+  REPO_LABEL,
+  REPO_URL,
+  ZENMUX_URL,
+} from "@research/lib/branding";
 
 /** Inline GitHub mark — lucide-react 1.16 ships no `Github` icon, so we draw it. */
 function GithubMark({ className }: { className?: string }) {
@@ -17,15 +24,15 @@ function GithubMark({ className }: { className?: string }) {
 }
 
 /**
- * @param meta  Optional faint sub-line (e.g. "Generated … · run … · n=…").
- * @param align Centered (report header/footer) or left (data browser header).
+ * Attribution badge shown on the research pages — the HTML twin of the in-graph
+ * badge (research/lib/svg.ts + RelationshipGraph.tsx). First line reads
+ * "by thinkthinking @ [ZenMux logo]"; below it, the repo link. Pure
+ * presentational markup (no hooks) so it works as a server component.
  */
 export default function StudyBadge({
-  meta,
   align = "center",
   className,
 }: {
-  meta?: string;
   align?: "center" | "left";
   className?: string;
 }) {
@@ -34,49 +41,56 @@ export default function StudyBadge({
     <div
       className={`flex flex-col gap-2 ${centered ? "items-center text-center" : "items-start text-left"} ${className ?? ""}`}
     >
-      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-        {/* Theme-aware wordmark — same convention as the home page: ZenMux-Light.png
-            is the DARK wordmark (light bg), ZenMux.png is the WHITE one (dark bg). */}
-        <Image
-          src="/maker-logo/ZenMux-Light.png"
-          alt="ZenMux"
-          width={512}
-          height={125}
-          className="h-5 w-auto dark:hidden"
-        />
-        <Image
-          src="/maker-logo/ZenMux.png"
-          alt="ZenMux"
-          width={2000}
-          height={512}
-          className="hidden h-5 w-auto dark:block"
-        />
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <span className="text-sm text-neutral-600 dark:text-neutral-300">
-          以上研究由 <strong>thinkthinking</strong> |{" "}
+          by{" "}
           <a
-            href="https://zenmux.ai"
+            href={AUTHOR_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-dotted underline-offset-4 hover:text-neutral-900 dark:hover:text-neutral-100"
           >
-            ZenMux.ai
+            <strong>thinkthinking</strong>
           </a>{" "}
-          测试
+          @
         </span>
+        {/* ZenMux wordmark — the brand shown ONCE, linking to zenmux.ai. Theme-aware,
+            same convention as the home page: ZenMux-Light.png is the DARK wordmark
+            (light bg), ZenMux.png is the WHITE one (dark bg). */}
+        <a
+          href={ZENMUX_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="ZenMux"
+          className="inline-flex items-center transition-opacity hover:opacity-80"
+        >
+          <Image
+            src="/maker-logo/ZenMux-Light.png"
+            alt="ZenMux"
+            width={512}
+            height={125}
+            className="h-5 w-auto dark:hidden"
+          />
+          <Image
+            src="/maker-logo/ZenMux.png"
+            alt="ZenMux"
+            width={2000}
+            height={512}
+            className="hidden h-5 w-auto dark:block"
+          />
+        </a>
       </div>
 
       <a
         href={REPO_URL}
         target="_blank"
         rel="noopener noreferrer"
-        title={BADGE_TEXT}
+        title={REPO_LABEL}
         className="inline-flex items-center gap-1.5 text-xs text-neutral-400 transition-colors hover:text-neutral-700 dark:text-neutral-500 dark:hover:text-neutral-200"
       >
         <GithubMark className="size-3.5" />
         <span className="font-mono">{REPO_LABEL}</span>
       </a>
-
-      {meta && <p className="text-xs text-neutral-400 dark:text-neutral-500">{meta}</p>}
     </div>
   );
 }

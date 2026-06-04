@@ -16,7 +16,6 @@ import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
-  LayoutDashboard,
   ListChecks,
   SlidersHorizontal,
   type LucideIcon,
@@ -45,13 +44,6 @@ interface View {
 }
 
 const VIEWS: View[] = [
-  {
-    title: "Overview",
-    href: "/research",
-    icon: LayoutDashboard,
-    description: "Headline stats, graph & summary tables",
-    carriesRun: false,
-  },
   {
     title: "Graph Studio",
     href: "/research/studio",

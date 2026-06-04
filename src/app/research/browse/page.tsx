@@ -87,7 +87,7 @@ export default async function BrowsePage({
       </div>
 
       <footer className="mx-auto max-w-[1600px] border-t border-border px-4 py-10 sm:px-6">
-        <StudyBadge align="left" meta={`run ${data.ref.id}`} />
+        <StudyBadge align="left" />
       </footer>
     </div>
   );

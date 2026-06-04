@@ -9,18 +9,38 @@ import {
   type EdgeCurves,
   edgeKey,
   edgeLangWeights,
+  badgeLayout,
   edgeWeight,
+  isDarkBackground,
   isNonNode,
   isOffByDefault,
   type LangWeight,
   makeLayout,
   nodePositions,
+  optimizeNodeOrder,
+  type Palette,
   paletteFor,
   type Point,
   type RenderConfig,
   vendorColor,
 } from "@research/lib/geometry";
+import {
+  AUTHOR_URL,
+  BADGE_TEXT,
+  GITHUB_MARK_PATH,
+  REPO_LABEL,
+  REPO_URL,
+  ZENMUX_URL,
+} from "@research/lib/branding";
 import type { GraphData, VendorId } from "@research/lib/types";
+
+// Theme-aware ZenMux wordmark, matching StudyBadge.tsx's counterintuitive naming:
+// ZenMux-Light.png is the DARK wordmark (for light backgrounds) and ZenMux.png is
+// the WHITE one (for dark backgrounds).
+const WORDMARK = {
+  light: "/maker-logo/ZenMux-Light.png",
+  dark: "/maker-logo/ZenMux.png",
+};
 
 const LOGO: Record<string, string> = {
   anthropic: "anthropic.png",
@@ -125,6 +145,58 @@ function EdgeText({
   );
 }
 
+/**
+ * The attribution badge, drawn as SVG chrome in the top band (below the subtitle,
+ * above the ring). On-screen twin of svg.ts's export badge — both consume the
+ * shared `badgeLayout` so the live preview and the exported PNG/SVG never drift.
+ * Links are real <a> elements here; the static export drops them (a flat image).
+ */
+function BadgeChrome({ cx, pal, dark }: { cx: number; pal: Palette; dark: boolean }) {
+  const b = badgeLayout(cx);
+  return (
+    <g>
+      {/* Line 1: "by thinkthinking |" → author, then the ZenMux wordmark → zenmux.ai. */}
+      <a href={AUTHOR_URL} target="_blank" rel="noopener noreferrer">
+        <text
+          x={b.attr.x}
+          y={b.attr.y}
+          dominantBaseline="alphabetic"
+          fontSize={b.attr.fontSize}
+          fill={pal.muted}
+        >
+          {BADGE_TEXT}
+        </text>
+      </a>
+      <a href={ZENMUX_URL} target="_blank" rel="noopener noreferrer">
+        <image
+          href={dark ? WORDMARK.dark : WORDMARK.light}
+          x={b.logo.x}
+          y={b.logo.y}
+          width={b.logo.w}
+          height={b.logo.h}
+          preserveAspectRatio="xMidYMid meet"
+        />
+      </a>
+      {/* Line 2: GitHub mark + repo label → source repo. */}
+      <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+        <g transform={`translate(${b.repo.mark.x}, ${b.repo.mark.y}) scale(${b.repo.mark.size / 16})`}>
+          <path d={GITHUB_MARK_PATH} fill={pal.faint} />
+        </g>
+        <text
+          x={b.repo.text.x}
+          y={b.repo.text.y}
+          dominantBaseline="alphabetic"
+          fontSize={b.repo.text.fontSize}
+          fontFamily="ui-monospace, SFMono-Regular, Menlo, monospace"
+          fill={pal.faint}
+        >
+          {REPO_LABEL}
+        </text>
+      </a>
+    </g>
+  );
+}
+
 export default function RelationshipGraph({
   graph,
   config,
@@ -137,6 +209,8 @@ export default function RelationshipGraph({
   curves: controlledCurves,
   onCurvesChange,
   editableEdges = false,
+  showEdgeLabels: controlledShowLabels,
+  onShowEdgeLabelsChange,
 }: {
   graph: GraphData;
   /** Visual knobs; omit to use the defaults (the report page's look). */
@@ -160,6 +234,9 @@ export default function RelationshipGraph({
   onCurvesChange?: Dispatch<SetStateAction<EdgeCurves>>;
   /** Enable drag-to-reshape on edges (studio only). */
   editableEdges?: boolean;
+  /** Controlled edge-label visibility (default false = clean lines only). */
+  showEdgeLabels?: boolean;
+  onShowEdgeLabelsChange?: Dispatch<SetStateAction<boolean>>;
 }) {
   const cfg = config ?? DEFAULT_RENDER;
   // Foreground palette derived from the (custom) background — light ink on dark
@@ -168,6 +245,9 @@ export default function RelationshipGraph({
   const [internalLang, setInternalLang] = useState<string>("");
   const lang = controlledLang ?? internalLang;
   const setLang = (v: string) => (onLangChange ? onLangChange(v) : setInternalLang(v));
+  const [internalShowLabels, setInternalShowLabels] = useState<boolean>(false);
+  const showLabels = controlledShowLabels ?? internalShowLabels;
+  const setShowLabels = onShowEdgeLabelsChange ?? setInternalShowLabels;
   const [hoverNode, setHoverNode] = useState<VendorId | null>(null);
   const [hoverEdge, setHoverEdge] = useState<HoverEdge | null>(null);
 
@@ -218,8 +298,14 @@ export default function RelationshipGraph({
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
 
   // Layout/positions track the *visible* set, so hiding a vendor reflows the ring.
+  // When `optimizeOrder` is on, the visible vendors are reordered so strongly-
+  // connected pairs sit far apart on the circle — thin edges stay readable.
+  const orderedVendors = useMemo(
+    () => (cfg.optimizeOrder ? optimizeNodeOrder(shownVendors, graph.edges) : shownVendors),
+    [shownVendors, graph.edges, cfg.optimizeOrder],
+  );
   const layout = useMemo(() => makeLayout(shownVendors.length, cfg), [shownVendors.length, cfg]);
-  const pos = useMemo(() => nodePositions(shownVendors, layout), [shownVendors, layout]);
+  const pos = useMemo(() => nodePositions(orderedVendors, layout), [orderedVendors, layout]);
 
   const threshold = cfg.threshold;
   const edges = useMemo(() => {
@@ -340,6 +426,15 @@ export default function RelationshipGraph({
               </option>
             ))}
           </select>
+          <label className="flex items-center gap-1.5 text-neutral-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showLabels}
+              onChange={(e) => setShowLabels(e.target.checked)}
+              className="size-3.5 accent-neutral-900 dark:accent-neutral-100"
+            />
+            Show edge labels
+          </label>
           {hoverNode && (
             <span className="text-neutral-400">
               Highlighting <strong>{hoverNode}</strong>
@@ -386,7 +481,9 @@ export default function RelationshipGraph({
           strokeDasharray="2 6"
         />
 
-        {/* Title (chrome) */}
+        {/* Title + attribution badge (chrome). The badge is drawn here (not as an
+            HTML overlay) so it sits centered under the subtitle and is baked into
+            the server-rendered export — kept in lockstep with svg.ts. */}
         {cfg.chrome && (
           <>
             <text
@@ -403,6 +500,11 @@ export default function RelationshipGraph({
               Cross-Vendor Identity Confusion in Frontier LLMs
               {lang ? ` · ${graph.languages.find((l) => l.code === lang)?.name ?? lang}` : ""}
             </text>
+            <BadgeChrome
+              cx={layout.width / 2}
+              pal={pal}
+              dark={isDarkBackground(cfg.background)}
+            />
           </>
         )}
 
@@ -468,7 +570,7 @@ export default function RelationshipGraph({
                   style={{ pointerEvents: "none" }}
                 />
               )}
-              {lang ? (
+              {showLabels && (lang ? (
                 <EdgeText x={arrow.label.x} y={arrow.label.y} color={color} casing={pal.casing} fontSize={15} opacity={labelOp}>
                   {Math.round(p * 100)}%
                 </EdgeText>
@@ -485,7 +587,7 @@ export default function RelationshipGraph({
                     {langName(graph, l.code)} {Math.round(l.p * 100)}%
                   </EdgeText>
                 ))
-              )}
+              ))}
             </g>
           );
         })}

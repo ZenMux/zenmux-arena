@@ -2,8 +2,16 @@
 // Embeds base64 logos (Node/fs side). Pure geometry lives in geometry.ts and is
 // shared with the Next.js client component.
 
-import { BADGE_TEXT, REPO_LABEL } from "./branding";
 import {
+  AUTHOR_URL,
+  BADGE_TEXT,
+  GITHUB_MARK_PATH,
+  REPO_LABEL,
+  REPO_URL,
+  ZENMUX_URL,
+} from "./branding";
+import {
+  badgeLayout,
   curvedArrow,
   DEFAULT_RENDER,
   type EdgeCurves,
@@ -16,6 +24,7 @@ import {
   type LangWeight,
   makeLayout,
   nodePositions,
+  optimizeNodeOrder,
   paletteFor,
   type RenderConfig,
   sanitizeCurve,
@@ -44,6 +53,8 @@ export interface SvgOptions {
   hidden?: VendorId[];
   /** Per-edge curve reshapes from dragging in the studio, keyed by edgeKey. */
   curves?: EdgeCurves;
+  /** When false (default), edge labels are hidden for a cleaner graph. */
+  showEdgeLabels?: boolean;
 }
 
 function esc(s: string): string {
@@ -67,10 +78,15 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   const ringVendors = graph.vendors.filter(
     (v) => !isNonNode(v.id) && !hidden.has(v.id),
   );
+  // When `optimizeOrder` is on, reorder the ring so strongly-connected pairs
+  // sit far apart — thin direction edges stay readable.
+  const orderedVendors = cfg.optimizeOrder
+    ? optimizeNodeOrder(ringVendors, graph.edges)
+    : ringVendors;
   // Layout auto-scales to the vendor count (and the config's spacing) so the ring never crowds.
   const layout = options.layout ?? makeLayout(ringVendors.length, { ...cfg, chrome });
   const { width, height } = layout;
-  const pos = nodePositions(ringVendors, layout);
+  const pos = nodePositions(orderedVendors, layout);
 
   // Confusion edges: from != to, to is a real vendor.
   //  - Language-filtered (langCode set): single rate for that language, p >= threshold.
@@ -110,6 +126,33 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     parts.push(
       `<text x="${width / 2}" y="98" text-anchor="middle" font-size="16" fill="${pal.muted}">Cross-Vendor Identity Confusion in Frontier LLMs${options.langCode ? ` · ${esc(langName(graph, options.langCode))}` : ""}</text>`,
     );
+    // Attribution badge below the subtitle: "by thinkthinking |" + ZenMux
+    // wordmark, then the repo line. Shares badgeLayout() with the on-screen
+    // preview (RelationshipGraph.tsx) so the export is WYSIWYG. The brand shows
+    // ONCE (as the logo → zenmux.ai); the text links to the author. <a href>
+    // links survive in the downloaded SVG (live when opened in a browser); resvg
+    // ignores them when flattening to PNG. The wordmark is inlined as a base64
+    // data URI — pick the variant that reads on the current background
+    // (ZenMux-Light.png is the DARK ink for light bg, ZenMux.png the light one).
+    const b = badgeLayout(width / 2);
+    const wordmark = logoFileDataUri(isDarkBackground(cfg.background) ? "ZenMux.png" : "ZenMux-Light.png");
+    if (wordmark) {
+      parts.push(
+        `<a href="${AUTHOR_URL}" target="_blank" rel="noopener noreferrer"><text x="${r2(b.attr.x)}" y="${r2(b.attr.y)}" font-size="${b.attr.fontSize}" fill="${pal.muted}">${esc(BADGE_TEXT)}</text></a>`,
+      );
+      parts.push(
+        `<a href="${ZENMUX_URL}" target="_blank" rel="noopener noreferrer"><image href="${wordmark}" x="${r2(b.logo.x)}" y="${r2(b.logo.y)}" width="${b.logo.w}" height="${b.logo.h}" preserveAspectRatio="xMidYMid meet"/></a>`,
+      );
+    } else {
+      // No wordmark asset: center the text alone so the line still reads.
+      parts.push(
+        `<a href="${AUTHOR_URL}" target="_blank" rel="noopener noreferrer"><text x="${width / 2}" y="${r2(b.attr.y)}" text-anchor="middle" font-size="${b.attr.fontSize}" fill="${pal.muted}">${esc(BADGE_TEXT)}</text></a>`,
+      );
+    }
+    // Repo line: GitHub mark (path, scaled from its 16px viewBox) + label → repo.
+    parts.push(
+      `<a href="${REPO_URL}" target="_blank" rel="noopener noreferrer"><g transform="translate(${r2(b.repo.mark.x)}, ${r2(b.repo.mark.y)}) scale(${r2(b.repo.mark.size / 16)})"><path d="${GITHUB_MARK_PATH}" fill="${pal.faint}"/></g><text x="${r2(b.repo.text.x)}" y="${r2(b.repo.text.y)}" font-size="${b.repo.text.fontSize}" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" fill="${pal.faint}">${esc(REPO_LABEL)}</text></a>`,
+    );
   }
 
   // Edges — colored per SOURCE vendor (configurable) so overlapping curves can be
@@ -137,6 +180,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     //      "all"  → one line per language driving the edge (every language, flat)
     //      "top"  → dominant language + rate, plus a "+N" overflow badge
     //      "none" → no label
+    if (options.showEdgeLabels) {
     if (options.langCode) {
       parts.push(edgeLabel(arrow.label.x, arrow.label.y, `${Math.round(p * 100)}%`, color, 15, pal.casing));
     } else if (cfg.labelMode !== "none" && langs.length) {
@@ -153,6 +197,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
           parts.push(edgeLabel(arrow.label.x, startY + i * lineH, text, color, 13, pal.casing));
         });
       }
+    }
     }
   }
 
@@ -187,29 +232,12 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     }
   }
 
-  // Footer branding
+  // Footer: provenance line only. The wordmark + attribution badge that used to
+  // live here now sits in the top chrome (below the title), so the footer keeps
+  // just the run metadata to avoid duplicating the branding.
   if (chrome) {
-    const fy = height - 46;
-    // Pick the wordmark variant that reads on the current background:
-    // ZenMux-Light.png is dark ink (for light bg); ZenMux.png is the light variant.
-    const zen = logoFileDataUri(isDarkBackground(cfg.background) ? "ZenMux.png" : "ZenMux-Light.png");
-    const text = BADGE_TEXT;
-    if (zen) {
-      // logo (wide wordmark) + text centered as a unit
-      const tw = 230; // approx text width budget
-      const logoW = 86;
-      const logoH = 26;
-      const groupW = logoW + 12 + tw;
-      const startX = width / 2 - groupW / 2;
-      parts.push(`<image href="${zen}" x="${r2(startX)}" y="${r2(fy - 19)}" width="${logoW}" height="${logoH}" preserveAspectRatio="xMidYMid meet"/>`);
-      parts.push(
-        `<text x="${r2(startX + logoW + 12)}" y="${r2(fy - 1)}" font-size="16" fill="${pal.muted}">${esc(text)}</text>`,
-      );
-    } else {
-      parts.push(`<text x="${width / 2}" y="${fy}" text-anchor="middle" font-size="16" fill="${pal.muted}">${esc(text)}</text>`);
-    }
     parts.push(
-      `<text x="${width / 2}" y="${height - 22}" text-anchor="middle" font-size="11" fill="${pal.faint}">Generated ${esc(graph.generatedAt)} · run ${esc(graph.runId)} · n=${graph.summary.totalAnswers} answers · ${esc(REPO_LABEL)}</text>`,
+      `<text x="${width / 2}" y="${height - 30}" text-anchor="middle" font-size="11" fill="${pal.faint}">Generated ${esc(graph.generatedAt)} · run ${esc(graph.runId)} · n=${graph.summary.totalAnswers} answers · ${esc(REPO_LABEL)}</text>`,
     );
   }
 
