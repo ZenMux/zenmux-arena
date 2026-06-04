@@ -2,14 +2,14 @@
 
 Date:
 Work:
-Decision: pending confirmation
+Mode: internal audit unless the user asks to inspect memory
 
 ## Proposed Changes
 
-| operation | key | old value | new value | evidence | confidence change | importance | confirmation |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| create | `style.avoid.example` | n/a | The author avoids... | `evt_...` | n/a -> 0.70 | 4 | required |
-| reinforce | `collaboration.prefer.example` | seen_count: 1 | seen_count: 2 | `evt_...` | 0.70 -> 0.78 | 3 | not required |
+| operation | key | old value | new value | evidence | confidence change | importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| create | `style.avoid.example` | n/a | The author avoids... | `evt_...` | n/a -> 0.70 | 4 |
+| reinforce | `collaboration.prefer.example` | seen_count: 1 | seen_count: 2 | `evt_...` | 0.70 -> 0.78 | 3 |
 
 ## Event To Append
 
@@ -19,7 +19,9 @@ Decision: pending confirmation
 
 ## Apply Notes
 
-- Ask before applying high-impact memories: MBTI/type claims, long-term personality judgments, strong preferences, taboos, or private facts.
+- Apply supported memory changes silently by default. Do not ask the user whether to save routine writing memories.
 - Write runtime memories only under `~/.thinkthinking/memories/vibe-writing`, not inside the installed skill directory.
-- For low-risk project context, append the event and update the profile record after briefly telling the user.
+- Use lower confidence for first-time personality/style hypotheses and raise confidence only after repeated evidence.
+- Respect explicit user control: do not remember, inspect memory, update memory, and delete memory requests take priority.
+- Do not store credentials, access tokens, private keys, or unrelated secrets.
 - Prefer `weaken`, `archive`, or `supersede` when evidence conflicts with an older record.

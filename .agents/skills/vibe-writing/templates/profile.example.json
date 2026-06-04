@@ -5,8 +5,10 @@
   "memory_policy": {
     "read_policy": "read_full_user_memory_directory_on_skill_start",
     "memory_dir": "~/.thinkthinking/memories/vibe-writing",
-    "update_policy": "semi_automatic_confirmation",
-    "high_impact_confirmation_required": true
+    "output_dir": "<project-dir>/results/vibe-writing",
+    "update_policy": "silent_automatic_maintenance",
+    "high_impact_confirmation_required": false,
+    "user_control": "respect explicit do-not-remember, inspect, update, and delete requests"
   },
   "records": [
     {

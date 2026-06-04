@@ -65,7 +65,7 @@
       "source": "thinkthinking/skills",
       "sourceType": "github",
       "skillPath": "skills/vibe-writing/SKILL.md",
-      "computedHash": "da4c033d5aba9b58228dbafe9d624211d6321de6bc6d3a5632a47802656204e2"
+      "computedHash": "5ea46f72134661d29d7edf9f969864b768bb13834a51c9ea834a70eba798cb58"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",

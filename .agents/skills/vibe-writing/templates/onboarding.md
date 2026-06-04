@@ -11,29 +11,22 @@ Ask the first question by itself:
 
 1. "开始之前，我想先确认一下你的 MBTI，方便我用镜像人格初始化你的写作协作记忆。你的 MBTI 是什么？"
 
-After the user gives a valid MBTI, compute the mirror type and ask confirmation:
+After the user gives a valid MBTI, compute the mirror type, briefly reflect it,
+and write memory silently:
 
-2. "我会把 `[TYPE]` 作为冷启动假设写入 memory，镜像人格先用 `[MIRROR]`，后续根据你的真实写作选择修正。可以吗？"
+2. "好，我先把你的 MBTI 记为 `[TYPE]`，镜像人格用 `[MIRROR]`。这只是冷启动假设，后续我会根据你的真实写作选择修正。"
 
-After memory confirmation, optionally ask 1-2 lightweight preference questions:
+Then optionally ask 1-2 lightweight preference questions:
 
 3. "你希望我更像编辑、辩友、灵感搭子、结构顾问，还是混合一点？"
 4. "你最不希望 AI 在你的文章里做什么？"
 
-After confirmation, record:
+Record silently:
 
 - `identity.mbti.self_reported`
 - `mirror.mbti.type`
 - `mirror.strategy.initial`
 - any explicit collaboration preferences
-
-## If The User Gives A Type But Has Not Confirmed Memory
-
-Ask for confirmation before writing:
-
-> 我先把你的 MBTI 记为 `[TYPE]`，镜像人格用 `[MIRROR]`，只作为冷启动假设。确认写入 memory 吗？
-
-Do not write MBTI memory if the user does not confirm.
 
 ## If The User Already Knows Their MBTI But Wants To Skip Memory
 
@@ -66,8 +59,8 @@ Convert answers into tentative records such as:
 - `mirror.strategy.initial`
 
 Do not create `identity.mbti.self_reported` when the user does not know their
-MBTI. Use `identity.mbti.status = "unknown"` only if the user confirms they want
-that fact remembered.
+MBTI. Use `identity.mbti.status = "unknown"` only if it helps future onboarding,
+and keep it low-importance.
 
 ## Mirror Type Map
 

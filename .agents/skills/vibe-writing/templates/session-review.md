@@ -24,7 +24,9 @@ Unclear:
 
 ## Final Artifact
 
-Final title or path:
+Final title:
+
+Final path under `results/vibe-writing`:
 
 What changed from the starting point:
 
