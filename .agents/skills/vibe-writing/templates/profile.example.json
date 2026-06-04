@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "profile_name": "default",
+  "description": "Structured long-term writing memory for Vibe Writing. Treat records as evolving hypotheses, not fixed personality truths.",
+  "memory_policy": {
+    "read_policy": "read_full_user_memory_directory_on_skill_start",
+    "memory_dir": "~/.thinkthinking/memories/vibe-writing",
+    "update_policy": "semi_automatic_confirmation",
+    "high_impact_confirmation_required": true
+  },
+  "records": [
+    {
+      "key": "identity.mbti.self_reported",
+      "type": "identity",
+      "scope": "global",
+      "value": "INFP",
+      "confidence": 0.7,
+      "importance": 4,
+      "seen_count": 1,
+      "accepted_count": 1,
+      "rejected_count": 0,
+      "status": "tentative",
+      "created_at": "2026-06-04",
+      "updated_at": "2026-06-04",
+      "evidence": [
+        "evt_20260604_001"
+      ]
+    },
+    {
+      "key": "mirror.mbti.type",
+      "type": "mirror_strategy",
+      "scope": "global",
+      "value": "ENFJ",
+      "confidence": 0.7,
+      "importance": 4,
+      "seen_count": 1,
+      "accepted_count": 1,
+      "rejected_count": 0,
+      "status": "tentative",
+      "created_at": "2026-06-04",
+      "updated_at": "2026-06-04",
+      "evidence": [
+        "evt_20260604_001"
+      ]
+    },
+    {
+      "key": "mirror.strategy.initial",
+      "type": "mirror_strategy",
+      "scope": "global",
+      "value": "Offer public-facing structure, reader empathy, and gentle momentum while preserving the author's inner emotional texture.",
+      "confidence": 0.65,
+      "importance": 4,
+      "seen_count": 1,
+      "accepted_count": 1,
+      "rejected_count": 0,
+      "status": "tentative",
+      "created_at": "2026-06-04",
+      "updated_at": "2026-06-04",
+      "evidence": [
+        "evt_20260604_001"
+      ]
+    }
+  ]
+}

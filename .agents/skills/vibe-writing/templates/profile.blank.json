@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "profile_name": "default",
+  "description": "Structured long-term writing memory for Vibe Writing. Keep records as evolving hypotheses and update them through collaboration evidence.",
+  "memory_policy": {
+    "read_policy": "read_full_user_memory_directory_on_skill_start",
+    "memory_dir": "~/.thinkthinking/memories/vibe-writing",
+    "update_policy": "semi_automatic_confirmation",
+    "high_impact_confirmation_required": true
+  },
+  "records": []
+}

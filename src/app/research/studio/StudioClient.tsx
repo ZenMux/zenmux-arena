@@ -41,7 +41,6 @@ import {
 } from "@research/lib/geometry";
 import type { GraphData, VendorId } from "@research/lib/types";
 import RelationshipGraph from "../RelationshipGraph";
-import StudyBadge from "../StudyBadge";
 import EdgeTable from "./EdgeTable";
 
 export interface RunRef {
@@ -443,7 +442,6 @@ export default function StudioClient({
           <Tabs defaultValue="graph" className="gap-4">
             <div className="flex items-center justify-between gap-3">
               <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="graph">Graph</TabsTrigger>
                 <TabsTrigger value="table">Edge detail</TabsTrigger>
               </TabsList>
@@ -462,10 +460,6 @@ export default function StudioClient({
                 </a>
               </div>
             </div>
-
-            <TabsContent value="overview">
-              <OverviewTab graph={graph} />
-            </TabsContent>
 
             <TabsContent value="graph">
               {/* The attribution badge is drawn inside the SVG chrome (below the
@@ -506,6 +500,7 @@ export default function StudioClient({
                 </CardContent>
               </Card>
             </TabsContent>
+
           </Tabs>
         </section>
       </div>
@@ -513,186 +508,8 @@ export default function StudioClient({
   );
 }
 
-/* ── Overview tab (ex- /research report page) ─────────────────────────── */
-
-function OverviewTab({ graph }: { graph: GraphData }) {
-  const s = graph.summary;
-  const confusionEdges = graph.edges
-    .filter((e) => e.from !== e.to && !["self", "unknown", "refused"].includes(e.to))
-    .sort((a, b) => b.probability - a.probability)
-    .slice(0, 8);
-
-  const modelSelf = graph.models
-    .map((m) => ({ label: m.label ?? m.id, rate: s.perModelSelfRate[m.id] ?? 0 }))
-    .sort((a, b) => b.rate - a.rate);
-
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      {/* Header */}
-      <header className="mb-10 text-center">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground/70">
-          ZenMux Arena · Research
-        </p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-          {graph.study.title}
-        </h1>
-        {graph.study.description && (
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
-            {graph.study.description}
-          </p>
-        )}
-        {/* Attribution — below the title/description for a cleaner layout. */}
-        <div className="mt-6 flex justify-center">
-          <StudyBadge />
-        </div>
-      </header>
-
-      {/* Headline stats */}
-      <section className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Answers" value={String(s.totalAnswers)} />
-        <StatCard
-          label="Self-ID rate"
-          value={pct(s.overallSelfRate)}
-          accent
-        />
-        <StatCard label="Confusion rate" value={pct(s.confusionRate)} />
-        <StatCard
-          label="Unknown / Refused"
-          value={`${pct(s.unknownRate, 0)} / ${pct(s.refusedRate, 0)}`}
-        />
-      </section>
-
-      {/* Tables */}
-      <section className="mb-10 grid gap-8 md:grid-cols-2">
-        <div>
-          <h2 className="mb-3 text-base font-semibold">
-            Self-identification by model
-          </h2>
-          <MiniTable
-            headers={["Model", "Self rate"]}
-            rows={modelSelf.map((m) => [m.label, pct(m.rate)])}
-          />
-        </div>
-        <div>
-          <h2 className="mb-3 text-base font-semibold">
-            Self-identification by language
-          </h2>
-          <MiniTable
-            headers={["Language", "Self rate"]}
-            rows={graph.languages
-              .map((l) => ({ name: l.name, rate: s.perLangSelfRate[l.code] ?? 0 }))
-              .sort((a, b) => b.rate - a.rate)
-              .map((l) => [l.name, pct(l.rate)])}
-          />
-        </div>
-      </section>
-
-      <section className="mb-10">
-        <h2 className="mb-3 text-base font-semibold">
-          Top cross-vendor confusion
-        </h2>
-        {confusionEdges.length ? (
-          <MiniTable
-            headers={["From (true)", "Claims to be", "Probability", "Count"]}
-            rows={confusionEdges.map((e) => [
-              vname(graph, e.from),
-              vname(graph, e.to),
-              pct(e.probability),
-              `${e.count}/${e.total}`,
-            ])}
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            No cross-vendor confusion above threshold.
-          </p>
-        )}
-      </section>
-
-    </div>
-  );
-}
-
 function pct(x: number, d = 1): string {
   return `${(x * 100).toFixed(d)}%`;
-}
-
-function vname(graph: GraphData, id: string): string {
-  return graph.vendors.find((v) => v.id === id)?.name ?? id;
-}
-
-function StatCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div
-        className={`text-xl font-bold sm:text-2xl ${
-          accent ? "text-emerald-600 dark:text-emerald-400" : ""
-        }`}
-      >
-        {value}
-      </div>
-      <div className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </div>
-    </div>
-  );
-}
-
-function MiniTable({
-  headers,
-  rows,
-}: {
-  headers: string[];
-  rows: string[][];
-}) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-border">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
-            {headers.map((h, i) => (
-              <th
-                key={h}
-                className={`px-4 py-2 font-semibold text-muted-foreground ${
-                  i === 0 ? "text-left" : "text-right"
-                }`}
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, ri) => (
-            <tr
-              key={ri}
-              className="border-b border-border/60 last:border-0"
-            >
-              {r.map((c, ci) => (
-                <td
-                  key={ci}
-                  className={`px-4 py-2 ${
-                    ci === 0
-                      ? "text-left font-medium"
-                      : "text-right tabular-nums text-muted-foreground"
-                  }`}
-                >
-                  {c}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
 }
 
 /* ── small layout helpers ─────────────────────────────────────────────── */

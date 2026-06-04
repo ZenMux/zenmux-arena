@@ -15,6 +15,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
+  BarChart3,
   ChevronLeft,
   ListChecks,
   SlidersHorizontal,
@@ -52,6 +53,13 @@ const VIEWS: View[] = [
     carriesRun: true,
   },
   {
+    title: "Data Explorer",
+    href: "/research/data",
+    icon: BarChart3,
+    description: "Per-vendor self-ID rates, matrices, and cross-vendor confusions",
+    carriesRun: true,
+  },
+  {
     title: "Raw Answers",
     href: "/research/browse",
     icon: ListChecks,
@@ -66,23 +74,40 @@ export function ExperimentSidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            {/* Brand → back to the hub. In icon mode only the mark shows. */}
+            {/* Brand → back to the hub. In icon mode only the mark shows.
+                Theme-aware single-letter mark:
+                  zenmux-single-light-bg.png = DARK mark (light bg)
+                  zenmux-single-black-bg.png = WHITE mark (dark bg)
+                Same counterintuitive naming as the wordmark pair. */}
             <SidebarMenuButton
               asChild
               size="lg"
-              tooltip="ZenMux Arena"
+              tooltip={PRIMARY_EXPERIMENT.title}
               className="gap-2.5"
             >
               <Link href="/">
-                <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                  <span className="text-sm font-bold tracking-tight">Z</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center">
+                  <Image
+                    src="/maker-logo/zenmux-single-light-bg.png"
+                    alt="ZenMux"
+                    width={64}
+                    height={64}
+                    className="h-8 w-8 dark:hidden"
+                  />
+                  <Image
+                    src="/maker-logo/zenmux-single-black-bg.png"
+                    alt="ZenMux"
+                    width={64}
+                    height={64}
+                    className="hidden h-8 w-8 dark:block"
+                  />
                 </span>
                 <span className="grid flex-1 text-left leading-tight">
                   <span className="truncate text-sm font-semibold">
-                    ZenMux Arena
+                    {PRIMARY_EXPERIMENT.title}
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    Experiments
+                    ZenMux Arena
                   </span>
                 </span>
               </Link>
@@ -111,22 +136,6 @@ export function ExperimentSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:hidden">
-          <Image
-            src="/maker-logo/ZenMux-Light.png"
-            alt="ZenMux"
-            width={512}
-            height={125}
-            className="h-4 w-auto opacity-60 dark:hidden"
-          />
-          <Image
-            src="/maker-logo/ZenMux.png"
-            alt="ZenMux"
-            width={2000}
-            height={512}
-            className="hidden h-4 w-auto opacity-60 dark:block"
-          />
-        </div>
       </SidebarFooter>
     </Sidebar>
   );
