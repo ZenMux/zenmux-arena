@@ -231,10 +231,10 @@ export default function StudioClient({
               <SliderRow
                 label="Curvature"
                 value={cfg.curveBow}
-                min={0.02}
+                min={0}
                 max={0.34}
                 step={0.01}
-                format={(v) => v.toFixed(2)}
+                format={(v) => (v === 0 ? "Straight" : v.toFixed(2))}
                 onChange={(v) => set("curveBow", v)}
               />
 
@@ -260,12 +260,6 @@ export default function StudioClient({
                 onChange={(v) => set("threshold", v)}
               />
 
-              <ToggleRow label="Color by source">
-                <Switch
-                  checked={cfg.colorBySource}
-                  onCheckedChange={(v) => set("colorBySource", v)}
-                />
-              </ToggleRow>
               <ToggleRow label="Title & footer">
                 <Switch checked={cfg.chrome} onCheckedChange={(v) => set("chrome", v)} />
               </ToggleRow>

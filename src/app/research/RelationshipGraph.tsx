@@ -11,10 +11,12 @@ import {
   edgeLangWeights,
   badgeLayout,
   edgeWeight,
+  edgeWeightColor,
   isDarkBackground,
   isNonNode,
   isOffByDefault,
   type LangWeight,
+  legendLayout,
   makeLayout,
   nodePositions,
   optimizeNodeOrder,
@@ -193,6 +195,45 @@ function BadgeChrome({ cx, pal, dark }: { cx: number; pal: Palette; dark: boolea
           {REPO_LABEL}
         </text>
       </a>
+    </g>
+  );
+}
+
+/**
+ * The reading-key legend, drawn as SVG chrome in the bottom band (above the
+ * provenance footer). On-screen twin of svg.ts's export legend — both consume
+ * the shared `legendLayout` so preview and export never drift. Explains the
+ * arrow semantics with a mini sample edge: "A → B = a model by A claims to be B".
+ */
+function LegendChrome({ cx, y, pal }: { cx: number; y: number; pal: Palette }) {
+  const lg = legendLayout(cx, y);
+  const sampleColor = edgeWeightColor(0); // blue — the base weight tier
+  return (
+    <g>
+      <line
+        x1={lg.sample.x1}
+        y1={lg.sample.y1}
+        x2={lg.sample.x2}
+        y2={lg.sample.y2}
+        stroke={sampleColor}
+        strokeWidth={2.4}
+        strokeLinecap="round"
+      />
+      <polygon points={lg.sample.head} fill={sampleColor} />
+      <circle cx={lg.dotA.x} cy={lg.dotA.y} r={lg.dotA.r} fill={pal.ink} />
+      <circle cx={lg.dotB.x} cy={lg.dotB.y} r={lg.dotB.r} fill={pal.ink} />
+      <text x={lg.aLabel.x} y={lg.aLabel.y} textAnchor="middle" fontSize={lg.aLabel.fontSize} fontWeight={700} fill={pal.muted}>
+        A
+      </text>
+      <text x={lg.bLabel.x} y={lg.bLabel.y} textAnchor="middle" fontSize={lg.bLabel.fontSize} fontWeight={700} fill={pal.muted}>
+        B
+      </text>
+      <text x={lg.text.x} y={lg.text.y} fontSize={lg.text.fontSize} fill={pal.muted}>
+        <tspan fontWeight={700} fill={pal.ink}>
+          A → B
+        </tspan>
+        {" = a model made by A identifies itself as B"}
+      </text>
     </g>
   );
 }
@@ -520,7 +561,7 @@ export default function RelationshipGraph({
           const ov = curves[key];
           const arrow = curvedArrow(a, b, layout.nodeRadius, ov ? ov.bow : cfg.curveBow, ov?.along ?? 0);
           const active = edgeActive(e.from, e.to);
-          const color = cfg.colorBySource ? vendorColor(e.from) : pal.mono;
+          const color = edgeWeightColor(p);
           const sw = cfg.edgeBaseWidth + p * cfg.edgeWidthScale;
           const op = 0.95 * (active ? 1 : 0.1);
           const labelOp = active ? 1 : 0.12;
@@ -572,19 +613,19 @@ export default function RelationshipGraph({
               )}
               {showLabels && (lang ? (
                 <EdgeText x={arrow.label.x} y={arrow.label.y} color={color} casing={pal.casing} fontSize={15} opacity={labelOp}>
-                  {Math.round(p * 100)}%
+                  {(p * 100).toFixed(2)}%
                 </EdgeText>
               ) : cfg.labelMode === "none" ? null : cfg.labelMode === "top" ? (
                 langs[0] && (
                   <EdgeText x={arrow.label.x} y={arrow.label.y} color={color} casing={pal.casing} fontSize={13} opacity={labelOp}>
-                    {langName(graph, langs[0].code)} {Math.round(langs[0].p * 100)}%
+                    {langName(graph, langs[0].code)} {(langs[0].p * 100).toFixed(2)}%
                     {langs.length > 1 ? ` +${langs.length - 1}` : ""}
                   </EdgeText>
                 )
               ) : (
                 langs.map((l, i) => (
                   <EdgeText key={l.code} x={arrow.label.x} y={startY + i * lineH} color={color} casing={pal.casing} fontSize={13} opacity={labelOp}>
-                    {langName(graph, l.code)} {Math.round(l.p * 100)}%
+                    {langName(graph, l.code)} {(l.p * 100).toFixed(2)}%
                   </EdgeText>
                 ))
               ))}
@@ -641,8 +682,8 @@ export default function RelationshipGraph({
         {/* Edge tooltip — aggregate view lists every language driving the edge. */}
         {hoverEdge && (() => {
           const rows = lang
-            ? [`${(hoverEdge.p * 100).toFixed(1)}% · ${hoverEdge.count}/${hoverEdge.total}`]
-            : hoverEdge.langs.map((l) => `${langName(graph, l.code)} ${(l.p * 100).toFixed(0)}% · ${l.count}/${l.total}`);
+            ? [`${(hoverEdge.p * 100).toFixed(2)}% · ${hoverEdge.count}/${hoverEdge.total}`]
+            : hoverEdge.langs.map((l) => `${langName(graph, l.code)} ${(l.p * 100).toFixed(2)}% · ${l.count}/${l.total}`);
           const rowH = 16;
           const padTop = 34;
           const h = padTop + rows.length * rowH + 6;
@@ -660,6 +701,11 @@ export default function RelationshipGraph({
             </g>
           );
         })()}
+
+        {/* Reading-key legend (bottom chrome) — baked into the export too. */}
+        {cfg.chrome && (
+          <LegendChrome cx={layout.width / 2} y={layout.height - 62} pal={pal} />
+        )}
       </svg>
         </div>
       </div>

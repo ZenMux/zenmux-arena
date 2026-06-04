@@ -42,8 +42,6 @@ export interface RenderConfig {
   edgeBaseWidth: number;
   /** Extra stroke width (px) added at probability 1. */
   edgeWidthScale: number;
-  /** Color edges by their source vendor (vs a single ink color). */
-  colorBySource: boolean;
   /** Edge labels: every language flat / dominant + "+N" / none. */
   labelMode: "all" | "top" | "none";
   /** Arc curvature (perpendicular bow as a fraction of chord length). */
@@ -64,14 +62,15 @@ export interface RenderConfig {
 
 export const DEFAULT_RENDER: RenderConfig = {
   ringScale: 1,
-  nodeRadius: 58,
+  nodeRadius: 43,
   nodeGap: 46,
   edgeBaseWidth: 1.4,
   edgeWidthScale: 4.6,
-  colorBySource: true,
   labelMode: "all",
-  curveBow: 0.18,
-  threshold: 0.01,
+  // Straight chords by default (0 = no bow). A→B and B→A then overlap, but the
+  // user can drag any single edge to bend it apart in the studio.
+  curveBow: 0,
+  threshold: 0,
   chrome: true,
   background: "#ffffff",
   optimizeOrder: true,
@@ -115,7 +114,7 @@ export interface Palette {
   chip: string;
   /** Node chip stroke. */
   chipStroke: string;
-  /** Mono edge color when colorBySource is off. */
+  /** Neutral ink color (legacy single-color edge fallback; edges now color by weight). */
   mono: string;
 }
 
@@ -165,10 +164,14 @@ export interface BadgeLayout {
 }
 
 export function badgeLayout(cx: number): BadgeLayout {
-  // Line 1: "by thinkthinking |" + ZenMux wordmark, centered as a group. The
+  // Line 1: "by thinkthinking @" + ZenMux wordmark, centered as a group. The
   // brand shows ONCE (as the logo), so the text deliberately omits "ZenMux.ai".
+  // attrW must cover the FULL "by thinkthinking @" — measured at ~139px in the
+  // export font (NotoSansSC, 16px); 142 leaves a hair of gap so the wordmark
+  // image never lands on top of the trailing "@" (the prior 122px budget — left
+  // over from old "| " text — caused exactly that overlap in the export).
   const attrFont = 16;
-  const attrW = 122; // approx render width of "by thinkthinking |" at 16px
+  const attrW = 142;
   const gap1 = 8;
   const logoW = 84;
   const logoH = 25;
@@ -197,6 +200,56 @@ export function badgeLayout(cx: number): BadgeLayout {
 }
 
 /**
+ * Geometry of the reading-key legend drawn in the bottom chrome band, just above
+ * the provenance footer. Like badgeLayout(), it returns plain coordinates so BOTH
+ * renderers — the React preview and the Node export — place every piece
+ * identically; only the markup differs. A mini sample edge (line + small
+ * arrowhead between two dots) precedes the caption, all centered on `cx` at the
+ * given baseline `y`. Width budgets are approximate (they only balance the
+ * centered group); a small error just nudges the group horizontally and can
+ * never cause an overlap.
+ */
+export interface LegendLayout {
+  /** The mini sample edge: a short line ending in a small arrowhead. */
+  sample: { x1: number; y1: number; x2: number; y2: number; head: string };
+  /** Dots at each end of the sample, labelled A (source) and B (target). */
+  dotA: { x: number; y: number; r: number };
+  dotB: { x: number; y: number; r: number };
+  aLabel: { x: number; y: number; fontSize: number };
+  bLabel: { x: number; y: number; fontSize: number };
+  /** Left-aligned caption start (the explanatory text). */
+  text: { x: number; y: number; fontSize: number };
+}
+
+export function legendLayout(cx: number, y: number): LegendLayout {
+  const fontSize = 13;
+  const dotR = 4;
+  const sampleLen = 46; // dot-to-dot span of the mini edge
+  const gap = 14; // between the sample and the caption
+  const captionW = 250; // approx render width of the caption at 13px
+  const total = sampleLen + gap + captionW;
+  const startX = cx - total / 2;
+
+  const x1 = startX + dotR;
+  const x2 = startX + sampleLen - dotR;
+  // Small arrowhead at x2 pointing right (into dot B), matching the graph's
+  // own slimmed-down heads.
+  const headLen = 7;
+  const headW = 4;
+  const head = `${round(x2)},${round(y)} ${round(x2 - headLen)},${round(y - headW)} ${round(x2 - headLen)},${round(y + headW)}`;
+
+  return {
+    sample: { x1, y1: y, x2, y2: y, head },
+    dotA: { x: startX, y, r: dotR },
+    dotB: { x: startX + sampleLen, y, r: dotR },
+    // Tiny A / B captions tucked just above each dot.
+    aLabel: { x: startX, y: y - 9, fontSize: 11 },
+    bLabel: { x: startX + sampleLen, y: y - 9, fontSize: 11 },
+    text: { x: startX + sampleLen + gap, y: y + 4, fontSize },
+  };
+}
+
+/**
  * Build a layout that auto-scales to the number of nodes so the ring (and the
  * interior the edges sweep through) stays uncrowded regardless of vendor count.
  * The ring radius grows so that adjacent circles + their name labels never
@@ -219,7 +272,9 @@ export function makeLayout(nodeCount: number, cfg: Partial<RenderConfig> = {}): 
   const ringMargin = nodeRadius + 64;
   const ringSpan = (radius + ringMargin) * 2;
   const top = chrome ? 130 : ringMargin;
-  const bottom = chrome ? 96 : ringMargin;
+  // Taller bottom band when chrome is on: a dedicated legend row sits above the
+  // provenance footer (see legendLayout). 124 ≈ legend baseline + footer + pad.
+  const bottom = chrome ? 124 : ringMargin;
   const width = ringSpan;
   const height = ringSpan + top + bottom;
   return {
@@ -477,8 +532,8 @@ export function curvedArrow(
   const al = Math.hypot(adx, ady) || 1;
   const aux = adx / al;
   const auy = ady / al;
-  const headLen = 18;
-  const headW = 9;
+  const headLen = 12;
+  const headW = 6;
   const baseX = f.ex - aux * headLen;
   const baseY = f.ey - auy * headLen;
   const lx = baseX - auy * headW;
@@ -543,6 +598,25 @@ export function vendorColor(id: VendorId): string {
   let h = 0;
   for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) % 360;
   return `hsl(${h} 65% 45%)`;
+}
+
+/**
+ * Edge color by CONFUSION STRENGTH, not by source vendor — a three-tier traffic
+ * scale so the eye reads severity at a glance:
+ *   - blue   (< 10%)   : weak / incidental confusion
+ *   - amber  (10–20%)  : notable
+ *   - red    (≥ 20%)   : strong — the headline cross-vendor identity bleed.
+ * The cutoffs are tuned to the real distribution (max ≈ 29%, p90 ≈ 5.5%), so red
+ * stays rare and meaningful instead of flooding. `p` is the edge probability
+ * (strongest single-language rate in the aggregate view).
+ */
+export const EDGE_WEIGHT_AMBER = 0.1;
+export const EDGE_WEIGHT_RED = 0.2;
+
+export function edgeWeightColor(p: number): string {
+  if (p >= EDGE_WEIGHT_RED) return "#ef4444"; // red-500
+  if (p >= EDGE_WEIGHT_AMBER) return "#f59e0b"; // amber-500
+  return "#3b82f6"; // blue-500
 }
 
 const PSEUDO: VendorId[] = ["self", "unknown", "refused", "other"];

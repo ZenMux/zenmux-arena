@@ -18,17 +18,18 @@ import {
   edgeKey,
   edgeLangWeights,
   edgeWeight,
+  edgeWeightColor,
   type GraphLayout,
   isDarkBackground,
   isNonNode,
   type LangWeight,
+  legendLayout,
   makeLayout,
   nodePositions,
   optimizeNodeOrder,
   paletteFor,
   type RenderConfig,
   sanitizeCurve,
-  vendorColor,
 } from "./geometry";
 import type { GraphData, VendorId } from "./types";
 import { logoDataUri, logoFileDataUri, VENDORS } from "./vendors";
@@ -155,10 +156,10 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     );
   }
 
-  // Edges — colored per SOURCE vendor (configurable) so overlapping curves can be
-  // told apart in the tangle. Stroke WIDTH scales with probability so strong
-  // confusions read as heavier. A soft white casing is drawn under each line so
-  // crossings stay legible.
+  // Edges — colored by CONFUSION STRENGTH (blue < 10% < amber < 20% ≤ red) so the
+  // severity reads at a glance; stroke WIDTH also scales with probability so strong
+  // confusions read as heavier. A soft background-colored casing is drawn under
+  // each line so crossings stay legible.
   for (const { e, p, langs } of drawable) {
     const a = pos.get(e.from)!;
     const b = pos.get(e.to)!;
@@ -167,7 +168,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     const ov = options.curves?.[edgeKey(e.from, e.to)];
     const curve = ov ? sanitizeCurve(ov) : { bow: cfg.curveBow, along: 0 };
     const arrow = curvedArrow(a, b, layout.nodeRadius, curve.bow, curve.along);
-    const color = cfg.colorBySource ? vendorColor(e.from) : pal.mono;
+    const color = edgeWeightColor(p);
     const sw = r2(cfg.edgeBaseWidth + p * cfg.edgeWidthScale);
     // Background-colored casing first (slightly wider) for separation where lines cross.
     parts.push(`<path d="${arrow.path}" fill="none" stroke="${pal.casing}" stroke-width="${r2(sw + 3)}" stroke-opacity="0.85" stroke-linecap="round"/>`);
@@ -182,18 +183,18 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     //      "none" → no label
     if (options.showEdgeLabels) {
     if (options.langCode) {
-      parts.push(edgeLabel(arrow.label.x, arrow.label.y, `${Math.round(p * 100)}%`, color, 15, pal.casing));
+      parts.push(edgeLabel(arrow.label.x, arrow.label.y, `${pctLabel(p)}%`, color, 15, pal.casing));
     } else if (cfg.labelMode !== "none" && langs.length) {
       if (cfg.labelMode === "top") {
         const top = langs[0];
         const extra = langs.length - 1;
-        const text = `${esc(langName(graph, top.code))} ${Math.round(top.p * 100)}%${extra > 0 ? ` +${extra}` : ""}`;
+        const text = `${esc(langName(graph, top.code))} ${pctLabel(top.p)}%${extra > 0 ? ` +${extra}` : ""}`;
         parts.push(edgeLabel(arrow.label.x, arrow.label.y, text, color, 13, pal.casing));
       } else {
         const lineH = 17;
         const startY = arrow.label.y - ((langs.length - 1) * lineH) / 2;
         langs.forEach((l, i) => {
-          const text = `${esc(langName(graph, l.code))} ${Math.round(l.p * 100)}%`;
+          const text = `${esc(langName(graph, l.code))} ${pctLabel(l.p)}%`;
           parts.push(edgeLabel(arrow.label.x, startY + i * lineH, text, color, 13, pal.casing));
         });
       }
@@ -232,12 +233,36 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     }
   }
 
-  // Footer: provenance line only. The wordmark + attribution badge that used to
-  // live here now sits in the top chrome (below the title), so the footer keeps
-  // just the run metadata to avoid duplicating the branding.
+  // Reading-key legend + provenance footer (bottom chrome). The legend explains
+  // the arrow semantics ("A → B = a model by A claims to be B") with a mini
+  // sample edge; the footer carries run metadata. The wordmark + attribution
+  // badge live in the TOP chrome (below the title), so the footer avoids
+  // duplicating the branding.
   if (chrome) {
+    const lg = legendLayout(width / 2, height - 62);
+    // Mini sample edge: blue line + small arrowhead between two labelled dots.
+    const sampleColor = edgeWeightColor(0); // blue — the base weight tier
     parts.push(
-      `<text x="${width / 2}" y="${height - 30}" text-anchor="middle" font-size="11" fill="${pal.faint}">Generated ${esc(graph.generatedAt)} · run ${esc(graph.runId)} · n=${graph.summary.totalAnswers} answers · ${esc(REPO_LABEL)}</text>`,
+      `<line x1="${r2(lg.sample.x1)}" y1="${r2(lg.sample.y1)}" x2="${r2(lg.sample.x2)}" y2="${r2(lg.sample.y2)}" stroke="${sampleColor}" stroke-width="2.4" stroke-linecap="round"/>`,
+    );
+    parts.push(`<polygon points="${lg.sample.head}" fill="${sampleColor}"/>`);
+    parts.push(
+      `<circle cx="${r2(lg.dotA.x)}" cy="${r2(lg.dotA.y)}" r="${lg.dotA.r}" fill="${pal.ink}"/>`,
+    );
+    parts.push(
+      `<circle cx="${r2(lg.dotB.x)}" cy="${r2(lg.dotB.y)}" r="${lg.dotB.r}" fill="${pal.ink}"/>`,
+    );
+    parts.push(
+      `<text x="${r2(lg.aLabel.x)}" y="${r2(lg.aLabel.y)}" text-anchor="middle" font-size="${lg.aLabel.fontSize}" font-weight="700" fill="${pal.muted}">A</text>`,
+    );
+    parts.push(
+      `<text x="${r2(lg.bLabel.x)}" y="${r2(lg.bLabel.y)}" text-anchor="middle" font-size="${lg.bLabel.fontSize}" font-weight="700" fill="${pal.muted}">B</text>`,
+    );
+    parts.push(
+      `<text x="${r2(lg.text.x)}" y="${r2(lg.text.y)}" font-size="${lg.text.fontSize}" fill="${pal.muted}"><tspan font-weight="700" fill="${pal.ink}">A → B</tspan> = a model made by A identifies itself as B</text>`,
+    );
+    parts.push(
+      `<text x="${width / 2}" y="${height - 28}" text-anchor="middle" font-size="11" fill="${pal.faint}">Generated ${esc(graph.generatedAt)} · run ${esc(graph.runId)} · n=${graph.summary.totalAnswers} answers · ${esc(REPO_LABEL)}</text>`,
     );
   }
 
@@ -256,6 +281,11 @@ function edgeLabel(x: number, y: number, text: string, color: string, fontSize: 
 
 function r2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+/** Edge-label percentage, two decimals (e.g. 0.0723 → "7.23"). */
+function pctLabel(p: number): string {
+  return (p * 100).toFixed(2);
 }
 
 // Re-export for convenience.
