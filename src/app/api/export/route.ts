@@ -13,6 +13,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   DEFAULT_RENDER,
   type EdgeCurves,
@@ -24,8 +25,13 @@ import type { GraphData, VendorId } from "@research/lib/types";
 
 export const runtime = "nodejs";
 
-const RESULTS_DIR = path.join(process.cwd(), "results");
-const FONT_PATH = path.join(process.cwd(), "research", "assets", "NotoSansSC-Regular.otf");
+// Resolve relative to THIS FILE (src/app/api/export/route.ts) so the NFT tracer
+// can statically determine which directories to include, instead of tracing the
+// whole project from process.cwd().
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = path.resolve(__dirname, "../../../..");
+const RESULTS_DIR = path.join(PROJECT_ROOT, "results");
+const FONT_PATH = path.join(PROJECT_ROOT, "research", "assets", "NotoSansSC-Regular.otf");
 // `<study>/<stamp>` — both segments are conservative slugs (no dots/slashes).
 const RUN_RE = /^[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
 

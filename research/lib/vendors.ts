@@ -3,6 +3,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { VendorId, VendorMeta } from "./types";
 
 export const VENDORS: Record<VendorId, VendorMeta> = {
@@ -288,7 +289,10 @@ export function vendorFromText(
 // Logo data URIs (for embedding into the static SVG)
 // ---------------------------------------------------------------------------
 
-const LOGO_DIR = path.join(process.cwd(), "public", "maker-logo");
+// Resolve relative to THIS FILE (research/lib/vendors.ts) so the NFT tracer
+// can statically determine which directory to include, instead of tracing the
+// whole project from process.cwd().
+const LOGO_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../public/maker-logo");
 const dataUriCache = new Map<string, string>();
 
 /** Read a logo PNG and return a `data:image/png;base64,...` URI. Cached per process. */

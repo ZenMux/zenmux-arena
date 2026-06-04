@@ -49,7 +49,7 @@ export function vendorNames(g: GraphData): Record<string, string> {
  */
 export function modelLabels(g: GraphData): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const m of g.models) out[m.id] = m.label; // aggregate fallback
+  for (const m of g.models) out[m.id] = m.label ?? m.id; // aggregate fallback
   try {
     const raw = fs.readFileSync(path.join(REPO_ROOT, "config/study.yaml"), "utf8");
     const cfg = parseYaml(raw) as { models?: { id: string; label?: string }[] };
