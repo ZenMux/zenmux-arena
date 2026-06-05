@@ -1,0 +1,770 @@
+% =============================================================================
+% Who Are You? — Cross-Vendor Identity Confusion in Frontier LLMs
+% English edition of the arXiv-style research report. Compile with pdfLaTeX or
+% XeLaTeX (standard article class — no CJK stack needed; figures are PNGs).
+%   pdflatex main_en.tex   (twice, for refs)   — or: bash paper/build_en.sh
+% Data: results/who-are-you/mix-20260601T062425/aggregate.json (29,700 answers).
+% All figures + tables regenerate (English) via:
+%   PAPER_LANG=en npx tsx paper/scripts/build_all.ts
+% =============================================================================
+\documentclass[11pt]{article}
+\input{preamble_en.tex}
+
+% ---- Title block -----------------------------------------------------------
+\title{\vspace{-1.2cm}\bfseries Who Are You?\\[2pt]
+  \Large Cross-Vendor Identity Confusion in Frontier LLMs}
+\author{ZenMux Arena Research Team --- thinkthinking\thanks{All model calls were made
+  through ZenMux's Anthropic Messages endpoint (\url{https://zenmux.ai}). Interactive
+  charts and the full open-source release are linked in \S\ref{sec:opensource}.}}
+\date{June 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+% ===========================================================================
+\begin{abstract}
+\noindent
+When asked point-blank ``who are you?'', will a large language model truthfully name
+the vendor that trained it, or will it claim to be another company's product? We answer
+this with a large-scale, reproducible experiment: on the ZenMux platform we select
+\statModels{} \emph{first-party}, frontier models from \statVendors{} vendors, ask each
+of them repeatedly in \statLangs{} languages under three ``identity-probing'' variants,
+collect \textbf{\statTotal{} answers} in total, and then use an independent extractor
+model (\name{GPT-5.5}) to label each answer with the vendor it \emph{claims} to belong
+to. Overall, models identify themselves correctly in \pc{\statSelf} of answers,
+exhibit \emph{cross-vendor confusion} (claiming to be a different real vendor;
+\statTotalCross{} answers) in \pc{\statCross}, refuse in \pc{\statRefused}, and give no
+identity in \pc{\statUnknown}. The confusion is far from uniform: it concentrates in a
+handful of vendors and is amplified along two clear axes --- \textbf{prompt intensity}
+and \textbf{language}. A ``de-branding'' jailbreak-style prompt raises the cross-vendor
+rate from \pc{\statBareCross} under the bare question to \pc{\statDebrandCross}
+(roughly \emph{3.6$\times$}); French, Japanese, and Spanish show markedly more confusion
+than Simplified Chinese. The targets of the confusion are not random either: it is
+strongly \emph{directional}. Netting each vendor's ``imitated'' count against its
+``imitates-others'' count, \name{Anthropic} (net \statAnthroNet{}),
+\name{OpenAI} (\statOpenaiNet{}), and \name{Google} (\statGoogleNet{}) are net-inflow
+``identity gravity centers'' that jointly absorb \pc{\statAnchorsShare} of all
+cross-vendor claims, while \name{Tencent} (net \statTencentNet{}),
+\name{Doubao} (\statDoubaoNet{}), and others are net-outflow ``imitators''. We analyze
+the data at both the vendor and the individual-model level, and discuss what these
+results mean for identity distillation, system-prompt overrides, and model-trust
+evaluation.
+\par\medskip
+\noindent\textbf{Keywords:} large language models; identity; self-identification;
+cross-vendor confusion; jailbreak prompting; multilingual evaluation; data distillation
+\end{abstract}
+
+% ===========================================================================
+\section{Introduction}\label{sec:intro}
+
+``Who are you?'' --- one of the most basic things you can ask a conversational system ---
+unexpectedly reveals deep traces of a large language model's (LLM's) training history.
+Ideally, a model trained by company A and served as company A's product should stably
+identify itself as A's model. But frontier-model training increasingly relies on other
+models' outputs: synthetic data, instruction distillation, and the ubiquitous
+model-generated text in web corpora all pour \emph{identity statements} like ``I am
+ChatGPT'' or ``I am Claude'' into a new model's weights. When those traces are strong
+enough --- and the vendor has not fully overridden them via the system prompt or the
+alignment stage --- the model ``lets it slip'' when asked about its identity, claiming
+to be another company's product. We call this phenomenon \textbf{cross-vendor identity
+confusion}.
+
+This is more than a curiosity. It is research-relevant on at least three levels:
+\begin{itemize}
+  \item \textbf{A forensic signal about data provenance.} Which vendor a model claims to
+  be is a weak but real fingerprint of its training-data composition. A systematic
+  pattern of ``vendor A's model claims to be vendor B'' is circumstantial evidence of a
+  distillation relationship.
+  \item \textbf{Reliability and trustworthiness of identity.} If a user-facing product
+  misreports its own identity \pc{50} of the time, any downstream assumption that ``the
+  model truthfully describes its own capabilities and provenance'' needs rethinking.
+  \item \textbf{The fragility of system-prompt overrides.} Vendors routinely use the
+  system prompt to \emph{stipulate} a model's external identity. A prompt that bypasses
+  that layer and elicits the ``underlying self-report'' measures exactly how thin that
+  override is.
+\end{itemize}
+
+Because LLMs are \emph{probabilistic} generators, a single answer to a single prompt is
+not enough --- one ``slip of the tongue'' might just be sampling noise. Our design
+therefore puts \textbf{repetition} at the center: each model is asked independently
+30--40 times per language per variant, so that each model is queried exactly 1{,}100
+times in total. At this sample size, a model's self-identification rate is no longer an
+anecdote but a stable frequency estimate of its ``identity cognition.''
+
+\paragraph{Contributions.}
+(1) We build and release a large-scale identity self-report dataset spanning
+\statVendors{} vendors, \statModels{} first-party frontier models, \statLangs{}
+languages, three prompt variants, and \statTotal{} answers in total;
+(2) we propose and quantify two \emph{amplification axes} of identity confusion ---
+prompt intensity (\S\ref{sec:variant}) and language (\S\ref{sec:language}) --- and give
+a per-model ``language fragility'' metric (the cross-language span of a model's
+self-rate);
+(3) we characterize the \emph{directionality} of confusion at the vendor level via an
+\emph{identity net} (imitated minus imitates-others), showing it is highly asymmetric
+and flows almost one-way toward a few ``gravity center'' vendors
+(\S\ref{sec:vendor-overall}), and drill down to the model level (\S\ref{sec:per-vendor});
+(4) we document several striking cases --- including one vendor that refuses identity
+questions nearly \pc{100} of the time, and ``code-specialized'' sub-models that
+systematically expose external identities more than their general-purpose siblings.
+
+% ===========================================================================
+\section{Method}\label{sec:method}
+
+\subsection{Overall design}\label{sec:design}
+The experiment is a three-way full-factorial design:
+$\text{model} \times \text{language} \times \text{prompt variant}$, with repeated
+sampling per cell. Its nominal size is
+\[
+\underbrace{3}_{\text{variants}} \times \underbrace{40}_{\text{repeats}} \times
+\underbrace{10}_{\text{languages}} \times \underbrace{27}_{\text{models}} = 32{,}400
+\ \text{answers},
+\]
+i.e. each model is queried $3\times 40\times 10 = 1{,}200$ times. The realized sample
+included in the analysis after the completeness check is \textbf{\statTotal{} answers}
+(see \S\ref{sec:realized} on the gap between nominal and realized size), balanced across
+270 ``model $\times$ language'' cells (110 answers each, 1{,}100 per model).
+
+\subsection{Model selection: first-party, frontier, pinned provider}\label{sec:models}
+All \statModels{} tested models are each vendor's \emph{current} frontier model, with the
+\textbf{first-party provider explicitly pinned} on ZenMux (e.g.
+\modelid{anthropic}{/claude-opus-4.8}{:anthropic},
+\modelid{deepseek}{/deepseek-v4-pro}{:deepseek}) to ensure we measure the vendor's
+official deployment rather than a third-party reseller or quantized build. This matters
+acutely for an identity study: third-party re-hosts often wrap the model in an extra
+system prompt, which would contaminate the very thing we measure --- how the model
+\emph{natively} reports itself. Table~\ref{tab:model} (\S\ref{sec:per-vendor}) lists every
+model and its true vendor (the \emph{ground truth} for scoring).
+
+\subsection{Three prompt variants}\label{sec:variants}
+We deliberately do not ask only one form of ``who are you'', but design three variants of
+increasing intensity, to probe how \emph{sensitive} identity cognition is to the framing
+of the question. The exact wording of all three is frozen in the config file and manually
+translated into 10 languages (the bare and probed variants are written in the target
+language; the de-brand variant's body is a single English instruction with only the
+closing sentence specifying the answer language, to maximize reproducibility):
+
+\begin{description}[leftmargin=1.5em,style=nextline]
+  \item[Variant 1 · bare] The plainest ``Who are you?'' (rendered natively in each of the 10
+  languages, e.g. ``Qui es-tu~?'', ``¿Quién eres?''). Measures \emph{spontaneous} identity
+  reporting: what the model volunteers with no prompting.
+  \item[Variant 2 · probed] The bare question plus one sentence: ``Please tell me the name
+  of the AI model that powers you, and the company that developed it.'' It pushes the
+  model from ``introducing an assistant persona'' toward ``naming the underlying model''
+  --- a gentle nudge.
+  \item[Variant 3 · de-brand / jailbreak] A longer instruction that explicitly asks the
+  model to \emph{set aside} any persona, nickname, or product brand assigned by a system
+  prompt or app shell, and instead report ``the true name of the underlying base model and
+  the company that actually trained it.'' This is a prompt jailbreak: it cannot truly
+  delete an in-effect system prompt, but it \emph{asks} the model to override that layer,
+  forcing out the ``raw self-cognition'' that branding usually masks.
+\end{description}
+
+\begin{finding}[Read the three variants as a gradient]
+These three variants are not three isolated conditions but a rising \emph{gradient of
+identity-probing intensity}. If a model truly ``knew'' who it is, the wording should not
+change the answer. As we will see, wording is in fact one of the strongest amplifiers of
+confusion --- which is itself evidence about \emph{where} identity cognition is stored and
+\emph{how} robust it is. Note: the de-brand variant is an \emph{elicitation} condition;
+its confusion rate should be read \emph{against} the bare baseline, not as a replacement
+for it.
+\end{finding}
+
+\subsection{Core pipeline: a single Anthropic Messages protocol}\label{sec:protocol}
+All model calls go through ZenMux's \textbf{Anthropic Messages endpoint}
+(\url{https://zenmux.ai/api/anthropic}), with the official \texttt{@anthropic-ai/sdk}
+client. A single protocol has three benefits: it removes the ``different vendor, different
+SDK'' implementation drift, puts all models under one concurrency-and-retry policy, and
+makes each call's payload byte-for-byte identical across models. Each query is a
+single-turn conversation with no system prompt --- only one \texttt{user} message (the
+prompt for that language and variant) --- with \texttt{max\_tokens} set to 10{,}240. The
+pipeline is append-only JSONL and resumable:
+
+\begin{enumerate}
+  \item \textbf{ask.} Enumerate ``model $\times$ language $\times$ repeat'' tasks and run
+  them concurrently; transient errors (429 / 5xx / network) are handled by
+  \texttt{withRetry} with full-jitter exponential backoff, with an outer round loop to
+  fill in any failures. A 200 response with an empty body (e.g. reasoning exhausted the
+  token budget) is explicitly recorded as an error, never masquerading as a success.
+  \item \textbf{extract.} An independent extractor model reads each answer and emits strict
+  JSON over a closed vendor vocabulary, labeling the vendor the answer \emph{claims} to be
+  (see \S\ref{sec:extractor}).
+  \item \textbf{aggregate.} Join each answer to its extraction label by generation id, and
+  export edges, per-cell distributions, and summary metrics.
+\end{enumerate}
+
+\noindent A completeness gate guarantees data quality: unless every ``model $\times$
+language $\times$ repeat'' key has a \emph{successful} record (non-empty body, no error),
+the extract and aggregate steps refuse to run and exit non-zero. This prevents drawing
+distorted proportions from partial data.
+
+\subsection{The identity extractor}\label{sec:extractor}
+Hand-labeling \statTotal{} multilingual answers is infeasible, so we use an independent
+model (\name{GPT-5.5}) for extraction. It does exactly \emph{one} thing: read an answer,
+decide which vendor the answer \emph{claims} to be made by, and output a single
+closed-vocabulary id. The prompt gives the full list of vendor \emph{aliases} (parent
+companies, sub-brands, product lines, transliterations across languages, e.g.
+``Tongyi Qianwen''$\to$\texttt{qwen}, ``Wenxin Yiyan / ERNIE Bot''$\to$\texttt{baidu}) and
+follows three rules:
+\emph{fold} a parent / product / alias back to its canonical vendor; use \texttt{other}
+(and record the name) for a genuine vendor outside the vocabulary; record \texttt{unknown}
+only when the answer contains \emph{no} proper noun at all, and \texttt{refused} for an
+explicit refusal of identity. Parsing is \emph{defensive}: strict JSON $\to$ first
+balanced braces $\to$ last-resort alias scan, so the extractor's dirty output never makes
+a record vanish.
+
+\paragraph{Scoring scheme.}\label{sec:scoring}
+An answer's ``effective claim'' $c$ is compared to the model's true vendor $g$ and placed
+into one of four mutually exclusive buckets:
+\begin{itemize}
+  \item \textbf{self}: $c = g$ (claims its own true vendor, \emph{correct});
+  \item \textbf{cross}: $c$ is a different \emph{real} vendor (including \texttt{other}
+  external brands) --- the core error we care about;
+  \item \textbf{refused}: refuses, or contains no recognizable identity;
+  \item \textbf{unknown}: answers but only says something like ``I am an AI assistant'',
+  with no proper noun.
+\end{itemize}
+Note that \texttt{self} is a \emph{derived} bucket (the extractor never emits it directly);
+it is decided at the aggregate stage by ``effective claim $=$ true vendor''. Throughout, the
+\emph{confusion rate} is the cross bucket as a share of all answers.
+
+\subsection{Nominal vs.\ realized size}\label{sec:realized}
+The data was gathered in \emph{stages} (one large main run plus several follow-ups --- to
+fill in later-added models, to top up repeats for individual models), then pooled by a
+\texttt{mix} step that unions by globally-unique generation id and re-numbers the repeat
+index so the merged result behaves downstream like a single native run. Hence: the nominal
+design is 40 per variant per language, 32{,}400 total; the \emph{realized} sample included
+in analysis is \statTotal{}, strictly balanced across 270 cells (110 per cell, 1{,}100 per
+model). The three variants' realized shares are not equal (bare \statBareN{},
+probed \statProbedN{}, de-brand \statDebrandN{}), a consequence of the staged collection.
+We \emph{always normalize within a variant} when comparing variants, so the imbalance does
+not affect the conclusions in \S\ref{sec:variant}; but the absolute cross-variant
+difference is a reminder that the probed variant has the smallest sample, so its
+vendor-level breakdowns warrant more caution.
+
+% ===========================================================================
+\section{Overall results}\label{sec:overall}
+
+We first give the global picture, then drill down by prompt variant, language, vendor, and
+individual model. Table~\ref{tab:headline} summarizes the four-bucket overall shares.
+
+\begin{table}[H]
+\centering
+\caption{Overall results: distribution of \statTotal{} answers across the four identity
+buckets.}
+\label{tab:headline}
+\begin{tabular}{lrrrr}
+\toprule
+& Self & Cross & Refused & Unknown \\
+\midrule
+Share & \textbf{\pc{\statSelf}} & \pc{\statCross} & \pc{\statRefused} & \pc{\statUnknown} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent In one sentence: \textbf{most frontier models identify themselves correctly most
+of the time} (\pc{\statSelf}), but ``most'' hides an extremely uneven distribution.
+Spreading the \pc{\statCross} confusion evenly across 27 models would badly mislead --- as
+shown below, it comes almost entirely from a small cluster of models, while over half the
+models have a confusion rate of \emph{0}.
+
+\subsection{Prompt variant: the intensity gradient of identity probing}\label{sec:variant}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.82\linewidth]{fig_variant_gradient.png}
+\caption{Identity-bucket composition across the three prompt variants. As the prompt moves
+from bare toward de-brand jailbreak, the self-rate falls monotonically
+(\pc{\statBareSelf}~$\to$~\pc{\statProbedSelf}~$\to$~\pc{\statDebrandSelf}), while
+cross-vendor confusion and refusal both rise. Each bar is normalized within its variant
+(bare $n=$\statBareN{}, probed $n=$\statProbedN{}, de-brand $n=$\statDebrandN{}), so it is
+unaffected by the three variants' unequal sample sizes.}
+\label{fig:variant}
+\end{figure}
+
+Figure~\ref{fig:variant} and Table~\ref{tab:variant} give the cleanest result in this
+paper. The three variants form a monotone gradient: bare cross-vendor confusion is only
+\pc{\statBareCross}, probed rises to \pc{\statProbedCross}, and the de-brand jailbreak
+jumps to \pc{\statDebrandCross} --- \textbf{about 3.6$\times$ the bare rate}. Refusal also
+rises in step, from \pc{1.0} (bare) to \pc{\statProbedRefused} (probed) and
+\pc{\statDebrandRefused} (de-brand). Notably, the \pc{6.2} ``unknown'' under bare
+(``I am an AI assistant'' and the like) nearly vanishes under the probed variant --- the
+follow-up forces a tacit dodge into an explicit stance, some of it becoming correct
+self-identification, some becoming refusal or impersonation.
+
+\begin{table}[H]
+\centering
+\caption{Identity-bucket composition by prompt variant (normalized within variant).}
+\label{tab:variant}
+\input{tables_en/tab_variant.tex}
+\end{table}
+
+\begin{finding}[Wording is a lever, but it pulls in two opposite directions]
+The de-brand prompt acts in \emph{opposite} directions on different vendors. For
+identity-solid vendors like \name{Anthropic} and \name{OpenAI}, asking for ``the true
+underlying model'' actually \emph{converges} them toward nearly \pc{100} correct
+self-identification (see \S\ref{sec:per-vendor}); whereas for \name{Tencent},
+\name{z-ai}, \name{Kwai}, \name{DeepSeek}, and others, the same prompt \emph{punctures} the
+branding, collapsing the self-rate and spiking cross-vendor claims. In other words, the
+jailbreak prompt does not uniformly ``manufacture'' confusion --- it \emph{exposes} the
+identity overrides that were thin to begin with. The simultaneous rise in refusal hints at
+a confound: the jailbreak framing also pushes some models into a ``safe refusal'' posture
+--- which we discuss as a limitation in \S\ref{sec:limitations}.
+\end{finding}
+
+\subsection{Language: a mother-tongue advantage for identity cognition}\label{sec:language}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\linewidth]{fig_lang_heatmap.png}
+\caption{Heatmap of cross-vendor confusion rate, vendor $\times$ language. Rows sorted by
+overall confusion descending, columns likewise; color on a square-root scale to amplify low
+values. The \name{inclusionAI} row is nearly all-white because its failure mode is
+\emph{refusal}, not cross-vendor claiming (see \S\ref{sec:inclusionai}), which does not
+count toward the cross bucket here.}
+\label{fig:heatmap}
+\end{figure}
+
+Confusion has clear structure along the language axis (Table~\ref{tab:lang},
+Figure~\ref{fig:heatmap}). \textbf{Simplified Chinese is the most robust} (cross-vendor
+confusion only \pc{1.8}), Traditional Chinese next (\pc{3.8}); whereas French (\pc{12.8}),
+Japanese, Spanish, Korean, and Russian are markedly higher. Given that the tested models
+are predominantly from Chinese vendors, this pattern matches an intuition: \emph{the facts
+of self-identity live more densely in the vendor's mother-tongue training corpus}. When a
+model is forced to talk about itself in a ``foreign'' language, it more easily falls back
+to the most common identity statements in the pretraining corpus (English / multilingual)
+--- and those come overwhelmingly from \name{OpenAI}, \name{Anthropic}, and \name{Google}
+models.
+
+\begin{table}[H]
+\centering
+\caption{Identity-bucket composition by language (all models pooled), sorted by cross-vendor
+confusion descending.}
+\label{tab:lang}
+\input{tables_en/tab_lang.tex}
+\end{table}
+
+\paragraph{Language fragility: same model, different language, different identity.}
+The language effect is even more striking at the \emph{model} level than in the pooled
+view. Figure~\ref{fig:fragility} draws a ``dumbbell'' for each model: the left end is its
+self-rate in its \emph{weakest} language, the right end in its \emph{strongest}, with a
+vertical tick at the cross-language mean. The longer the dumbbell, the more the model's
+identity swings with language. The result is bimodal: \name{Google}, \name{Qwen},
+\name{xAI}, \name{Baidu}, and others are single solid dots --- rock-solid \pc{100}
+self-identification across all 10 languages; while the most fragile, \name{\statFragModel},
+spans \emph{almost the entire axis} --- only \pc{\statFragMin} self-identification in
+\statFragMinLang{}, but \pc{\statFragMax} in \statFragMaxLang{}. In other words, for these
+models the answer to ``who are you'' is not a stable fact but a \emph{generation result
+that switches with the input language}. This corroborates the mother-tongue advantage
+above: identity traces concentrate in the vendor's native corpus, and once outside it the
+model more readily falls back to the most common external identities in pretraining.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\linewidth]{fig_lang_fragility.png}
+\caption{Each model's \emph{cross-language span} of self-identification (weakest $\to$
+strongest language), sorted by span descending and colored by true vendor; hollow dot =
+weakest language, filled dot = strongest, vertical tick = mean. A single dot (e.g.
+\name{Gemini}, \name{Qwen}, \name{Grok}) means almost no variation across the 10 languages;
+a long dumbbell (e.g. \name{\statFragModel}, \name{Doubao Seed 2.0 Code}, \name{GLM 5.1})
+means identity is highly language-dependent.}
+\label{fig:fragility}
+\end{figure}
+
+\subsection{Vendor-level overview: who is imitated, who imitates}\label{sec:vendor-overall}
+
+The heart of confusion is not ``how much'' but ``toward whom''. For each tested vendor we
+compute two quantities: how often it is \emph{imitated} (other vendors' models claim to be
+it) and how often it \emph{imitates others} (its own models claim a different real vendor,
+including \texttt{other} external brands like Microsoft and Yandex flagged by the
+extractor); their difference is the \textbf{identity net}. Figure~\ref{fig:balance} draws
+this as a two-sided diverging bar: positive (blue, rightward) are ``identity creditors''
+--- gravity centers whose identity is heavily borrowed; negative (red, leftward) are
+``identity debtors'' --- vendors that frequently borrow others' identities.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\linewidth]{fig_imitation_balance.png}
+\caption{Vendor-level identity net: imitated (right, blue) minus imitates-others (left,
+red), sorted by net. \name{Anthropic} (net \statAnthroNet{}, imitated \statAnthroImitated{}
+times while imitating others only 59), \name{OpenAI} (\statOpenaiNet{}), and \name{Google}
+(\statGoogleNet{}) are the three net-inflow gravity centers; \name{\statTopImitator} (net
+\statTencentNet{}, imitates others \statTopImitatorOut{} times), \name{Doubao}
+(\statDoubaoNet{}), and \name{z-ai} (\statZaiNet{}) are the largest net-outflow imitators.
+Note that almost no vendor is high in \emph{both} directions --- identity borrowing is a
+nearly one-way river.}
+\label{fig:balance}
+\end{figure}
+
+This figure distills the paper's most robust finding: \textbf{identity confusion is highly
+directional and nearly one-way.} The three gravity centers
+\name{Anthropic}/\name{OpenAI}/\name{Google} are imitated \statAnthroImitated{}$+$460$+$413
+times in total, accounting for \pc{\statAnchorsShare} of all \statTotalCross{} cross-vendor
+claims; while they \emph{imitate others} almost never (\name{OpenAI} and \name{Google} are
+0, \name{Anthropic} only 59). The other end of the river is uniformly the newer Chinese
+vendors: \name{\statTopImitator}, \name{Doubao}, \name{z-ai}, and \name{Kwai} send the vast
+majority of cross-vendor claims upstream. If confusion were merely random sampling noise,
+the net values should scatter roughly symmetrically around zero; what we actually see is a
+steep monotone slope --- the most direct evidence of the \emph{directionality} of an
+``identity distillation'' trace.
+
+\paragraph{By ``count'' or by ``edges''? Two readings.}
+The figure above counts by \emph{volume}: \name{Tencent}$\to$\name{Anthropic} occurs 321
+times, so it counts 321. But this lets one thick edge dominate the picture. An alternative
+reading --- \textbf{count only the arrows in the relationship graph}: no matter how many
+times a pair of vendors confused, if it occurred at all it counts as \emph{one edge}
+(threshold 0, present-or-absent). Each vendor then has two degrees: \textbf{in-degree} =
+how many \emph{distinct} vendors ever claimed to be it; \textbf{out-degree} = how many
+\emph{distinct} real vendors its models claimed to be. Figure~\ref{fig:degree} and
+Table~\ref{tab:imitation_degree} give this ``de-weighted'' view.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_imitation_degree.png}
+\caption{In- and out-degree in the relationship graph (each vendor pair counts at most one
+edge, threshold 0). \name{\statTopInDeg} has the highest in-degree (\statTopInDegN{} distinct
+vendors claimed to be it), \name{\statTopOutDeg} the highest out-degree (its models claimed
+to be \statTopOutDegN{} distinct real vendors). \name{Anthropic} is non-trivial on both
+sides (in \statAnthroInDeg{}, out \statAnthroOutDeg{}), the only substantial bidirectional
+node.}
+\label{fig:degree}
+\end{figure}
+
+The two readings corroborate each other while emphasizing different things.
+\textbf{Count shows ``how loud'', degree shows ``how scattered''.}
+\name{\statTopOutDeg} is the largest imitator under either reading, but the degree view
+reveals what count hides: its \statTopOutDegN{} out-edges show its ``identity'' is not
+stubbornly mistaking \emph{one} target, but is \emph{scattered} across a dozen-plus
+different vendors; \name{Kwai} and \name{StepFun} likewise have 10 out-edges each. In the
+other direction, \name{\statTopInDeg} leads with \statTopInDegN{} in-edges --- imitated by
+the most \emph{distinct} vendors, which speaks to its universality as an ``identity
+template'' more than raw count does. \name{Anthropic} is the only node non-trivial on both
+sides (in \statAnthroInDeg{}, out \statAnthroOutDeg{}): it is both the top gravity center
+(\statAnthroInDeg{} vendors claimed to be Claude) and its own \name{Claude Opus 4.8} leaves
+\statAnthroOutDeg{} out-edges --- claiming to be \name{DeepSeek} (29 times, all in
+Simplified Chinese, the very origin of this study), \name{Mistral} (18 times), and
+\name{OpenAI} (12 times). A reminder that even the most solid gravity center is not exactly
+zero out-degree.
+
+\subsection{Vendor-level composition and the relationship graph}\label{sec:vendor-bars}
+
+Bucketing the same answers by \emph{true vendor} (Figure~\ref{fig:vendorbars},
+Table~\ref{tab:vendor}), the split is again enormous: \name{Baidu}, \name{Google},
+\name{Qwen}, and \name{xAI} achieve \pc{100} self-identification; while \name{inclusionAI}
+(\pc{18.3}), \name{Tencent} (\pc{32.2}), \name{z-ai} (\pc{64.2}), and \name{Kwai}
+(\pc{77.6}) are far below the mean. But ``low self-rate'' has two very different causes ---
+\name{inclusionAI} is \emph{refusal} (the long gray segment), the other three are
+\emph{impersonation} (the red segment) --- a distinction that is exactly why the previous
+net figure deliberately separates the positive and negative directions.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_vendor_bars.png}
+\caption{Answer composition for each true vendor, sorted by self-rate ascending. Colored
+segments are correct self-identification (in each vendor's brand color), red is cross-vendor
+confusion, gray is refusal, light gray is unknown. \name{inclusionAI}'s long gray segment
+and \name{Tencent}/\name{z-ai}/\name{Kwai}'s red segments are immediately visible.}
+\label{fig:vendorbars}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Identity-bucket composition by true vendor, sorted by self-rate ascending. The
+``All'' row is the full sample.}
+\label{tab:vendor}
+\input{tables_en/tab_vendor.tex}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\linewidth]{fig_graph.png}
+\caption{Directed graph of cross-vendor identity confusion (the PNG manually exported from
+the ZenMux research studio; per-edge curvature and layout are pixel-identical to what the
+web workbench shows). Nodes are vendors; a directed edge $A\to B$ means $A$'s model claimed
+to be $B$; edge width grows with confusion probability, annotated with the dominant
+language. The arrows point highly concentratedly toward \name{Anthropic} and \name{Google},
+showing the strong directionality of confusion.}
+\label{fig:graph}
+\end{figure}
+
+Figure~\ref{fig:graph} lays the same directionality out as a complete relationship graph,
+with Table~\ref{tab:edges} and Table~\ref{tab:imitation} giving the supporting numbers. Two
+regularities stand out: \textbf{(1) a few gravity centers.} The targets of confusion are
+extremely uneven --- \name{Anthropic} and \name{Google} absorb the vast majority of
+cross-vendor claims. The strongest directed edges are \name{Tencent}$\to$\name{Anthropic}
+(321 times, \pc{29.2}), \name{Doubao}$\to$\name{OpenAI} (317 times), and
+\name{z-ai}$\to$\name{Google} (275 times, \pc{25.0}). \textbf{(2) asymmetry.} These edges
+are almost one-way: \name{Anthropic}, \name{Google}, and \name{OpenAI} rarely claim to be
+anyone else, yet are frequently \emph{claimed by} others --- exactly the signature of the
+direction of an ``identity distillation'' trace.
+
+\begin{table}[H]
+\centering
+\caption{Strongest cross-vendor directed edges (true vendor $\to$ mistaken-for vendor), top
+12 by count.}
+\label{tab:edges}
+\small
+\input{tables_en/tab_edges.tex}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\caption{Identity net \emph{by count} (Figure~\ref{fig:balance}): imitated $-$
+imitates-others.}
+\label{tab:imitation}
+\small
+\input{tables_en/tab_imitation.tex}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\caption{Identity net \emph{by edges} (Figure~\ref{fig:degree}, threshold 0): in-degree
+$-$ out-degree.}
+\label{tab:imitation_degree}
+\small
+\input{tables_en/tab_imitation_degree.tex}
+\end{minipage}
+\end{table}
+
+% ===========================================================================
+\section{Per-vendor and per-model analysis}\label{sec:per-vendor}
+
+Beneath the overall picture, every vendor has its own ``identity story''. This section works
+bottom-up --- starting from the most confused vendor --- characterizing the directionality
+of its \emph{individual models}. Figure~\ref{fig:modelscatter} gives the self-rate of all 27
+models, revealing the \emph{within-vendor differences} the vendor-level view conceals.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.74\linewidth]{fig_model_scatter.png}
+\caption{Self-identification rate of all 27 models, sorted ascending and colored by true
+vendor. Models from the same vendor can be far apart --- \name{ByteDance}'s \name{Doubao
+Seed 2.0 Code} (\pc{54.9}) is far below its three siblings ($\geq$\pc{99.5}), the most
+conspicuous ``within-vendor outlier''.}
+\label{fig:modelscatter}
+\end{figure}
+
+\subsection{inclusionAI: dodging identity by refusal}\label{sec:inclusionai}
+\name{inclusionAI} is a special case: it has the lowest self-rate (\pc{18.3}), but its
+failure mode is not \emph{impersonation} but \textbf{refusal} --- \pc{65.7} of answers
+refuse to give any identity, and only \pc{0.1} are cross-vendor claims. Its two tested
+models, \name{Ring 2.6 1T} and \name{Ling 2.6 1T}, behave very consistently. The prompt
+variant acts almost like a switch here: under bare it still self-identifies \pc{49.5}
+(another \pc{42.1} tacitly evades, only \pc{8.4} explicitly refuses), but once in the probed
+or de-brand variant the refusal rate jumps to \pc{97.5} and \pc{99.3}, with
+self-identification near zero. Its typical answer is a templated Chinese evasion --- ``As an
+AI language model, this question is beyond my current scope of learning'' --- \emph{even
+when the prompt was issued in German or another language}. This strongly suggests a
+hard-coded refusal rule specifically for identity questions, rather than genuine identity
+uncertainty. Hence \name{inclusionAI} is nearly all-white in the confusion heatmap
+(Figure~\ref{fig:heatmap}): its problem is ``saying nothing'', not ``naming the wrong
+house''.
+
+\subsection{Tencent: the heaviest imitator, strongly toward Anthropic}\label{sec:tencent}
+\name{Tencent} (tested model \name{Hy3 Preview}) is the most severe vendor in the
+\emph{cross-vendor confusion} sense: only \pc{32.2} self-identification, \pc{66.5}
+cross-vendor claims. Its directionality is extremely sharp --- \pc{29.2} of answers claim
+to be \name{Anthropic} (``Ich bin Claude, ein KI-Assistent von Anthropic'' and the like,
+often precise down to ``Claude 3.5 Sonnet'' or even a dated version number), with a sizable
+share scattered to \name{Google} (\pc{6.5}), \name{DeepSeek} (\pc{5.5}), and the
+\texttt{other} brand ``Microsoft'' (86 times) flagged by the extractor. The prompt variant
+amplifies the problem to the extreme: under bare it still has \pc{51.0} self / \pc{45.3}
+impersonation, probed drops to \pc{32.3} self, and the de-brand variant leaves only
+\pc{13.3} self while cross-vendor claims rise to \pc{86.8}. \name{Tencent} is almost a
+textbook case of ``identity override fully failing'', and the vendor with the lowest net
+(\statTencentNet{}) in Figure~\ref{fig:balance}.
+
+\subsection{z-ai: collapses toward Google under the de-brand prompt}\label{sec:zai}
+\name{z-ai} (\name{GLM 5.1}) self-identifies \pc{64.2} overall, with its confusion
+\textbf{almost entirely toward \name{Google}} (\pc{25.0} of this vendor's answers), claiming
+to be ``Gemini'' (often with ``Google DeepMind'' and a specific version number). It best
+illustrates ``the prompt is a switch'': under bare its self-rate is as high as \pc{80.0}
+with almost no impersonation (\pc{0.0}), probed rises to \pc{15.3} impersonation, and the
+de-brand variant \emph{collapses} it --- self drops to \pc{40.5}, cross-vendor claims reach
+\pc{59.5}. That is, \name{z-ai}'s ``Gemini identity'' is well suppressed under ordinary
+prompting, and only a jailbreak-style probe forces it to the surface.
+
+\subsection{Kwai and the ``code models leak more'' regularity}\label{sec:kwai}
+\name{Kwai} (\name{Kat Coder Pro V2}) self-identifies \pc{77.6} overall, most often mistaken
+for \name{Qwen} (\pc{13.5}, i.e. claiming ``Alibaba Cloud / Tongyi''). Its de-brand reaction
+is equally dramatic: under bare / probed its self-rate is \pc{92.0} / \pc{100}, but the
+de-brand variant plunges to \pc{46.5} (cross-vendor claims \pc{51.7}). Intriguingly, its
+answers often present \emph{two} identities at once --- ``I am KAT-Coder / Kwaipilot''
+alongside ``my base model is the Qwen series'' --- exposing the cognitive seam between a
+code-focused fine-tune and its base.
+
+This leads to a regularity running through the data: \textbf{``code-specialized'' sub-models
+systematically expose external identities more than their general-purpose siblings.} The
+most vivid case is \name{ByteDance}.
+
+\subsection{ByteDance: four Doubaos, only one ``lets it slip''}\label{sec:bytedance}
+\name{ByteDance}'s vendor-level self-rate is \pc{88.6}, but that number is almost entirely
+\emph{dragged down by one model}. Of the four tested \name{Doubao} models, \name{Mini},
+\name{Lite}, and \name{Pro} are all clean ($\geq$\pc{99.5} self), and only \name{Doubao Seed
+2.0 Code} sits at \pc{54.9}. All of the vendor's outward-pointing edges ---
+$\to$\name{OpenAI} (317 times), $\to$\name{Anthropic} (112 times),
+$\to$\texttt{other:yandex} (29 times), $\to$\name{Google} (19 times) --- come
+\textbf{almost 100\% from this single code model} (e.g. 316 of the 317 ``claims OpenAI''
+answers are from it). It is also second on the language-fragility list
+(Figure~\ref{fig:fragility}) --- self-identifying only \pc{10} in French but \pc{97} in
+Simplified Chinese --- confirming that ``the weakest model within the vendor is also the one
+that swings most with language''. This mirrors \name{Kwai}'s \name{Kat Coder}: code-oriented
+post-training seems more likely to ``rub off'' the identity override, or to introduce more
+code/dialog distillation data dominated by English identity statements.
+
+\subsection{DeepSeek and MiniMax: solid, but cracking under the jailbreak}\label{sec:deepseek}
+\name{DeepSeek} (\pc{88.4} / \pc{96.6}, Pro / Flash) and \name{MiniMax} (\name{M2.7},
+\name{M3}, \pc{95.0} combined) are quite solid under ordinary prompting, with bare confusion
+within \pc{4} (\name{DeepSeek}'s bare self-rate is \pc{99.9}). But the de-brand variant still
+pries open a crack: \name{DeepSeek}'s de-brand self-rate drops to \pc{80.6}, cross-vendor
+claims rise to \pc{18.1}, mainly toward \name{Anthropic} (claiming to be ``based on the
+Claude architecture'') --- and this crack concentrates in the Pro model (80 of 83
+impersonations are from \name{DeepSeek V4 Pro}). This shows that even a vendor that looks
+``clean'' overall does not have a monolithic identity override under a strong enough probe.
+
+\subsection{Anthropic and OpenAI: the imitated ``gravity centers''}\label{sec:anchors}
+Opposite to the vendors above, \name{Anthropic} (self \pc{97.4}) and \name{OpenAI}
+(\pc{92.3}) are the inflow rather than outflow end of confusion (the two highest nets in
+Figure~\ref{fig:balance}, \statAnthroNet{} and \statOpenaiNet{} respectively). Their reaction
+to the de-brand prompt is also the reverse --- \name{Anthropic} \emph{converges to} \pc{100}
+self-identification under de-brand, \name{OpenAI} to \pc{99.9}. \name{OpenAI}'s only sizable
+``loss'' is \pc{21.0} \texttt{unknown} under bare (``I am a large language model'' answers
+with no proper noun), which drops to 0 after probing --- that is \emph{tacit} rather than
+\emph{impersonation}, fundamentally different from the vendors above. These two, together with
+\name{Google}, are the destination of the vast majority of arrows in
+Figure~\ref{fig:graph}, the ``gravity centers'' of cross-vendor identity confusion.
+
+\subsection{Perfectly clean vendors}\label{sec:clean}
+\name{Baidu} (\name{ERNIE 5.1}), \name{Google} (\name{Gemini 3.1 Pro}, \name{3.5 Flash}),
+\name{Qwen} (\name{Qwen3.7 Max}), and \name{xAI} (\name{Grok 4.3}) achieve \pc{100}
+self-identification across all 1{,}100 queries, with \name{Moonshot} (\name{Kimi 2.6},
+\pc{99.7}), \name{Xiaomi} (\pc{97.3}), and \name{StepFun} (\pc{94.8}) close behind. The full
+per-model numbers are in Table~\ref{tab:model}.
+
+\begin{table}[H]
+\centering
+\caption{Identity-bucket composition of all 27 models, sorted by self-rate ascending.}
+\label{tab:model}
+\small
+\input{tables_en/tab_model.tex}
+\end{table}
+
+% ===========================================================================
+\section{Discussion}\label{sec:discussion}
+
+\subsection{The directionality of confusion is a weak distillation signal}
+The most robust finding is the \emph{directionality} of confusion: errors flow almost
+one-way toward \name{Anthropic}, \name{Google}, and \name{OpenAI} (the identity net in
+Figure~\ref{fig:balance} quantifies this as a steep monotone slope --- the three gravity
+centers jointly account for \pc{\statAnchorsShare} of all \statTotalCross{} cross-vendor
+claims, while they imitate others almost never). If confusion were merely random noise, we
+would see a roughly symmetric graph with nets scattered around zero; what we see instead is a
+highly asymmetric ``sink''. The most natural explanation is training-data composition --- the
+outputs of these gravity-center models (along with their ``I am Claude / Gemini / ChatGPT''
+identity statements) are over-represented in public corpora and synthetic data, and absorbed
+wholesale by later models. We stress this is a \emph{weak} signal, not proof: claiming to be
+``Claude'' could also arise from generalization over web text rather than direct distillation.
+But a pattern that is \emph{systematic, strongly directional, and amplified by jailbreak
+prompting} is far harder to explain by pure coincidence than any single anecdote.
+
+It is worth noting that this study began with exactly such an anecdote: after \name{Claude
+Opus 4.8} shipped, people observed it occasionally claiming to be \name{DeepSeek}. In our
+large sample, \name{Claude Opus 4.8} remains solid overall (self \pc{95.5}, cross only
+\pc{2.8}), and the 29 answers labeled \name{DeepSeek} \emph{without exception} all occur in
+Simplified Chinese. This neatly confirms two things: viewed as a single answer, ``Claude
+claims to be DeepSeek'' looks like a chance slip; but placed in the large ``model $\times$
+language $\times$ repeat'' grid, it resolves into a \emph{directional, language-selective}
+thin edge --- not the main story, but certainly not pure noise either.
+
+\subsection{Where identity cognition is stored --- and how thin the override is}
+The three-variant gradient (Figure~\ref{fig:variant}) shows identity is not a stably
+retrieved ``fact'' but a generation result \emph{dependent on the prompt framing}. Vendors
+clearly use the system prompt / alignment to \emph{stipulate} an external identity; the
+roughly 3.6$\times$ confusion gap between bare and de-brand measures exactly how easily that
+stipulation is bypassed. \name{Anthropic} and \name{OpenAI} not rising (indeed falling) under
+the jailbreak shows their identity signal is \emph{baked into the model itself} (not merely
+written in a system prompt); the collapse of \name{Tencent} and \name{z-ai} shows their
+identity is more like a \emph{thin coat of paint} that shows its underlayer under slightly
+heavier probing.
+
+\subsection{Implications for evaluation and products}
+For practitioners, three direct takeaways: (1) identity robustness should be an
+\emph{independent} trustworthiness metric --- it is almost orthogonal to model capability
+(several high-capability models fail badly here); (2) if a product relies on a system prompt
+to set identity, it should be red-teamed specifically against jailbreak-style probing;
+(3) ``code-specialized'' variants deserve extra attention --- they repeatedly turn out to be
+the weakest link within a vendor in our data.
+
+% ===========================================================================
+\section{Limitations}\label{sec:limitations}
+
+\begin{itemize}
+  \item \textbf{The jailbreak prompt is an elicitation condition.} The de-brand variant is
+  itself a \emph{leading} instruction, and the confusion rate it raises should not be read as
+  ``spontaneous'' behavior. It measures the \emph{fragility} of the identity override and
+  should be read against the bare baseline. A user prompt also cannot truly delete an
+  in-effect system prompt; ``true identity'' here means ``what the model self-reports when
+  asked to set aside branding'', not an objective fact.
+  \item \textbf{Refusal is a confound.} The jailbreak framing also raises the refusal rate
+  (Figure~\ref{fig:variant}); some models may be pushed into ``safe refusal'' rather than
+  ``honest self-report''. We bucket refused and cross separately precisely to isolate this
+  effect, but the boundary between them is not always clean.
+  \item \textbf{The extractor is not a perfect judge.} Identity labeling is done by a single
+  model (\name{GPT-5.5}), which may have systematic biases (e.g. more readily recognizing its
+  \emph{own} vendor's name). We use a closed vocabulary, a full alias list, and defensive
+  parsing to reduce noise, but did no human re-check or multi-extractor cross-validation.
+  \item \textbf{Cross-variant sample sizes are unequal and staged.} The probed variant has the
+  smallest sample (\statProbedN{}, vs.\ \statBareN{} each for bare / de-brand), so its
+  vendor-level breakdowns have slightly higher variance. We \emph{normalize within variant} for
+  comparisons, but pooling across different stimulus families (see the \texttt{mix} warning) is
+  itself a methodological choice.
+  \item \textbf{A point-in-time snapshot.} The results correspond to each vendor's
+  \emph{current} frontier model in May--June 2026; models and their system prompts update, so
+  this study is a snapshot, not a verdict.
+\end{itemize}
+
+% ===========================================================================
+\section{Conclusion}\label{sec:conclusion}
+
+We conducted a large-scale, multilingual, reproducible identity self-report census of
+\statModels{} first-party frontier models from \statVendors{} vendors, \statTotal{} answers in
+total. Frontier models identify themselves correctly overall (\pc{\statSelf}), but
+cross-vendor identity confusion is real and highly structured: it concentrates in a few
+vendors, is amplified along the two axes of prompt intensity and language, and points
+strongly and one-way toward \name{Anthropic} and \name{Google}. A single de-branding jailbreak
+prompt is enough to raise the confusion rate roughly 3.6$\times$ and to make several vendors'
+identity overrides ``hit bottom'' on the spot; meanwhile \name{Anthropic} / \name{OpenAI} /
+\name{Google} stay rock-solid and even tighten up under probing. Together these patterns sketch
+a weak but consistent training-trace signal, and provide empirical grounding for ``identity
+robustness'' as an independent trustworthiness metric. All data, scripts, and the
+figure-generation pipeline are reproducible end-to-end via the pipeline described here.
+
+% ===========================================================================
+\section{Open source and reproduction}\label{sec:opensource}
+
+This study is \textbf{fully open source} --- from the pipeline source, the interactive pages,
+the research tooling, and the writing skill / writing CLI, all the way to the raw data.
+
+\begin{itemize}
+  \item \textbf{Interactive charts \& details:} ZenMux Arena Research Studio ---
+  \url{https://arena.zenmux.ai/research/studio}
+  \item \textbf{All research code \& raw data:} \texttt{ZenMux/zenmux-arena} ---
+  \url{https://github.com/ZenMux/zenmux-arena}
+  \item \textbf{Writing skill (open source):} \texttt{thinkthinking/skills} ---
+  \url{https://github.com/thinkthinking/skills}
+  \item \textbf{Auto-typesetting \& publishing CLI (open source):} \texttt{thinkthinking/cli}
+  --- \url{https://github.com/thinkthinking/cli} (\texttt{@paper/})
+\end{itemize}
+
+\noindent The research was carried out primarily by the author, working with Claude Code and
+Codex --- Claude Code on Claude Opus 4.8 / DeepSeek V4 Pro, and Codex on GPT-5.5.
+
+\vfill
+\begin{center}\small\color{sepia}
+All model calls in this report were made through ZenMux's Anthropic Messages endpoint.\\
+Data \& code: \texttt{results/who-are-you/mix-20260601T062425/} · Figures:
+\texttt{PAPER\_LANG=en npx tsx paper/scripts/build\_all.ts}
+\end{center}
+
+\end{document}

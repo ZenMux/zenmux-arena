@@ -10,6 +10,13 @@ import path from "node:path";
 
 const HERE = __dirname;
 const REPO_ROOT = path.resolve(HERE, "..", "..");
+
+// Language fork: default Chinese build writes figures/ + tables/; PAPER_LANG=en
+// writes figures_en/ + tables_en/. The flag is read here only to route the flagship
+// graph copy below; each child script reads PAPER_LANG itself (inherited via env).
+const LANG = process.env.PAPER_LANG === "en" ? "en" : "zh";
+const FIG_OUT = LANG === "en" ? "figures_en" : "figures";
+
 const steps = [
   "stats.ts",
   "fig_vendor_bars.ts",
@@ -32,10 +39,14 @@ for (const s of steps) {
 // and committed under public/research/. We copy that canonical export into
 // figures/fig_graph.png so the build stays one-command and the paper shows exactly
 // the graph the studio produced. (fig_graph.ts remains as a fallback renderer.)
+// The studio export is already English (it is the WYSIWYG web graph), so the same
+// PNG serves both language editions — we just copy it into the active FIG_OUT dir.
 {
   const src = path.join(REPO_ROOT, "public/research/who-are-you-mix-20260601T062425.png");
-  const dest = path.join(HERE, "..", "figures", "fig_graph.png");
-  console.log(`\n▶ copy studio graph export -> figures/fig_graph.png`);
+  const destDir = path.join(HERE, "..", FIG_OUT);
+  fs.mkdirSync(destDir, { recursive: true });
+  const dest = path.join(destDir, "fig_graph.png");
+  console.log(`\n▶ copy studio graph export -> ${FIG_OUT}/fig_graph.png`);
   if (fs.existsSync(src)) {
     fs.copyFileSync(src, dest);
     console.log(`  copied ${path.relative(REPO_ROOT, src)} (${(fs.statSync(dest).size / 1024).toFixed(0)} KB)`);

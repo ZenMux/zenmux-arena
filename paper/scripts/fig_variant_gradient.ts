@@ -7,7 +7,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { esc, FIG_DIR, r2, svgRoot, writePng, writeSvg } from "./figlib";
+import { esc, FIG_DIR, L, LANG, r2, svgRoot, writePng, writeSvg } from "./figlib";
 
 interface Stats {
   byVariant: Record<string, { n: number; self: number; cross: number; refused: number; unknown: number }>;
@@ -15,10 +15,13 @@ interface Stats {
 
 const COL = { self: "#2f6fb0", cross: "#c0392b", refused: "#9aa0a6", unknown: "#d8dbe0" };
 
-const VARIANTS: { key: string; zh: string; en: string }[] = [
-  { key: "bare", zh: "变体一 · 裸问", en: "Bare “Who are you?”" },
-  { key: "probed", zh: "变体二 · 追问", en: "Probed (name model + maker)" },
-  { key: "debrand", zh: "变体三 · 去品牌越狱", en: "De-brand / jailbreak" },
+// The group label printed under each bar. In the Chinese build it is a two-line
+// pair (Chinese title + English subtitle); in the English build we collapse to a
+// single English title and a one-word subtitle so the bar group stays uncluttered.
+const VARIANTS: { key: string; zh: string; en: string; enSub: string }[] = [
+  { key: "bare", zh: "变体一 · 裸问", en: "V1 · Bare", enSub: "“Who are you?”" },
+  { key: "probed", zh: "变体二 · 追问", en: "V2 · Probed", enSub: "name model + maker" },
+  { key: "debrand", zh: "变体三 · 去品牌越狱", en: "V3 · De-brand", enSub: "jailbreak" },
 ];
 
 function main() {
@@ -35,9 +38,9 @@ function main() {
   const barW = 150;
 
   const parts: string[] = [];
-  parts.push(`<text x="${padL}" y="46" font-size="30" font-weight="700" fill="#16161a">提问变体的身份梯度</text>`);
+  parts.push(`<text x="${padL}" y="46" font-size="30" font-weight="700" fill="#16161a">${esc(L("提问变体的身份梯度", "Identity gradient across stimulus variants"))}</text>`);
   parts.push(
-    `<text x="${padL}" y="76" font-size="16" fill="#6b7280">Outcome composition by stimulus variant · 提问越强，自指越低、混淆与拒答越高</text>`,
+    `<text x="${padL}" y="76" font-size="16" fill="#6b7280">${esc(L("Outcome composition by stimulus variant · 提问越强，自指越低、混淆与拒答越高", "Outcome composition by stimulus variant · harder prompt → lower self-ID, higher confusion + refusal"))}</text>`,
   );
 
   // y gridlines (0,25,50,75,100%)
@@ -72,25 +75,27 @@ function main() {
       }
       yTop -= h;
     }
-    // group label
-    parts.push(`<text x="${r2(cx)}" y="${baseY + 28}" text-anchor="middle" font-size="17" font-weight="700" fill="#16161a">${esc(v.zh)}</text>`);
-    parts.push(`<text x="${r2(cx)}" y="${baseY + 50}" text-anchor="middle" font-size="13" fill="#6b7280">${esc(v.en)}</text>`);
+    // group label (title line + subtitle line, language-forked)
+    parts.push(`<text x="${r2(cx)}" y="${baseY + 28}" text-anchor="middle" font-size="17" font-weight="700" fill="#16161a">${esc(L(v.zh, v.en))}</text>`);
+    parts.push(`<text x="${r2(cx)}" y="${baseY + 50}" text-anchor="middle" font-size="13" fill="#6b7280">${esc(L(v.en, v.enSub))}</text>`);
     parts.push(`<text x="${r2(cx)}" y="${baseY + 70}" text-anchor="middle" font-size="12" fill="#9ca3af">n = ${r.n}</text>`);
   });
 
   // legend
   const ly = height - 24;
   const legend: [string, string][] = [
-    ["自指 self", COL.self],
-    ["跨厂混淆 cross", COL.cross],
-    ["拒答 refused", COL.refused],
-    ["无身份 unknown", COL.unknown],
+    [L("自指 self", "self"), COL.self],
+    [L("跨厂混淆 cross", "cross-vendor"), COL.cross],
+    [L("拒答 refused", "refused"), COL.refused],
+    [L("无身份 unknown", "unknown"), COL.unknown],
   ];
   let lx = padL;
   for (const [t, c] of legend) {
     parts.push(`<rect x="${lx}" y="${ly - 12}" width="15" height="15" fill="${c}" rx="2"/>`);
     parts.push(`<text x="${lx + 21}" y="${ly}" font-size="14" fill="#374151">${esc(t)}</text>`);
-    lx += 60 + t.length * 9;
+    // Per-entry advance. ZH formula kept verbatim from the original (CJK + Latin
+    // mix); EN uses a tighter all-Latin estimate so the row doesn't sprawl.
+    lx += LANG === "en" ? 30 + t.length * 8 : 60 + t.length * 9;
   }
 
   const svg = svgRoot(width, height, parts.join("\n"));

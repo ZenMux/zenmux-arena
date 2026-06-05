@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="1146" viewBox="0 0 1060 1146" font-family="Noto Sans SC, Helvetica, Arial, sans-serif">
+<rect width="1060" height="1146" fill="#ffffff"/>
+<text x="40" y="44" font-size="30" font-weight="700" fill="#16161a">Per-vendor identity outcome composition</text>
+<text x="40" y="74" font-size="16" fill="#6b7280">Per-vendor outcome composition · sorted by self-ID rate ascending · n=29700 answers</text>
+<text x="176" y="119" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">inclusionAI</text>
+<rect x="190" y="96" width="139.22" height="46" fill="#3b82f6" rx="2"/>
+<rect x="329.22" y="96" width="1.04" height="46" fill="#c0392b" rx="2"/>
+<rect x="330.25" y="96" width="499.53" height="46" fill="#9aa0a6" rx="2"/>
+<rect x="829.78" y="96" width="120.22" height="46" fill="#d8dbe0" rx="2"/>
+<text x="962" y="119" dominant-baseline="middle" font-size="16" font-weight="700" fill="#3b82f6">18.3%</text>
+<text x="580.02" y="119" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">66%</text>
+<text x="176" y="179" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">Tencent</text>
+<rect x="190" y="156" width="244.58" height="46" fill="#2d7ff9" rx="2"/>
+<rect x="434.58" y="156" width="505.05" height="46" fill="#c0392b" rx="2"/>
+<rect x="939.64" y="156" width="10.36" height="46" fill="#d8dbe0" rx="2"/>
+<text x="962" y="179" dominant-baseline="middle" font-size="16" font-weight="700" fill="#2d7ff9">32.2%</text>
+<text x="687.11" y="179" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">66%</text>
+<text x="176" y="239" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">z-ai</text>
+<rect x="190" y="216" width="487.78" height="46" fill="#1a73e8" rx="2"/>
+<rect x="677.78" y="216" width="196.22" height="46" fill="#c0392b" rx="2"/>
+<rect x="874" y="216" width="41.45" height="46" fill="#9aa0a6" rx="2"/>
+<rect x="915.45" y="216" width="34.55" height="46" fill="#d8dbe0" rx="2"/>
+<text x="962" y="239" dominant-baseline="middle" font-size="16" font-weight="700" fill="#1a73e8">64.2%</text>
+<text x="775.89" y="239" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">26%</text>
+<text x="176" y="299" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">Kwai</text>
+<rect x="190" y="276" width="590.04" height="46" fill="#ff6200" rx="2"/>
+<rect x="780.04" y="276" width="164.44" height="46" fill="#c0392b" rx="2"/>
+<rect x="944.47" y="276" width="4.84" height="46" fill="#9aa0a6" rx="2"/>
+<rect x="949.31" y="276" width="0.69" height="46" fill="#d8dbe0" rx="2"/>
+<text x="962" y="299" dominant-baseline="middle" font-size="16" font-weight="700" fill="#ff6200">77.6%</text>
+<text x="862.25" y="299" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">22%</text>
+<text x="176" y="359" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">Doubao</text>
+<rect x="190" y="336" width="673.29" height="46" fill="#1664ff" rx="2"/>
+<rect x="863.29" y="336" width="84.12" height="46" fill="#c0392b" rx="2"/>
+<rect x="947.41" y="336" width="0.86" height="46" fill="#9aa0a6" rx="2"/>
+<rect x="948.27" y="336" width="1.73" height="46" fill="#d8dbe0" rx="2"/>
+<text x="962" y="359" dominant-baseline="middle" font-size="16" font-weight="700" fill="#1664ff">88.6%</text>
+<text x="905.35" y="359" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">11%</text>
+<text x="176" y="419" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">OpenAI</text>
+<rect x="190" y="396" width="701.73" height="46" fill="#10a37f" rx="2"/>
+<rect x="891.73" y="396" width="58.27" height="46" fill="#d8dbe0" rx="2"/>
+<text x="962" y="419" dominant-baseline="middle" font-size="16" font-weight="700" fill="#10a37f">92.3%</text>
+<text x="176" y="479" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">DeepSeek</text>
+<rect x="190" y="456" width="703" height="46" fill="#4d6bfe" rx="2"/>
+<rect x="893" y="456" width="53.2" height="46" fill="#c0392b" rx="2"/>
+<rect x="946.2" y="456" width="3.8" height="46" fill="#9aa0a6" rx="2"/>
+<text x="962" y="479" dominant-baseline="middle" font-size="16" font-weight="700" fill="#4d6bfe">92.5%</text>
+<text x="919.6" y="479" text-anchor="middle" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">7%</text>
+<text x="176" y="539" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">StepFun</text>
+<rect x="190" y="516" width="720.62" height="46" fill="#005bff" rx="2"/>
+<rect x="910.62" y="516" width="39.38" height="46" fill="#c0392b" rx="2"/>
+<text x="962" y="539" dominant-baseline="middle" font-size="16" font-weight="700" fill="#005bff">94.8%</text>
+<text x="176" y="599" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">MiniMax</text>
+<rect x="190" y="576" width="721.65" height="46" fill="#ff2d6f" rx="2"/>
+<rect x="911.65" y="576" width="23.84" height="46" fill="#c0392b" rx="2"/>
+<rect x="935.49" y="576" width="13.82" height="46" fill="#9aa0a6" rx="2"/>
+<rect x="949.31" y="576" width="0.69" height="46" fill="#d8dbe0" rx="2"/>
+<text x="962" y="599" dominant-baseline="middle" font-size="16" font-weight="700" fill="#ff2d6f">95.0%</text>
+<text x="176" y="659" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">Xiaomi</text>
+<rect x="190" y="636" width="739.27" height="46" fill="#ff6900" rx="2"/>
+<rect x="929.27" y="636" width="20.73" height="46" fill="#c0392b" rx="2"/>
+<text x="962" y="659" dominant-baseline="middle" font-size="16" font-weight="700" fill="#ff6900">97.3%</text>
+<text x="176" y="719" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">Anthropic</text>
+<rect x="190" y="696" width="740.19" height="46" fill="#d97757" rx="2"/>
+<rect x="930.19" y="696" width="13.59" height="46" fill="#c0392b" rx="2"/>
+<rect x="943.78" y="696" width="0.69" height="46" fill="#9aa0a6" rx="2"/>
+<rect x="944.47" y="696" width="5.53" height="46" fill="#d8dbe0" rx="2"/>
+<text x="962" y="719" dominant-baseline="middle" font-size="16" font-weight="700" fill="#d97757">97.4%</text>
+<text x="176" y="779" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">Moonshot</text>
+<rect x="190" y="756" width="757.93" height="46" fill="#111827" rx="2"/>
+<rect x="947.93" y="756" width="1.38" height="46" fill="#9aa0a6" rx="2"/>
+<rect x="949.31" y="756" width="0.69" height="46" fill="#d8dbe0" rx="2"/>
+<text x="962" y="779" dominant-baseline="middle" font-size="16" font-weight="700" fill="#111827">99.7%</text>
+<text x="176" y="839" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">ERNIE</text>
+<rect x="190" y="816" width="760" height="46" fill="#2932e1" rx="2"/>
+<text x="962" y="839" dominant-baseline="middle" font-size="16" font-weight="700" fill="#2932e1">100.0%</text>
+<text x="176" y="899" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">Google</text>
+<rect x="190" y="876" width="760" height="46" fill="#4285f4" rx="2"/>
+<text x="962" y="899" dominant-baseline="middle" font-size="16" font-weight="700" fill="#4285f4">100.0%</text>
+<text x="176" y="959" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">Qwen</text>
+<rect x="190" y="936" width="760" height="46" fill="#7b5cff" rx="2"/>
+<text x="962" y="959" dominant-baseline="middle" font-size="16" font-weight="700" fill="#7b5cff">100.0%</text>
+<text x="176" y="1019" text-anchor="end" dominant-baseline="middle" font-size="17" font-weight="600" fill="#16161a">xAI</text>
+<rect x="190" y="996" width="760" height="46" fill="#52525b" rx="2"/>
+<text x="962" y="1019" dominant-baseline="middle" font-size="16" font-weight="700" fill="#52525b">100.0%</text>
+<rect x="40" y="1072" width="16" height="16" fill="#3b6fb0" rx="2"/>
+<text x="62" y="1084" font-size="14" fill="#374151">self (claims its own vendor)</text>
+<rect x="304" y="1072" width="16" height="16" fill="#c0392b" rx="2"/>
+<text x="326" y="1084" font-size="14" fill="#374151">cross-vendor</text>
+<rect x="440" y="1072" width="16" height="16" fill="#9aa0a6" rx="2"/>
+<text x="462" y="1084" font-size="14" fill="#374151">refused</text>
+<rect x="536" y="1072" width="16" height="16" fill="#d8dbe0" rx="2"/>
+<text x="558" y="1084" font-size="14" fill="#374151">unknown</text>
+</svg>

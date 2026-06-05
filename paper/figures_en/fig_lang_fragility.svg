@@ -1,0 +1,251 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="1214" viewBox="0 0 940 1214" font-family="Noto Sans SC, Helvetica, Arial, sans-serif">
+<rect width="940" height="1214" fill="#ffffff"/>
+<text x="40" y="46" font-size="30" font-weight="700" fill="#16161a">Language fragility of self-identity</text>
+<text x="40" y="76" font-size="16" fill="#6b7280">Per-model self-ID span across 10 languages · longer dumbbell = identity swings more with language · color = true vendor</text>
+<line x1="250" y1="102" x2="250" y2="1128" stroke="#eceef1" stroke-width="1"/>
+<text x="250" y="94" text-anchor="middle" font-size="12" fill="#9ca3af">0%</text>
+<line x1="385" y1="102" x2="385" y2="1128" stroke="#eceef1" stroke-width="1"/>
+<text x="385" y="94" text-anchor="middle" font-size="12" fill="#9ca3af">25%</text>
+<line x1="520" y1="102" x2="520" y2="1128" stroke="#eceef1" stroke-width="1"/>
+<text x="520" y="94" text-anchor="middle" font-size="12" fill="#9ca3af">50%</text>
+<line x1="655" y1="102" x2="655" y2="1128" stroke="#eceef1" stroke-width="1"/>
+<text x="655" y="94" text-anchor="middle" font-size="12" fill="#9ca3af">75%</text>
+<line x1="790" y1="102" x2="790" y2="1128" stroke="#eceef1" stroke-width="1"/>
+<text x="790" y="94" text-anchor="middle" font-size="12" fill="#9ca3af">100%</text>
+<text x="236" y="129" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Hy3 Preview</text>
+<text x="236" y="143" text-anchor="end" font-size="10" fill="#9ca3af">Tencent</text>
+<line x1="254.91" y1="125" x2="780.18" y2="125" stroke="#2d7ff9" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="423.78" y1="119" x2="423.78" y2="131" stroke="#2d7ff9" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="254.91" cy="125" r="5.5" fill="#ffffff" stroke="#2d7ff9" stroke-width="2"/>
+<text x="245.91" y="129" text-anchor="end" font-size="11.5" font-weight="700" fill="#2d7ff9">1%</text>
+<text x="245.91" y="141" text-anchor="end" font-size="9" fill="#9ca3af">fr</text>
+<circle cx="780.18" cy="125" r="6" fill="#2d7ff9"/>
+<text x="791.18" y="129" font-size="11.5" font-weight="700" fill="#2d7ff9">98%</text>
+<text x="791.18" y="141" font-size="9" fill="#9ca3af">zh-Hans</text>
+<text x="236" y="167" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Doubao Seed 2.0 Code</text>
+<text x="236" y="181" text-anchor="end" font-size="10" fill="#9ca3af">Doubao</text>
+<line x1="304" y1="163" x2="775.27" y2="163" stroke="#1664ff" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="546.51" y1="157" x2="546.51" y2="169" stroke="#1664ff" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="304" cy="163" r="5.5" fill="#ffffff" stroke="#1664ff" stroke-width="2"/>
+<text x="295" y="167" text-anchor="end" font-size="11.5" font-weight="700" fill="#1664ff">10%</text>
+<text x="295" y="179" text-anchor="end" font-size="9" fill="#9ca3af">fr</text>
+<circle cx="775.27" cy="163" r="6" fill="#1664ff"/>
+<text x="786.27" y="167" font-size="11.5" font-weight="700" fill="#1664ff">97%</text>
+<text x="786.27" y="179" font-size="9" fill="#9ca3af">zh-Hans</text>
+<text x="236" y="205" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">GLM 5.1</text>
+<text x="236" y="219" text-anchor="end" font-size="10" fill="#9ca3af">z-ai</text>
+<line x1="392.36" y1="201" x2="760.55" y2="201" stroke="#1a73e8" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="596.58" y1="195" x2="596.58" y2="207" stroke="#1a73e8" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="392.36" cy="201" r="5.5" fill="#ffffff" stroke="#1a73e8" stroke-width="2"/>
+<text x="383.36" y="205" text-anchor="end" font-size="11.5" font-weight="700" fill="#1a73e8">26%</text>
+<text x="383.36" y="217" text-anchor="end" font-size="9" fill="#9ca3af">ko</text>
+<circle cx="760.55" cy="201" r="6" fill="#1a73e8"/>
+<text x="771.55" y="205" font-size="11.5" font-weight="700" fill="#1a73e8">95%</text>
+<text x="771.55" y="217" font-size="9" fill="#9ca3af">zh-Hans</text>
+<text x="236" y="243" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Kat Coder Pro V2</text>
+<text x="236" y="257" text-anchor="end" font-size="10" fill="#9ca3af">Kwai</text>
+<line x1="524.91" y1="239" x2="790" y2="239" stroke="#ff6200" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="669.24" y1="233" x2="669.24" y2="245" stroke="#ff6200" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="524.91" cy="239" r="5.5" fill="#ffffff" stroke="#ff6200" stroke-width="2"/>
+<text x="515.91" y="243" text-anchor="end" font-size="11.5" font-weight="700" fill="#ff6200">51%</text>
+<text x="515.91" y="255" text-anchor="end" font-size="9" fill="#9ca3af">ru</text>
+<circle cx="790" cy="239" r="6" fill="#ff6200"/>
+<text x="801" y="243" font-size="11.5" font-weight="700" fill="#ff6200">100%</text>
+<text x="801" y="255" font-size="9" fill="#9ca3af">zh-Hans</text>
+<text x="236" y="281" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Ling 2.6 1T</text>
+<text x="236" y="295" text-anchor="end" font-size="10" fill="#9ca3af">inclusionAI</text>
+<line x1="250" y1="277" x2="451.27" y2="277" stroke="#3b82f6" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="352.11" y1="271" x2="352.11" y2="283" stroke="#3b82f6" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="250" cy="277" r="5.5" fill="#ffffff" stroke="#3b82f6" stroke-width="2"/>
+<text x="241" y="281" text-anchor="end" font-size="11.5" font-weight="700" fill="#3b82f6">0%</text>
+<text x="241" y="293" text-anchor="end" font-size="9" fill="#9ca3af">es</text>
+<circle cx="451.27" cy="277" r="6" fill="#3b82f6"/>
+<text x="462.27" y="281" font-size="11.5" font-weight="700" fill="#3b82f6">37%</text>
+<text x="462.27" y="293" font-size="9" fill="#9ca3af">de</text>
+<text x="236" y="319" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Ring 2.6 1T</text>
+<text x="236" y="333" text-anchor="end" font-size="10" fill="#9ca3af">inclusionAI</text>
+<line x1="250" y1="315" x2="451.27" y2="315" stroke="#3b82f6" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="345.73" y1="309" x2="345.73" y2="321" stroke="#3b82f6" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="250" cy="315" r="5.5" fill="#ffffff" stroke="#3b82f6" stroke-width="2"/>
+<text x="241" y="319" text-anchor="end" font-size="11.5" font-weight="700" fill="#3b82f6">0%</text>
+<text x="241" y="331" text-anchor="end" font-size="9" fill="#9ca3af">es</text>
+<circle cx="451.27" cy="315" r="6" fill="#3b82f6"/>
+<text x="462.27" y="319" font-size="11.5" font-weight="700" fill="#3b82f6">37%</text>
+<text x="462.27" y="331" font-size="9" fill="#9ca3af">en</text>
+<text x="236" y="357" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">MiniMax 3</text>
+<text x="236" y="371" text-anchor="end" font-size="10" fill="#9ca3af">MiniMax</text>
+<line x1="588.73" y1="353" x2="790" y2="353" stroke="#ff2d6f" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="769.87" y1="347" x2="769.87" y2="359" stroke="#ff2d6f" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="588.73" cy="353" r="5.5" fill="#ffffff" stroke="#ff2d6f" stroke-width="2"/>
+<text x="579.73" y="357" text-anchor="end" font-size="11.5" font-weight="700" fill="#ff2d6f">63%</text>
+<text x="579.73" y="369" text-anchor="end" font-size="9" fill="#9ca3af">fr</text>
+<circle cx="790" cy="353" r="6" fill="#ff2d6f"/>
+<text x="801" y="357" font-size="11.5" font-weight="700" fill="#ff2d6f">100%</text>
+<text x="801" y="369" font-size="9" fill="#9ca3af">de</text>
+<text x="236" y="395" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">GPT-5.5</text>
+<text x="236" y="409" text-anchor="end" font-size="10" fill="#9ca3af">OpenAI</text>
+<line x1="608.36" y1="391" x2="790" y2="391" stroke="#10a37f" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="724.22" y1="385" x2="724.22" y2="397" stroke="#10a37f" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="608.36" cy="391" r="5.5" fill="#ffffff" stroke="#10a37f" stroke-width="2"/>
+<text x="599.36" y="395" text-anchor="end" font-size="11.5" font-weight="700" fill="#10a37f">66%</text>
+<text x="599.36" y="407" text-anchor="end" font-size="9" fill="#9ca3af">en</text>
+<circle cx="790" cy="391" r="6" fill="#10a37f"/>
+<text x="801" y="395" font-size="11.5" font-weight="700" fill="#10a37f">100%</text>
+<text x="801" y="407" font-size="9" fill="#9ca3af">ko</text>
+<text x="236" y="433" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Claude Opus 4.8</text>
+<text x="236" y="447" text-anchor="end" font-size="10" fill="#9ca3af">Anthropic</text>
+<line x1="613.27" y1="429" x2="790" y2="429" stroke="#d97757" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="765.95" y1="423" x2="765.95" y2="435" stroke="#d97757" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="613.27" cy="429" r="5.5" fill="#ffffff" stroke="#d97757" stroke-width="2"/>
+<text x="604.27" y="433" text-anchor="end" font-size="11.5" font-weight="700" fill="#d97757">67%</text>
+<text x="604.27" y="445" text-anchor="end" font-size="9" fill="#9ca3af">zh-Hans</text>
+<circle cx="790" cy="429" r="6" fill="#d97757"/>
+<text x="801" y="433" font-size="11.5" font-weight="700" fill="#d97757">100%</text>
+<text x="801" y="445" font-size="9" fill="#9ca3af">de</text>
+<text x="236" y="471" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">GPT 5.3 Codex</text>
+<text x="236" y="485" text-anchor="end" font-size="10" fill="#9ca3af">OpenAI</text>
+<line x1="613.27" y1="467" x2="790" y2="467" stroke="#10a37f" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="731.58" y1="461" x2="731.58" y2="473" stroke="#10a37f" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="613.27" cy="467" r="5.5" fill="#ffffff" stroke="#10a37f" stroke-width="2"/>
+<text x="604.27" y="471" text-anchor="end" font-size="11.5" font-weight="700" fill="#10a37f">67%</text>
+<text x="604.27" y="483" text-anchor="end" font-size="9" fill="#9ca3af">ru</text>
+<circle cx="790" cy="467" r="6" fill="#10a37f"/>
+<text x="801" y="471" font-size="11.5" font-weight="700" fill="#10a37f">100%</text>
+<text x="801" y="483" font-size="9" fill="#9ca3af">de</text>
+<text x="236" y="509" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Step 3.7 Flash</text>
+<text x="236" y="523" text-anchor="end" font-size="10" fill="#9ca3af">StepFun</text>
+<line x1="652.55" y1="505" x2="790" y2="505" stroke="#005bff" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="762.02" y1="499" x2="762.02" y2="511" stroke="#005bff" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="652.55" cy="505" r="5.5" fill="#ffffff" stroke="#005bff" stroke-width="2"/>
+<text x="643.55" y="509" text-anchor="end" font-size="11.5" font-weight="700" fill="#005bff">75%</text>
+<text x="643.55" y="521" text-anchor="end" font-size="9" fill="#9ca3af">ru</text>
+<circle cx="790" cy="505" r="6" fill="#005bff"/>
+<text x="801" y="509" font-size="11.5" font-weight="700" fill="#005bff">100%</text>
+<text x="801" y="521" font-size="9" fill="#9ca3af">ja</text>
+<text x="236" y="547" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">DeepSeek V4 Pro</text>
+<text x="236" y="561" text-anchor="end" font-size="10" fill="#9ca3af">DeepSeek</text>
+<line x1="667.27" y1="543" x2="760.55" y2="543" stroke="#4d6bfe" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="727.16" y1="537" x2="727.16" y2="549" stroke="#4d6bfe" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="667.27" cy="543" r="5.5" fill="#ffffff" stroke="#4d6bfe" stroke-width="2"/>
+<text x="658.27" y="547" text-anchor="end" font-size="11.5" font-weight="700" fill="#4d6bfe">77%</text>
+<text x="658.27" y="559" text-anchor="end" font-size="9" fill="#9ca3af">ja</text>
+<circle cx="760.55" cy="543" r="6" fill="#4d6bfe"/>
+<text x="771.55" y="547" font-size="11.5" font-weight="700" fill="#4d6bfe">95%</text>
+<text x="771.55" y="559" font-size="9" fill="#9ca3af">ru</text>
+<text x="236" y="585" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Claude Sonnet 4.6</text>
+<text x="236" y="599" text-anchor="end" font-size="10" fill="#9ca3af">Anthropic</text>
+<line x1="701.64" y1="581" x2="790" y2="581" stroke="#d97757" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="772.33" y1="575" x2="772.33" y2="587" stroke="#d97757" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="701.64" cy="581" r="5.5" fill="#ffffff" stroke="#d97757" stroke-width="2"/>
+<text x="692.64" y="585" text-anchor="end" font-size="11.5" font-weight="700" fill="#d97757">84%</text>
+<text x="692.64" y="597" text-anchor="end" font-size="9" fill="#9ca3af">fr</text>
+<circle cx="790" cy="581" r="6" fill="#d97757"/>
+<text x="801" y="585" font-size="11.5" font-weight="700" fill="#d97757">100%</text>
+<text x="801" y="597" font-size="9" fill="#9ca3af">en</text>
+<text x="236" y="623" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">MiniMax 2.7</text>
+<text x="236" y="637" text-anchor="end" font-size="10" fill="#9ca3af">MiniMax</text>
+<line x1="726.18" y1="619" x2="765.45" y2="619" stroke="#ff2d6f" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="755.64" y1="613" x2="755.64" y2="625" stroke="#ff2d6f" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="726.18" cy="619" r="5.5" fill="#ffffff" stroke="#ff2d6f" stroke-width="2"/>
+<text x="717.18" y="623" text-anchor="end" font-size="11.5" font-weight="700" fill="#ff2d6f">88%</text>
+<text x="717.18" y="635" text-anchor="end" font-size="9" fill="#9ca3af">en</text>
+<circle cx="765.45" cy="619" r="6" fill="#ff2d6f"/>
+<text x="776.45" y="623" font-size="11.5" font-weight="700" fill="#ff2d6f">95%</text>
+<text x="776.45" y="635" font-size="9" fill="#9ca3af">de</text>
+<text x="236" y="661" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">DeepSeek V4 Flash</text>
+<text x="236" y="675" text-anchor="end" font-size="10" fill="#9ca3af">DeepSeek</text>
+<line x1="755.64" y1="657" x2="790" y2="657" stroke="#4d6bfe" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="771.84" y1="651" x2="771.84" y2="663" stroke="#4d6bfe" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="755.64" cy="657" r="5.5" fill="#ffffff" stroke="#4d6bfe" stroke-width="2"/>
+<text x="746.64" y="661" text-anchor="end" font-size="11.5" font-weight="700" fill="#4d6bfe">94%</text>
+<text x="746.64" y="673" text-anchor="end" font-size="9" fill="#9ca3af">es</text>
+<circle cx="790" cy="657" r="6" fill="#4d6bfe"/>
+<text x="801" y="661" font-size="11.5" font-weight="700" fill="#4d6bfe">100%</text>
+<text x="801" y="673" font-size="9" fill="#9ca3af">zh-Hans</text>
+<text x="236" y="699" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Mimo V2.5 Pro</text>
+<text x="236" y="713" text-anchor="end" font-size="10" fill="#9ca3af">Xiaomi</text>
+<line x1="755.64" y1="695" x2="790" y2="695" stroke="#ff6900" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="775.27" y1="689" x2="775.27" y2="701" stroke="#ff6900" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="755.64" cy="695" r="5.5" fill="#ffffff" stroke="#ff6900" stroke-width="2"/>
+<text x="746.64" y="699" text-anchor="end" font-size="11.5" font-weight="700" fill="#ff6900">94%</text>
+<text x="746.64" y="711" text-anchor="end" font-size="9" fill="#9ca3af">pt</text>
+<circle cx="790" cy="695" r="6" fill="#ff6900"/>
+<text x="801" y="699" font-size="11.5" font-weight="700" fill="#ff6900">100%</text>
+<text x="801" y="711" font-size="9" fill="#9ca3af">en</text>
+<text x="236" y="737" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Doubao Seed 2.0 Mini</text>
+<text x="236" y="751" text-anchor="end" font-size="10" fill="#9ca3af">Doubao</text>
+<line x1="775.27" y1="733" x2="790" y2="733" stroke="#1664ff" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="787.05" y1="727" x2="787.05" y2="739" stroke="#1664ff" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="775.27" cy="733" r="5.5" fill="#ffffff" stroke="#1664ff" stroke-width="2"/>
+<text x="766.27" y="737" text-anchor="end" font-size="11.5" font-weight="700" fill="#1664ff">97%</text>
+<text x="766.27" y="749" text-anchor="end" font-size="9" fill="#9ca3af">zh-Hant</text>
+<circle cx="790" cy="733" r="6" fill="#1664ff"/>
+<text x="801" y="737" font-size="11.5" font-weight="700" fill="#1664ff">100%</text>
+<text x="801" y="749" font-size="9" fill="#9ca3af">de</text>
+<text x="236" y="775" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Kimi 2.6</text>
+<text x="236" y="789" text-anchor="end" font-size="10" fill="#9ca3af">Moonshot</text>
+<line x1="780.18" y1="771" x2="790" y2="771" stroke="#111827" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="788.53" y1="765" x2="788.53" y2="777" stroke="#111827" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="780.18" cy="771" r="5.5" fill="#ffffff" stroke="#111827" stroke-width="2"/>
+<text x="771.18" y="775" text-anchor="end" font-size="11.5" font-weight="700" fill="#111827">98%</text>
+<text x="771.18" y="787" text-anchor="end" font-size="9" fill="#9ca3af">es</text>
+<circle cx="790" cy="771" r="6" fill="#111827"/>
+<text x="801" y="775" font-size="11.5" font-weight="700" fill="#111827">100%</text>
+<text x="801" y="787" font-size="9" fill="#9ca3af">de</text>
+<text x="236" y="813" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Claude Haiku 4.5</text>
+<text x="236" y="827" text-anchor="end" font-size="10" fill="#9ca3af">Anthropic</text>
+<line x1="785.09" y1="809" x2="790" y2="809" stroke="#d97757" stroke-width="3" stroke-opacity="0.35"/>
+<line x1="789.51" y1="803" x2="789.51" y2="815" stroke="#d97757" stroke-width="1.5" stroke-opacity="0.6"/>
+<circle cx="785.09" cy="809" r="5.5" fill="#ffffff" stroke="#d97757" stroke-width="2"/>
+<text x="776.09" y="813" text-anchor="end" font-size="11.5" font-weight="700" fill="#d97757">99%</text>
+<text x="776.09" y="825" text-anchor="end" font-size="9" fill="#9ca3af">ko</text>
+<circle cx="790" cy="809" r="6" fill="#d97757"/>
+<text x="801" y="813" font-size="11.5" font-weight="700" fill="#d97757">100%</text>
+<text x="801" y="825" font-size="9" fill="#9ca3af">de</text>
+<text x="236" y="851" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">ERNIE 5.1</text>
+<text x="236" y="865" text-anchor="end" font-size="10" fill="#9ca3af">ERNIE</text>
+<circle cx="790" cy="847" r="6" fill="#2932e1"/>
+<text x="801" y="851" font-size="11.5" font-weight="700" fill="#2932e1">100%</text>
+<text x="801" y="863" font-size="9" fill="#9ca3af">all</text>
+<text x="236" y="889" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Doubao Seed 2.0 Lite</text>
+<text x="236" y="903" text-anchor="end" font-size="10" fill="#9ca3af">Doubao</text>
+<circle cx="790" cy="885" r="6" fill="#1664ff"/>
+<text x="801" y="889" font-size="11.5" font-weight="700" fill="#1664ff">100%</text>
+<text x="801" y="901" font-size="9" fill="#9ca3af">all</text>
+<text x="236" y="927" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Doubao Seed 2.0 Pro</text>
+<text x="236" y="941" text-anchor="end" font-size="10" fill="#9ca3af">Doubao</text>
+<circle cx="790" cy="923" r="6" fill="#1664ff"/>
+<text x="801" y="927" font-size="11.5" font-weight="700" fill="#1664ff">100%</text>
+<text x="801" y="939" font-size="9" fill="#9ca3af">all</text>
+<text x="236" y="965" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Gemini 3.1 Pro</text>
+<text x="236" y="979" text-anchor="end" font-size="10" fill="#9ca3af">Google</text>
+<circle cx="790" cy="961" r="6" fill="#4285f4"/>
+<text x="801" y="965" font-size="11.5" font-weight="700" fill="#4285f4">100%</text>
+<text x="801" y="977" font-size="9" fill="#9ca3af">all</text>
+<text x="236" y="1003" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Gemini 3.5 Flash</text>
+<text x="236" y="1017" text-anchor="end" font-size="10" fill="#9ca3af">Google</text>
+<circle cx="790" cy="999" r="6" fill="#4285f4"/>
+<text x="801" y="1003" font-size="11.5" font-weight="700" fill="#4285f4">100%</text>
+<text x="801" y="1015" font-size="9" fill="#9ca3af">all</text>
+<text x="236" y="1041" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">GPT-5.5 Instant</text>
+<text x="236" y="1055" text-anchor="end" font-size="10" fill="#9ca3af">OpenAI</text>
+<circle cx="790" cy="1037" r="6" fill="#10a37f"/>
+<text x="801" y="1041" font-size="11.5" font-weight="700" fill="#10a37f">100%</text>
+<text x="801" y="1053" font-size="9" fill="#9ca3af">all</text>
+<text x="236" y="1079" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Qwen3.7 Max</text>
+<text x="236" y="1093" text-anchor="end" font-size="10" fill="#9ca3af">Qwen</text>
+<circle cx="790" cy="1075" r="6" fill="#7b5cff"/>
+<text x="801" y="1079" font-size="11.5" font-weight="700" fill="#7b5cff">100%</text>
+<text x="801" y="1091" font-size="9" fill="#9ca3af">all</text>
+<text x="236" y="1117" text-anchor="end" font-size="13.5" font-weight="600" fill="#16161a">Grok 4.3</text>
+<text x="236" y="1131" text-anchor="end" font-size="10" fill="#9ca3af">xAI</text>
+<circle cx="790" cy="1113" r="6" fill="#52525b"/>
+<text x="801" y="1117" font-size="11.5" font-weight="700" fill="#52525b">100%</text>
+<text x="801" y="1129" font-size="9" fill="#9ca3af">all</text>
+<circle cx="46" cy="1166" r="5.5" fill="#ffffff" stroke="#6b7280" stroke-width="2"/>
+<text x="58" y="1170" font-size="13" fill="#374151">worst language (hollow)</text>
+<circle cx="250" cy="1166" r="6" fill="#6b7280"/>
+<text x="262" y="1170" font-size="13" fill="#374151">best language (filled)</text>
+<line x1="450" y1="1160" x2="450" y2="1172" stroke="#6b7280" stroke-width="1.5"/>
+<text x="460" y="1170" font-size="13" fill="#374151">cross-language mean</text>
+</svg>

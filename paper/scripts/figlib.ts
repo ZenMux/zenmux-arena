@@ -28,7 +28,45 @@ export const EXTRACTIONS_PATH = path.join(
   "results/who-are-you/mix-20260601T062425/extractions.jsonl",
 );
 export const FONT_PATH = path.join(REPO_ROOT, "research/assets/NotoSansSC-Regular.otf");
+
+// `stats.json` is ALWAYS read/written here — it is language-independent (pure
+// numbers + vendor/lang codes), so both the Chinese and English builds share the
+// one canonical copy and no statistic can drift between the two language editions.
 export const FIG_DIR = path.join(REPO_ROOT, "paper/figures");
+
+// ---- Language fork (PAPER_LANG=en for the English edition) ------------------
+// The Chinese build (default) renders figures into paper/figures/; the English
+// build renders the SAME charts — same geometry, same data — into paper/figures_en/
+// with every label translated. Only the rendering layer is language-aware; the
+// stats layer above is not. `gen_tables.ts` mirrors this into tables/ vs tables_en/.
+export type PaperLang = "zh" | "en";
+export const LANG: PaperLang = process.env.PAPER_LANG === "en" ? "en" : "zh";
+
+/** Pick the language-appropriate string: `L("中文", "English")`. */
+export function L(zh: string, en: string): string {
+  return LANG === "en" ? en : zh;
+}
+
+/** Where rendered figures (PNG/SVG) go — forked by language; stats.json stays in FIG_DIR. */
+export const OUT_DIR = LANG === "en" ? path.join(REPO_ROOT, "paper/figures_en") : FIG_DIR;
+
+// English display names for the 10 study languages, keyed by ISO code. The Chinese
+// build prints native names (简体中文 / 日本語 / …) straight from the aggregate; the
+// English build uses these instead so a heatmap column or a fragility sublabel reads
+// naturally for an English audience. Figures are rasterized with Noto Sans SC (full
+// Latin coverage), so these never tofu.
+export const LANG_EN: Record<string, string> = {
+  en: "English",
+  "zh-Hans": "Chinese (Simpl.)",
+  "zh-Hant": "Chinese (Trad.)",
+  ja: "Japanese",
+  ko: "Korean",
+  ru: "Russian",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  pt: "Portuguese",
+};
 
 export function loadGraph(): GraphData {
   return JSON.parse(fs.readFileSync(AGG_PATH, "utf8")) as GraphData;
@@ -118,7 +156,7 @@ export function svgRoot(width: number, height: number, body: string): string {
   ].join("\n");
 }
 
-/** Rasterize an SVG string to a PNG file under paper/figures, at the given pixel width. */
+/** Rasterize an SVG string to a PNG file under the active OUT_DIR, at the given pixel width. */
 export function writePng(svg: string, filename: string, pxWidth: number): void {
   const fontFiles = fs.existsSync(FONT_PATH) ? [FONT_PATH] : [];
   const resvg = new Resvg(svg, {
@@ -127,14 +165,16 @@ export function writePng(svg: string, filename: string, pxWidth: number): void {
     background: "#ffffff",
   });
   const png = resvg.render().asPng();
-  const out = path.join(FIG_DIR, filename);
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  const out = path.join(OUT_DIR, filename);
   fs.writeFileSync(out, png);
   console.log(`  wrote ${path.relative(REPO_ROOT, out)} (${(png.length / 1024).toFixed(0)} KB)`);
 }
 
 /** Also drop the raw SVG next to the PNG (vector copy, handy for the studio look). */
 export function writeSvg(svg: string, filename: string): void {
-  const out = path.join(FIG_DIR, filename);
+  fs.mkdirSync(OUT_DIR, { recursive: true });
+  const out = path.join(OUT_DIR, filename);
   fs.writeFileSync(out, svg, "utf8");
   console.log(`  wrote ${path.relative(REPO_ROOT, out)}`);
 }

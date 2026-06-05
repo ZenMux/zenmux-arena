@@ -7,7 +7,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { esc, FIG_DIR, loadGraph, modelLabels, modelVendors, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
+import { esc, FIG_DIR, L, loadGraph, modelLabels, modelVendors, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
 
 interface Stats {
   byModel: Record<string, { n: number; self: number; cross: number; refused: number; unknown: number }>;
@@ -36,9 +36,9 @@ function main() {
   const x0 = padX + labelW;
 
   const parts: string[] = [];
-  parts.push(`<text x="${padX}" y="44" font-size="30" font-weight="700" fill="#16161a">每个模型的自指率</text>`);
+  parts.push(`<text x="${padX}" y="44" font-size="30" font-weight="700" fill="#16161a">${esc(L("每个模型的自指率", "Per-model self-identification rate"))}</text>`);
   parts.push(
-    `<text x="${padX}" y="74" font-size="16" fill="#6b7280">Per-model self-identification rate (27 models) · 颜色=真实厂商 · 同厂模型差异显著</text>`,
+    `<text x="${padX}" y="74" font-size="16" fill="#6b7280">${esc(L("Per-model self-identification rate (27 models) · 颜色=真实厂商 · 同厂模型差异显著", "Per-model self-identification rate (27 models) · color = true vendor · large within-vendor spread"))}</text>`,
   );
 
   // x gridlines

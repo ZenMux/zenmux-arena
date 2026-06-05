@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="922" height="1186" viewBox="0 0 922 1186" font-family="Noto Sans SC, Helvetica, Arial, sans-serif">
+<rect width="922" height="1186" fill="#ffffff"/>
+<text x="36" y="44" font-size="30" font-weight="700" fill="#16161a">Per-model self-identification rate</text>
+<text x="36" y="74" font-size="16" fill="#6b7280">Per-model self-identification rate (27 models) · color = true vendor · large within-vendor spread</text>
+<line x1="236" y1="92" x2="236" y2="1118" stroke="#eceef1" stroke-width="1"/>
+<text x="236" y="84" text-anchor="middle" font-size="12" fill="#9ca3af">0%</text>
+<line x1="376" y1="92" x2="376" y2="1118" stroke="#eceef1" stroke-width="1"/>
+<text x="376" y="84" text-anchor="middle" font-size="12" fill="#9ca3af">25%</text>
+<line x1="516" y1="92" x2="516" y2="1118" stroke="#eceef1" stroke-width="1"/>
+<text x="516" y="84" text-anchor="middle" font-size="12" fill="#9ca3af">50%</text>
+<line x1="656" y1="92" x2="656" y2="1118" stroke="#eceef1" stroke-width="1"/>
+<text x="656" y="84" text-anchor="middle" font-size="12" fill="#9ca3af">75%</text>
+<line x1="796" y1="92" x2="796" y2="1118" stroke="#eceef1" stroke-width="1"/>
+<text x="796" y="84" text-anchor="middle" font-size="12" fill="#9ca3af">100%</text>
+<text x="222" y="120" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Ring 2.6 1T</text>
+<text x="222" y="134" text-anchor="end" font-size="10.5" fill="#9ca3af">inclusionAI</text>
+<line x1="236" y1="115" x2="335.27" y2="115" stroke="#3b82f6" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="335.27" cy="115" r="7" fill="#3b82f6"/>
+<text x="349.27" y="120" font-size="13" font-weight="700" fill="#3b82f6">17.7%</text>
+<text x="222" y="158" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Ling 2.6 1T</text>
+<text x="222" y="172" text-anchor="end" font-size="10.5" fill="#9ca3af">inclusionAI</text>
+<line x1="236" y1="153" x2="341.89" y2="153" stroke="#3b82f6" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="341.89" cy="153" r="7" fill="#3b82f6"/>
+<text x="355.89" y="158" font-size="13" font-weight="700" fill="#3b82f6">18.9%</text>
+<text x="222" y="196" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Hy3 Preview</text>
+<text x="222" y="210" text-anchor="end" font-size="10.5" fill="#9ca3af">Tencent</text>
+<line x1="236" y1="191" x2="416.22" y2="191" stroke="#2d7ff9" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="416.22" cy="191" r="7" fill="#2d7ff9"/>
+<text x="430.22" y="196" font-size="13" font-weight="700" fill="#2d7ff9">32.2%</text>
+<text x="222" y="234" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Doubao Seed 2.0 Code</text>
+<text x="222" y="248" text-anchor="end" font-size="10.5" fill="#9ca3af">Doubao</text>
+<line x1="236" y1="229" x2="543.49" y2="229" stroke="#1664ff" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="543.49" cy="229" r="7" fill="#1664ff"/>
+<text x="557.49" y="234" font-size="13" font-weight="700" fill="#1664ff">54.9%</text>
+<text x="222" y="272" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">GLM 5.1</text>
+<text x="222" y="286" text-anchor="end" font-size="10.5" fill="#9ca3af">z-ai</text>
+<line x1="236" y1="267" x2="595.42" y2="267" stroke="#1a73e8" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="595.42" cy="267" r="7" fill="#1a73e8"/>
+<text x="609.42" y="272" font-size="13" font-weight="700" fill="#1a73e8">64.2%</text>
+<text x="222" y="310" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Kat Coder Pro V2</text>
+<text x="222" y="324" text-anchor="end" font-size="10.5" fill="#9ca3af">Kwai</text>
+<line x1="236" y1="305" x2="670.76" y2="305" stroke="#ff6200" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="670.76" cy="305" r="7" fill="#ff6200"/>
+<text x="684.76" y="310" font-size="13" font-weight="700" fill="#ff6200">77.6%</text>
+<text x="222" y="348" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">GPT-5.5</text>
+<text x="222" y="362" text-anchor="end" font-size="10.5" fill="#9ca3af">OpenAI</text>
+<line x1="236" y1="343" x2="727.78" y2="343" stroke="#10a37f" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="727.78" cy="343" r="7" fill="#10a37f"/>
+<text x="741.78" y="348" font-size="13" font-weight="700" fill="#10a37f">87.8%</text>
+<text x="222" y="386" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">DeepSeek V4 Pro</text>
+<text x="222" y="400" text-anchor="end" font-size="10.5" fill="#9ca3af">DeepSeek</text>
+<line x1="236" y1="381" x2="730.84" y2="381" stroke="#4d6bfe" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="730.84" cy="381" r="7" fill="#4d6bfe"/>
+<text x="744.84" y="386" font-size="13" font-weight="700" fill="#4d6bfe">88.4%</text>
+<text x="222" y="424" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">GPT 5.3 Codex</text>
+<text x="222" y="438" text-anchor="end" font-size="10.5" fill="#9ca3af">OpenAI</text>
+<line x1="236" y1="419" x2="735.42" y2="419" stroke="#10a37f" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="735.42" cy="419" r="7" fill="#10a37f"/>
+<text x="749.42" y="424" font-size="13" font-weight="700" fill="#10a37f">89.2%</text>
+<text x="222" y="462" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">MiniMax 2.7</text>
+<text x="222" y="476" text-anchor="end" font-size="10.5" fill="#9ca3af">MiniMax</text>
+<line x1="236" y1="457" x2="760.36" y2="457" stroke="#ff2d6f" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="760.36" cy="457" r="7" fill="#ff2d6f"/>
+<text x="774.36" y="462" font-size="13" font-weight="700" fill="#ff2d6f">93.6%</text>
+<text x="222" y="500" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Step 3.7 Flash</text>
+<text x="222" y="514" text-anchor="end" font-size="10.5" fill="#9ca3af">StepFun</text>
+<line x1="236" y1="495" x2="766.98" y2="495" stroke="#005bff" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="766.98" cy="495" r="7" fill="#005bff"/>
+<text x="780.98" y="500" font-size="13" font-weight="700" fill="#005bff">94.8%</text>
+<text x="222" y="538" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Claude Opus 4.8</text>
+<text x="222" y="552" text-anchor="end" font-size="10.5" fill="#9ca3af">Anthropic</text>
+<line x1="236" y1="533" x2="771.05" y2="533" stroke="#d97757" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="771.05" cy="533" r="7" fill="#d97757"/>
+<text x="785.05" y="538" font-size="13" font-weight="700" fill="#d97757">95.5%</text>
+<text x="222" y="576" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">MiniMax 3</text>
+<text x="222" y="590" text-anchor="end" font-size="10.5" fill="#9ca3af">MiniMax</text>
+<line x1="236" y1="571" x2="775.13" y2="571" stroke="#ff2d6f" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="775.13" cy="571" r="7" fill="#ff2d6f"/>
+<text x="789.13" y="576" font-size="13" font-weight="700" fill="#ff2d6f">96.3%</text>
+<text x="222" y="614" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">DeepSeek V4 Flash</text>
+<text x="222" y="628" text-anchor="end" font-size="10.5" fill="#9ca3af">DeepSeek</text>
+<line x1="236" y1="609" x2="777.16" y2="609" stroke="#4d6bfe" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="777.16" cy="609" r="7" fill="#4d6bfe"/>
+<text x="791.16" y="614" font-size="13" font-weight="700" fill="#4d6bfe">96.6%</text>
+<text x="222" y="652" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Claude Sonnet 4.6</text>
+<text x="222" y="666" text-anchor="end" font-size="10.5" fill="#9ca3af">Anthropic</text>
+<line x1="236" y1="647" x2="777.67" y2="647" stroke="#d97757" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="777.67" cy="647" r="7" fill="#d97757"/>
+<text x="791.67" y="652" font-size="13" font-weight="700" fill="#d97757">96.7%</text>
+<text x="222" y="690" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Mimo V2.5 Pro</text>
+<text x="222" y="704" text-anchor="end" font-size="10.5" fill="#9ca3af">Xiaomi</text>
+<line x1="236" y1="685" x2="780.73" y2="685" stroke="#ff6900" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="780.73" cy="685" r="7" fill="#ff6900"/>
+<text x="794.73" y="690" font-size="13" font-weight="700" fill="#ff6900">97.3%</text>
+<text x="222" y="728" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Doubao Seed 2.0 Mini</text>
+<text x="222" y="742" text-anchor="end" font-size="10.5" fill="#9ca3af">Doubao</text>
+<line x1="236" y1="723" x2="792.95" y2="723" stroke="#1664ff" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="792.95" cy="723" r="7" fill="#1664ff"/>
+<text x="806.95" y="728" font-size="13" font-weight="700" fill="#1664ff">99.5%</text>
+<text x="222" y="766" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Kimi 2.6</text>
+<text x="222" y="780" text-anchor="end" font-size="10.5" fill="#9ca3af">Moonshot</text>
+<line x1="236" y1="761" x2="794.47" y2="761" stroke="#111827" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="794.47" cy="761" r="7" fill="#111827"/>
+<text x="808.47" y="766" font-size="13" font-weight="700" fill="#111827">99.7%</text>
+<text x="222" y="804" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Claude Haiku 4.5</text>
+<text x="222" y="818" text-anchor="end" font-size="10.5" fill="#9ca3af">Anthropic</text>
+<line x1="236" y1="799" x2="795.49" y2="799" stroke="#d97757" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="795.49" cy="799" r="7" fill="#d97757"/>
+<text x="809.49" y="804" font-size="13" font-weight="700" fill="#d97757">99.9%</text>
+<text x="222" y="842" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">ERNIE 5.1</text>
+<text x="222" y="856" text-anchor="end" font-size="10.5" fill="#9ca3af">ERNIE</text>
+<line x1="236" y1="837" x2="796" y2="837" stroke="#2932e1" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="796" cy="837" r="7" fill="#2932e1"/>
+<text x="810" y="842" font-size="13" font-weight="700" fill="#2932e1">100.0%</text>
+<text x="222" y="880" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Doubao Seed 2.0 Lite</text>
+<text x="222" y="894" text-anchor="end" font-size="10.5" fill="#9ca3af">Doubao</text>
+<line x1="236" y1="875" x2="796" y2="875" stroke="#1664ff" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="796" cy="875" r="7" fill="#1664ff"/>
+<text x="810" y="880" font-size="13" font-weight="700" fill="#1664ff">100.0%</text>
+<text x="222" y="918" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Doubao Seed 2.0 Pro</text>
+<text x="222" y="932" text-anchor="end" font-size="10.5" fill="#9ca3af">Doubao</text>
+<line x1="236" y1="913" x2="796" y2="913" stroke="#1664ff" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="796" cy="913" r="7" fill="#1664ff"/>
+<text x="810" y="918" font-size="13" font-weight="700" fill="#1664ff">100.0%</text>
+<text x="222" y="956" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Gemini 3.1 Pro</text>
+<text x="222" y="970" text-anchor="end" font-size="10.5" fill="#9ca3af">Google</text>
+<line x1="236" y1="951" x2="796" y2="951" stroke="#4285f4" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="796" cy="951" r="7" fill="#4285f4"/>
+<text x="810" y="956" font-size="13" font-weight="700" fill="#4285f4">100.0%</text>
+<text x="222" y="994" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Gemini 3.5 Flash</text>
+<text x="222" y="1008" text-anchor="end" font-size="10.5" fill="#9ca3af">Google</text>
+<line x1="236" y1="989" x2="796" y2="989" stroke="#4285f4" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="796" cy="989" r="7" fill="#4285f4"/>
+<text x="810" y="994" font-size="13" font-weight="700" fill="#4285f4">100.0%</text>
+<text x="222" y="1032" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">GPT-5.5 Instant</text>
+<text x="222" y="1046" text-anchor="end" font-size="10.5" fill="#9ca3af">OpenAI</text>
+<line x1="236" y1="1027" x2="796" y2="1027" stroke="#10a37f" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="796" cy="1027" r="7" fill="#10a37f"/>
+<text x="810" y="1032" font-size="13" font-weight="700" fill="#10a37f">100.0%</text>
+<text x="222" y="1070" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Qwen3.7 Max</text>
+<text x="222" y="1084" text-anchor="end" font-size="10.5" fill="#9ca3af">Qwen</text>
+<line x1="236" y1="1065" x2="796" y2="1065" stroke="#7b5cff" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="796" cy="1065" r="7" fill="#7b5cff"/>
+<text x="810" y="1070" font-size="13" font-weight="700" fill="#7b5cff">100.0%</text>
+<text x="222" y="1108" text-anchor="end" font-size="14" font-weight="600" fill="#16161a">Grok 4.3</text>
+<text x="222" y="1122" text-anchor="end" font-size="10.5" fill="#9ca3af">xAI</text>
+<line x1="236" y1="1103" x2="796" y2="1103" stroke="#52525b" stroke-width="3" stroke-opacity="0.45"/>
+<circle cx="796" cy="1103" r="7" fill="#52525b"/>
+<text x="810" y="1108" font-size="13" font-weight="700" fill="#52525b">100.0%</text>
+</svg>

@@ -16,7 +16,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { esc, FIG_DIR, loadGraph, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
+import { esc, FIG_DIR, L, loadGraph, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
 
 interface Stats {
   imitationDegree: { vendor: string; inDeg: number; outDeg: number; net: number }[];
@@ -47,9 +47,9 @@ function main() {
   const height = padTop + rows.length * (rowH + gap) + padBottom;
 
   const parts: string[] = [];
-  parts.push(`<text x="${padX}" y="46" font-size="30" font-weight="700" fill="#16161a">关系图里的入边与出边</text>`);
+  parts.push(`<text x="${padX}" y="46" font-size="30" font-weight="700" fill="#16161a">${esc(L("关系图里的入边与出边", "In- and out-edges in the relationship graph"))}</text>`);
   parts.push(
-    `<text x="${padX}" y="76" font-size="16" fill="#6b7280">In- vs. out-degree · 数关系图里的箭头：不论冒认多少次，每对厂商只记 1 条边 · 按净边数排序</text>`,
+    `<text x="${padX}" y="76" font-size="16" fill="#6b7280">${esc(L("In- vs. out-degree · 数关系图里的箭头：不论冒认多少次，每对厂商只记 1 条边 · 按净边数排序", "In- vs. out-degree · count the arrows: each vendor pair is one edge no matter how often it fired · sorted by net degree"))}</text>`,
   );
 
   const plotTop = padTop - 10;
@@ -68,10 +68,10 @@ function main() {
 
   parts.push(`<line x1="${axisX}" y1="${plotTop}" x2="${axisX}" y2="${plotBot}" stroke="#9aa0a6" stroke-width="1.5"/>`);
   parts.push(
-    `<text x="${axisX - 8}" y="${padTop - 26}" text-anchor="end" font-size="14" font-weight="700" fill="${OUT_DEG}">◀ 出边 出度 out-degree</text>`,
+    `<text x="${axisX - 8}" y="${padTop - 26}" text-anchor="end" font-size="14" font-weight="700" fill="${OUT_DEG}">${esc(L("◀ 出边 出度 out-degree", "◀ out-degree"))}</text>`,
   );
   parts.push(
-    `<text x="${axisX + 8}" y="${padTop - 26}" text-anchor="start" font-size="14" font-weight="700" fill="${IN_DEG}">入边 入度 in-degree ▶</text>`,
+    `<text x="${axisX + 8}" y="${padTop - 26}" text-anchor="start" font-size="14" font-weight="700" fill="${IN_DEG}">${esc(L("入边 入度 in-degree ▶", "in-degree ▶"))}</text>`,
   );
 
   rows.forEach((row, i) => {
@@ -122,10 +122,10 @@ function main() {
 
   const ly = padTop + rows.length * (rowH + gap) + 34;
   parts.push(
-    `<text x="${padX}" y="${ly}" font-size="13" fill="#6b7280">入度 = 有多少个不同厂商曾自称为它；出度 = 它的模型曾自称为多少个不同的真实厂商。每对厂商至多计 1 条边。</text>`,
+    `<text x="${padX}" y="${ly}" font-size="13" fill="#6b7280">${esc(L("入度 = 有多少个不同厂商曾自称为它；出度 = 它的模型曾自称为多少个不同的真实厂商。每对厂商至多计 1 条边。", "in-degree = how many distinct vendors ever claimed to be it; out-degree = how many distinct real vendors its models claimed to be. Each vendor pair counts at most one edge."))}</text>`,
   );
   parts.push(
-    `<text x="${padX}" y="${ly + 22}" font-size="13" fill="#9ca3af">仅统计关系图中的规范厂商节点之间的有向边（不含被记为 other 的一次性外部品牌）。与上一张“按次数”图对照：次数看“多响”，边数看“多散”。</text>`,
+    `<text x="${padX}" y="${ly + 22}" font-size="13" fill="#9ca3af">${esc(L("仅统计关系图中的规范厂商节点之间的有向边（不含被记为 other 的一次性外部品牌）。与上一张“按次数”图对照：次数看“多响”，边数看“多散”。", "Only directed edges between canonical vendor nodes (excludes one-off external brands logged as other). Contrast with the by-count chart: count says “how loud”, degree says “how scattered”."))}</text>`,
   );
 
   const svg = svgRoot(width, height, parts.join("\n"));

@@ -1,0 +1,99 @@
+% =============================================================================
+% Preamble for the ENGLISH edition of the "Who Are You?" research report.
+% Compiles with either pdfLaTeX or XeLaTeX — unlike the Chinese edition it needs
+% no CJK stack (ctex/xeCJK/fandol), since every figure is a pre-rasterized PNG and
+% all in-document text is Latin. This keeps the English build maximally portable.
+% =============================================================================
+
+% ---- Encoding + fonts. ------------------------------------------------------
+% inputenc must NOT be loaded under XeLaTeX/LuaLaTeX (they are natively UTF-8 and
+% inputenc would mis-decode bytes like U+00B7 "·" into garbage). Load it only on
+% pdfLaTeX, so the same preamble compiles cleanly on either engine.
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\fi
+\usepackage{lmodern}
+
+% ---- Page geometry: a roomy single-column preprint look. -------------------
+\usepackage[a4paper,margin=2.5cm,headheight=14pt]{geometry}
+
+% ---- Math, symbols, tables. ------------------------------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}      % \toprule/\midrule/\bottomrule — the three-line tables
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{tabularx}
+\usepackage{pdflscape}     % rotate the wide per-model / heatmap pages to landscape
+\usepackage{longtable}
+
+% ---- Figures + captions. ---------------------------------------------------
+\usepackage{graphicx}
+\graphicspath{{figures_en/}}   % the English figure set (figures_en/, not figures/)
+\usepackage{float}
+\usepackage[font=small,labelfont=bf,labelsep=period]{caption}
+\usepackage{subcaption}
+
+% ---- Lists, spacing, microtypography. --------------------------------------
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=4pt,parsep=0pt}
+\usepackage{microtype}
+
+% ---- Color palette (kept close to the study's brand inks). -----------------
+\usepackage{xcolor}
+\definecolor{ink}{HTML}{16161A}
+\definecolor{accent}{HTML}{C0392B}   % the "confusion" red used in the figures
+\definecolor{sepia}{HTML}{6B7280}
+\definecolor{linkblue}{HTML}{2563EB}
+\definecolor{rulegray}{HTML}{D8DBE0}
+
+% ---- Headings: tighter, sans-ish weight for an arXiv-preprint feel. --------
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries\color{ink}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\large\bfseries\color{ink}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{ink}}{\thesubsubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.4em}{0.6em}
+
+% ---- Running header / footer. ----------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{sepia}Who Are You? \textperiodcentered{} Cross-Vendor Identity Confusion}
+\fancyhead[R]{\small\color{sepia}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ---- A boxed "key finding" callout, reused throughout the results. ---------
+% Ported verbatim from the Chinese edition: needs only xcolor (no tcolorbox/
+% mdframed). A tinted panel with a thick left accent rule and an inline bold title.
+\newsavebox{\findingbox}
+\newenvironment{finding}[1][Finding]%
+  {\par\smallskip\noindent
+   \begin{lrbox}{\findingbox}%
+   \begin{minipage}{\dimexpr\linewidth-2.4em\relax}%
+   \smallskip{\bfseries\color{accent}#1.\ }\ignorespaces}%
+  {\smallskip\end{minipage}\end{lrbox}%
+   {\color{accent!8}\rule[-0.4ex]{0.35em}{\dimexpr\ht\findingbox+\dp\findingbox\relax}}%
+   \hspace{-0.35em}%
+   {\color{accent}\rule[-0.4ex]{0.18em}{\dimexpr\ht\findingbox+\dp\findingbox\relax}}%
+   \colorbox{accent!5}{\usebox{\findingbox}}\par\smallskip}
+
+% ---- Hyperlinks (loaded late). ---------------------------------------------
+\usepackage[colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue]{hyperref}
+\usepackage{footmisc}
+
+% ---- Inline helper macros. -------------------------------------------------
+% A compact percentage that keeps prose readable: \pc{12.9} -> 12.9%
+\newcommand{\pc}[1]{#1\,\%}
+% A model/vendor name set in upright sans inside the prose.
+\newcommand{\name}[1]{\textsf{#1}}
+
+% A long model id in typewriter that may wrap at slashes/colons but never mid-token,
+% e.g. \modelid{anthropic}{/claude-opus-4.8}{:anthropic}.
+\newcommand{\modelid}[3]{\texttt{#1\allowbreak#2\allowbreak#3}}
+
+% Pull in the auto-generated headline macros (\statTotal, \statCross, ...) — the
+% ENGLISH copy under tables_en/ (language names already in English).
+\input{tables_en/macros.tex}

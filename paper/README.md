@@ -1,25 +1,55 @@
 # 「你是谁？」研究报告 — LaTeX 工程
 
-A reproducible, arXiv-style Chinese research report for the study **"Who Are You? —
+A reproducible, arXiv-style research report for the study **"Who Are You? —
 Cross-Vendor Identity Confusion in Frontier LLMs."** Every number, figure, and table is
 derived from a single source of truth — the pooled mix aggregate at
 `results/who-are-you/mix-20260601T062425/aggregate.json` (29,700 answers).
 
+**Two language editions** build from the same data and the same scripts, switched by a
+single `PAPER_LANG` env flag:
+
+| Edition | Build | Source | Figures | Tables | Output |
+|---|---|---|---|---|---|
+| 中文 (default) | `bash paper/build.sh` | `main.tex` + `preamble.tex` (`ctexart`+fandol) | `figures/` | `tables/` | `main.pdf` |
+| English | `bash paper/build_en.sh` | `main_en.tex` + `preamble_en.tex` (`article`) | `figures_en/` | `tables_en/` | `main_en.pdf` |
+
+The English edition uses the standard `article` class (no CJK stack — every figure is a
+pre-rasterized PNG and all in-document text is Latin), so it compiles with **either**
+`xelatex` (default) or `pdflatex` (`TEX_ENGINE=pdflatex bash paper/build_en.sh`).
+
 ## 一键构建 / Build
 
 ```bash
-bash paper/build.sh        # regenerate figures+tables, then compile main.pdf (XeLaTeX ×2)
+bash paper/build.sh        # 中文: regenerate figures+tables, compile main.pdf (XeLaTeX ×2)
+bash paper/build_en.sh     # English: PAPER_LANG=en regenerate + compile main_en.pdf
 ```
 
-The script prepends `/Library/TeX/texbin` to `PATH` (where BasicTeX installs `xelatex`),
-regenerates all artifacts, and compiles twice to resolve cross-references. Output: `paper/main.pdf`.
+The scripts prepend `/Library/TeX/texbin` to `PATH` (where BasicTeX installs `xelatex`),
+regenerate all artifacts, and compile twice to resolve cross-references.
 
 ### 手动分步 / Manual steps
 
 ```bash
-npx tsx paper/scripts/build_all.ts          # 1. stats.json -> figures (PNG/SVG) + LaTeX tables
+# 中文 (default):
+npx tsx paper/scripts/build_all.ts          # 1. stats.json -> figures/ (PNG/SVG) + tables/
 cd paper && xelatex main.tex && xelatex main.tex   # 2. compile twice
+
+# English (PAPER_LANG=en forks every artifact into figures_en/ + tables_en/):
+PAPER_LANG=en npx tsx paper/scripts/build_all.ts
+cd paper && xelatex main_en.tex && xelatex main_en.tex
 ```
+
+### 语言分叉 / How the language fork works
+
+`stats.json` is **language-independent** (pure numbers + vendor/lang *codes*), so it stays
+canonical in `figures/` and both editions read it — a chart and a table can never disagree
+*across languages either*. Only the **rendering** layer is language-aware:
+`figlib.ts` exposes `LANG` (from `PAPER_LANG`), an `L(zh, en)` string picker, `OUT_DIR`
+(figures → `figures_en/`), and `LANG_EN` (ISO code → English language name); `gen_tables.ts`
+forks `tables/` → `tables_en/` the same way. The flagship relationship graph
+(`fig_graph.png`) is already English (it is the studio's WYSIWYG export), so the same PNG
+serves both editions. The English heatmap rotates its (wider) language column headers
+diagonally to fit.
 
 ## 工程结构 / Layout
 

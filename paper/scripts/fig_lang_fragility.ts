@@ -13,7 +13,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { esc, FIG_DIR, loadGraph, modelLabels, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
+import { esc, FIG_DIR, L, loadGraph, modelLabels, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
 
 interface Stats {
   langFragility: {
@@ -52,9 +52,9 @@ function main() {
   const height = padTop + rows.length * (rowH + gap) + padBottom;
 
   const parts: string[] = [];
-  parts.push(`<text x="${padX}" y="46" font-size="30" font-weight="700" fill="#16161a">身份的语言脆弱性</text>`);
+  parts.push(`<text x="${padX}" y="46" font-size="30" font-weight="700" fill="#16161a">${esc(L("身份的语言脆弱性", "Language fragility of self-identity"))}</text>`);
   parts.push(
-    `<text x="${padX}" y="76" font-size="16" fill="#6b7280">Per-model self-ID span across 10 languages · 哑铃越长，身份越随语言摇摆 · 颜色=真实厂商</text>`,
+    `<text x="${padX}" y="76" font-size="16" fill="#6b7280">${esc(L("Per-model self-ID span across 10 languages · 哑铃越长，身份越随语言摇摆 · 颜色=真实厂商", "Per-model self-ID span across 10 languages · longer dumbbell = identity swings more with language · color = true vendor"))}</text>`,
   );
 
   // x gridlines
@@ -110,11 +110,11 @@ function main() {
   // legend
   const ly = padTop + rows.length * (rowH + gap) + 34;
   parts.push(`<circle cx="${padX + 6}" cy="${ly - 4}" r="5.5" fill="#ffffff" stroke="#6b7280" stroke-width="2"/>`);
-  parts.push(`<text x="${padX + 18}" y="${ly}" font-size="13" fill="#374151">最弱语言 worst language</text>`);
+  parts.push(`<text x="${padX + 18}" y="${ly}" font-size="13" fill="#374151">${esc(L("最弱语言 worst language", "worst language (hollow)"))}</text>`);
   parts.push(`<circle cx="${padX + 210}" cy="${ly - 4}" r="6" fill="#6b7280"/>`);
-  parts.push(`<text x="${padX + 222}" y="${ly}" font-size="13" fill="#374151">最强语言 best language</text>`);
+  parts.push(`<text x="${padX + 222}" y="${ly}" font-size="13" fill="#374151">${esc(L("最强语言 best language", "best language (filled)"))}</text>`);
   parts.push(`<line x1="${padX + 410}" y1="${ly - 10}" x2="${padX + 410}" y2="${ly + 2}" stroke="#6b7280" stroke-width="1.5"/>`);
-  parts.push(`<text x="${padX + 420}" y="${ly}" font-size="13" fill="#374151">跨语言均值 mean</text>`);
+  parts.push(`<text x="${padX + 420}" y="${ly}" font-size="13" fill="#374151">${esc(L("跨语言均值 mean", "cross-language mean"))}</text>`);
 
   const svg = svgRoot(width, height, parts.join("\n"));
   fs.mkdirSync(FIG_DIR, { recursive: true });

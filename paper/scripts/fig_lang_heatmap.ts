@@ -13,6 +13,9 @@ import {
   FIG_DIR,
   esc,
   heatColor,
+  L,
+  LANG,
+  LANG_EN,
   loadGraph,
   modelVendors,
   r2,
@@ -34,8 +37,11 @@ function main() {
   const names = vendorNames(g);
   const gtVendor = modelVendors(g);
   const langOrder = g.languages.map((l) => l.code);
+  // Column header per language: native name (简体中文 / 日本語 / Русский …) in the
+  // Chinese build, English name (Chinese (Simpl.) / Japanese / Russian …) in the
+  // English build — so an EN reader never meets a CJK/Cyrillic column header.
   const langName: Record<string, string> = {};
-  for (const l of g.languages) langName[l.code] = l.name;
+  for (const l of g.languages) langName[l.code] = LANG === "en" ? (LANG_EN[l.code] ?? l.name) : l.name;
 
   // gid -> (vendor, lang)
   const rec = new Map<string, { vendor: string; lang: string }>();
@@ -94,28 +100,39 @@ function main() {
     .sort((a, b) => b.rate - a.rate)
     .map((x) => x.lc);
 
-  // Layout
+  // Layout. English language names (e.g. "Portuguese", "Chinese (Simpl.)") are far
+  // wider than the native CJK headers that fit a 56px column, so the English build
+  // rotates the column headers diagonally and needs extra header height to clear them.
   const cell = 56;
   const labelW = 150;
-  const headH = 132;
+  const headH = LANG === "en" ? 168 : 132;
   const padX = 36;
   const padBottom = 80;
   const width = padX * 2 + labelW + langCols.length * cell + 40;
   const height = headH + vendorRows.length * cell + padBottom;
 
   const parts: string[] = [];
-  parts.push(`<text x="${padX}" y="44" font-size="30" font-weight="700" fill="#16161a">语言 × 厂商 的跨厂混淆率</text>`);
+  parts.push(`<text x="${padX}" y="44" font-size="30" font-weight="700" fill="#16161a">${esc(L("语言 × 厂商 的跨厂混淆率", "Cross-vendor confusion rate, vendor × language"))}</text>`);
   parts.push(
-    `<text x="${padX}" y="74" font-size="16" fill="#6b7280">Cross-vendor confusion rate, vendor × language · 颜色越深越易混淆</text>`,
+    `<text x="${padX}" y="74" font-size="16" fill="#6b7280">${esc(L("Cross-vendor confusion rate, vendor × language · 颜色越深越易混淆", "Rows = true vendor, columns = language · darker = more confusion"))}</text>`,
   );
 
   const gx = padX + labelW;
-  // column headers
+  // column headers — centered native names (ZH) or diagonally rotated English names
+  // so the wider Latin labels don't overrun the 56px columns.
   langCols.forEach((lc, j) => {
     const x = gx + j * cell + cell / 2;
-    parts.push(
-      `<text x="${r2(x)}" y="${headH - 12}" text-anchor="middle" font-size="14" font-weight="600" fill="#374151">${esc(langName[lc])}</text>`,
-    );
+    if (LANG === "en") {
+      const anchorX = r2(x);
+      const anchorY = headH - 10;
+      parts.push(
+        `<text x="${anchorX}" y="${anchorY}" transform="rotate(-35 ${anchorX} ${anchorY})" text-anchor="start" font-size="13" font-weight="600" fill="#374151">${esc(langName[lc])}</text>`,
+      );
+    } else {
+      parts.push(
+        `<text x="${r2(x)}" y="${headH - 12}" text-anchor="middle" font-size="14" font-weight="600" fill="#374151">${esc(langName[lc])}</text>`,
+      );
+    }
   });
 
   // rows
@@ -142,7 +159,7 @@ function main() {
 
   // colorbar legend
   const ly = headH + vendorRows.length * cell + 34;
-  parts.push(`<text x="${padX}" y="${ly + 4}" font-size="13" fill="#6b7280">混淆率 %:</text>`);
+  parts.push(`<text x="${padX}" y="${ly + 4}" font-size="13" fill="#6b7280">${esc(L("混淆率 %:", "confusion %:"))}</text>`);
   const barX = padX + 90;
   const barW = 240;
   const steps = 40;
@@ -153,7 +170,7 @@ function main() {
   for (const [t, lbl] of [[0, "0"], [0.5, "25"], [0.71, "50"], [1, "100"]] as [number, string][]) {
     parts.push(`<text x="${r2(barX + t * barW)}" y="${ly + 22}" text-anchor="middle" font-size="11" fill="#9ca3af">${lbl}</text>`);
   }
-  parts.push(`<text x="${barX + barW + 30}" y="${ly + 4}" font-size="12" fill="#9ca3af">(颜色按 √ 标度，放大低值)</text>`);
+  parts.push(`<text x="${barX + barW + 30}" y="${ly + 4}" font-size="12" fill="#9ca3af">${esc(L("(颜色按 √ 标度，放大低值)", "(color on a √ scale to amplify low values)"))}</text>`);
 
   const svg = svgRoot(width, height, parts.join("\n"));
   writeSvg(svg, "fig_lang_heatmap.svg");

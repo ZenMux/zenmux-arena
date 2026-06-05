@@ -13,7 +13,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { esc, FIG_DIR, loadGraph, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
+import { esc, FIG_DIR, L, loadGraph, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
 
 interface Stats {
   imitationBalance: { vendor: string; imitated: number; imitates: number; net: number }[];
@@ -49,9 +49,9 @@ function main() {
   const height = padTop + rows.length * (rowH + gap) + padBottom;
 
   const parts: string[] = [];
-  parts.push(`<text x="${padX}" y="46" font-size="30" font-weight="700" fill="#16161a">谁被模仿，谁在模仿</text>`);
+  parts.push(`<text x="${padX}" y="46" font-size="30" font-weight="700" fill="#16161a">${esc(L("谁被模仿，谁在模仿", "Who imitates whom"))}</text>`);
   parts.push(
-    `<text x="${padX}" y="76" font-size="16" fill="#6b7280">Identity creditors vs. debtors · 厂商被冒认（右）与冒认他人（左）· 按净值排序</text>`,
+    `<text x="${padX}" y="76" font-size="16" fill="#6b7280">${esc(L("Identity creditors vs. debtors · 厂商被冒认（右）与冒认他人（左）· 按净值排序", "Identity creditors vs. debtors · imitated (right) vs. imitates others (left) · sorted by net"))}</text>`,
   );
 
   // Axis line + side captions
@@ -59,10 +59,10 @@ function main() {
   const plotBot = padTop + rows.length * (rowH + gap) - gap + 10;
   parts.push(`<line x1="${axisX}" y1="${plotTop}" x2="${axisX}" y2="${plotBot}" stroke="#9aa0a6" stroke-width="1.5"/>`);
   parts.push(
-    `<text x="${axisX - 8}" y="${padTop - 22}" text-anchor="end" font-size="14" font-weight="700" fill="${IMITATES}">◀ 冒认他人 imitates</text>`,
+    `<text x="${axisX - 8}" y="${padTop - 22}" text-anchor="end" font-size="14" font-weight="700" fill="${IMITATES}">${esc(L("◀ 冒认他人 imitates", "◀ imitates others"))}</text>`,
   );
   parts.push(
-    `<text x="${axisX + 8}" y="${padTop - 22}" text-anchor="start" font-size="14" font-weight="700" fill="${IMITATED}">被冒认 imitated ▶</text>`,
+    `<text x="${axisX + 8}" y="${padTop - 22}" text-anchor="start" font-size="14" font-weight="700" fill="${IMITATED}">${esc(L("被冒认 imitated ▶", "imitated ▶"))}</text>`,
   );
 
   rows.forEach((row, i) => {
@@ -113,10 +113,10 @@ function main() {
   // footer note + legend
   const ly = padTop + rows.length * (rowH + gap) + 48;
   parts.push(
-    `<text x="${padX}" y="${ly}" font-size="13" fill="#6b7280">净值 net = 被冒认次数 − 冒认他人次数；正=身份“被借用”的引力中心，负=频繁借用他人身份。</text>`,
+    `<text x="${padX}" y="${ly}" font-size="13" fill="#6b7280">${esc(L("净值 net = 被冒认次数 − 冒认他人次数；正=身份“被借用”的引力中心，负=频繁借用他人身份。", "net = times imitated − times imitating others; positive = a gravity center whose identity is “borrowed”, negative = a frequent borrower."))}</text>`,
   );
   parts.push(
-    `<text x="${padX}" y="${ly + 22}" font-size="13" fill="#9ca3af">“冒认他人”含被提取器记为 other 的外部品牌（如 Microsoft、Yandex）；仅真实厂商可作为“被冒认”目标。</text>`,
+    `<text x="${padX}" y="${ly + 22}" font-size="13" fill="#9ca3af">${esc(L("“冒认他人”含被提取器记为 other 的外部品牌（如 Microsoft、Yandex）；仅真实厂商可作为“被冒认”目标。", "“imitates others” includes external brands the extractor logged as other (e.g. Microsoft, Yandex); only real tested vendors can be an “imitated” target."))}</text>`,
   );
 
   const svg = svgRoot(width, height, parts.join("\n"));

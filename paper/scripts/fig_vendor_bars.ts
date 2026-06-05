@@ -7,7 +7,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { esc, FIG_DIR, loadGraph, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
+import { esc, FIG_DIR, L, LANG, loadGraph, r2, svgRoot, vendorColor, vendorNames, writePng, writeSvg } from "./figlib";
 
 interface Stats {
   byVendor: Record<string, { n: number; self: number; cross: number; refused: number; unknown: number }>;
@@ -43,10 +43,10 @@ function main() {
   const parts: string[] = [];
   // Title
   parts.push(
-    `<text x="${padX}" y="44" font-size="30" font-weight="700" fill="#16161a">每个厂商的身份自指构成</text>`,
+    `<text x="${padX}" y="44" font-size="30" font-weight="700" fill="#16161a">${esc(L("每个厂商的身份自指构成", "Per-vendor identity outcome composition"))}</text>`,
   );
   parts.push(
-    `<text x="${padX}" y="74" font-size="16" fill="#6b7280">Per-vendor outcome composition · 按自指率升序 · n=${g.summary.totalAnswers} answers</text>`,
+    `<text x="${padX}" y="74" font-size="16" fill="#6b7280">${esc(L(`Per-vendor outcome composition · 按自指率升序 · n=${g.summary.totalAnswers} answers`, `Per-vendor outcome composition · sorted by self-ID rate ascending · n=${g.summary.totalAnswers} answers`))}</text>`,
   );
 
   const x0 = padX + labelW;
@@ -95,16 +95,17 @@ function main() {
   // Legend
   const ly = padTop + rows.length * (rowH + gap) + 28;
   const legend: [string, string][] = [
-    ["自指 self (claims its own vendor)", "#3b6fb0"],
-    ["跨厂混淆 cross-vendor", SEG.cross],
-    ["拒答 refused", SEG.refused],
-    ["无身份 unknown", SEG.unknown],
+    [L("自指 self (claims its own vendor)", "self (claims its own vendor)"), "#3b6fb0"],
+    [L("跨厂混淆 cross-vendor", "cross-vendor"), SEG.cross],
+    [L("拒答 refused", "refused"), SEG.refused],
+    [L("无身份 unknown", "unknown"), SEG.unknown],
   ];
   let lx = padX;
   for (const [text, color] of legend) {
     parts.push(`<rect x="${lx}" y="${ly - 12}" width="16" height="16" fill="${color}" rx="2"/>`);
     parts.push(`<text x="${lx + 22}" y="${ly}" font-size="14" fill="#374151">${esc(text)}</text>`);
-    lx += 46 + text.length * 7.6;
+    // ZH advance formula kept verbatim; EN uses an all-Latin estimate.
+    lx += LANG === "en" ? 40 + text.length * 8 : 46 + text.length * 7.6;
   }
 
   const svg = svgRoot(width, height, parts.join("\n"));
