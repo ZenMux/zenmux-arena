@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="934" height="1006" viewBox="0 0 934 1006" font-family="Noto Sans SC, Helvetica, Arial, sans-serif">
+<rect width="934" height="1006" fill="#ffffff"/>
+<text x="40" y="46" font-size="30" font-weight="700" fill="#16161a">关系图里的入边与出边</text>
+<text x="40" y="76" font-size="16" fill="#6b7280">In- vs. out-degree · 数关系图里的箭头：不论冒认多少次，每对厂商只记 1 条边 · 按净边数排序</text>
+<line x1="460.77" y1="110" x2="460.77" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="460.77" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">2</text>
+<line x1="559.23" y1="110" x2="559.23" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="559.23" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">2</text>
+<line x1="411.54" y1="110" x2="411.54" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="411.54" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">4</text>
+<line x1="608.46" y1="110" x2="608.46" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="608.46" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">4</text>
+<line x1="362.31" y1="110" x2="362.31" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="362.31" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">6</text>
+<line x1="657.69" y1="110" x2="657.69" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="657.69" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">6</text>
+<line x1="313.08" y1="110" x2="313.08" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="313.08" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">8</text>
+<line x1="706.92" y1="110" x2="706.92" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="706.92" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">8</text>
+<line x1="263.85" y1="110" x2="263.85" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="263.85" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">10</text>
+<line x1="756.15" y1="110" x2="756.15" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="756.15" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">10</text>
+<line x1="214.62" y1="110" x2="214.62" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="214.62" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">12</text>
+<line x1="805.38" y1="110" x2="805.38" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="805.38" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">12</text>
+<line x1="165.38" y1="110" x2="165.38" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="165.38" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">14</text>
+<line x1="854.62" y1="110" x2="854.62" y2="918" stroke="#f0f1f3" stroke-width="1"/>
+<text x="854.62" y="104" text-anchor="middle" font-size="10.5" fill="#b8bdc4">14</text>
+<line x1="510" y1="110" x2="510" y2="918" stroke="#9aa0a6" stroke-width="1.5"/>
+<text x="502" y="94" text-anchor="end" font-size="14" font-weight="700" fill="#c0392b">◀ 出边 出度 out-degree</text>
+<text x="518" y="94" text-anchor="start" font-size="14" font-weight="700" fill="#2f6fb0">入边 入度 in-degree ▶</text>
+<text x="176" y="139" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#10a37f">OpenAI</text>
+<rect x="510" y="126" width="221.54" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="139" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">9</text>
+<text x="894" y="139" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#2f6fb0">+9</text>
+<text x="176" y="189" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#4285f4">Google</text>
+<rect x="510" y="176" width="147.69" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="189" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">6</text>
+<text x="894" y="189" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#2f6fb0">+6</text>
+<text x="176" y="239" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#d97757">Anthropic</text>
+<rect x="436.15" y="226" width="73.85" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="239" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
+<rect x="510" y="226" width="196.92" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="239" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">8</text>
+<text x="894" y="239" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#2f6fb0">+5</text>
+<text x="176" y="289" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#7b5cff">Qwen</text>
+<rect x="510" y="276" width="123.08" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="289" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">5</text>
+<text x="894" y="289" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#2f6fb0">+5</text>
+<text x="176" y="339" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#52525b">xAI</text>
+<rect x="510" y="326" width="73.85" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="339" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
+<text x="894" y="339" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#2f6fb0">+3</text>
+<text x="176" y="389" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#111827">Moonshot</text>
+<rect x="510" y="376" width="49.23" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="389" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+<text x="894" y="389" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#2f6fb0">+2</text>
+<text x="176" y="439" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#ff6900">Xiaomi</text>
+<rect x="485.38" y="426" width="24.62" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="439" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+<rect x="510" y="426" width="49.23" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="439" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+<text x="894" y="439" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#2f6fb0">+1</text>
+<text x="176" y="489" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#2932e1">ERNIE</text>
+<rect x="510" y="476" width="24.62" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="489" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+<text x="894" y="489" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#2f6fb0">+1</text>
+<text x="176" y="539" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#1664ff">Doubao</text>
+<rect x="411.54" y="526" width="98.46" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="539" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">4</text>
+<rect x="510" y="526" width="73.85" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="539" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
+<text x="894" y="539" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#c0392b">-1</text>
+<text x="176" y="589" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#4d6bfe">DeepSeek</text>
+<rect x="337.69" y="576" width="172.31" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="589" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">7</text>
+<rect x="510" y="576" width="123.08" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="589" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">5</text>
+<text x="894" y="589" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#c0392b">-2</text>
+<text x="176" y="639" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#1a73e8">z-ai</text>
+<rect x="411.54" y="626" width="98.46" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="639" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">4</text>
+<rect x="510" y="626" width="49.23" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="639" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+<text x="894" y="639" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#c0392b">-2</text>
+<text x="176" y="689" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#ff2d6f">MiniMax</text>
+<rect x="411.54" y="676" width="98.46" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="689" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">4</text>
+<rect x="510" y="676" width="24.62" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="689" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+<text x="894" y="689" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#c0392b">-3</text>
+<text x="176" y="739" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#3b82f6">inclusionAI</text>
+<rect x="436.15" y="726" width="73.85" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="739" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
+<text x="894" y="739" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#c0392b">-3</text>
+<text x="176" y="789" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#ff6200">Kwai</text>
+<rect x="263.85" y="776" width="246.15" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="789" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">10</text>
+<text x="894" y="789" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#c0392b">-10</text>
+<text x="176" y="839" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#005bff">StepFun</text>
+<rect x="263.85" y="826" width="246.15" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="839" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">10</text>
+<text x="894" y="839" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#c0392b">-10</text>
+<text x="176" y="889" text-anchor="end" dominant-baseline="middle" font-size="16" font-weight="600" fill="#2d7ff9">Tencent</text>
+<rect x="190" y="876" width="320" height="26" fill="#c0392b" rx="2"/>
+<text x="502" y="889" text-anchor="end" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">13</text>
+<rect x="510" y="876" width="49.23" height="26" fill="#2f6fb0" rx="2"/>
+<text x="518" y="889" dominant-baseline="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+<text x="894" y="889" text-anchor="end" dominant-baseline="middle" font-size="15" font-weight="700" fill="#c0392b">-11</text>
+<text x="40" y="954" font-size="13" fill="#6b7280">入度 = 有多少个不同厂商曾自称为它；出度 = 它的模型曾自称为多少个不同的真实厂商。每对厂商至多计 1 条边。</text>
+<text x="40" y="976" font-size="13" fill="#9ca3af">仅统计关系图中的规范厂商节点之间的有向边（不含被记为 other 的一次性外部品牌）。与上一张“按次数”图对照：次数看“多响”，边数看“多散”。</text>
+</svg>

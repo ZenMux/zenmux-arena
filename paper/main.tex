@@ -27,13 +27,16 @@
 \statModels{} 个\emph{原厂指定}前沿模型，用 \statLangs{} 种语言、三种``身份诘问''变体反复提问，
 共收集到 \textbf{\statTotal{} 条}回答，再由一个独立的提取模型（\name{GPT-5.5}）将每条回答标注为
 它\emph{自称}所属的厂商。总体来看，模型在 \pc{\statSelf} 的回答中正确自指，
-\pc{\statCross} 出现\emph{跨厂商混淆}（自称为另一家真实厂商），\pc{\statRefused} 拒答，
-\pc{\statUnknown} 不给出身份。混淆远非均匀分布：它高度集中在少数厂商，且沿两条清晰的轴线放大——
-\textbf{提问强度}与\textbf{语言}。一个``去品牌''越狱式提问把跨厂混淆率从裸问的 \pc{\statBareCross}
-抬升到 \pc{\statDebrandCross}（近四倍）；法语、日语、西班牙语等语言下的混淆显著高于简体中文。
-被错认的目标也并非随机：混淆呈现强烈的指向性，\name{Anthropic} 与 \name{Google} 是最常被
-``冒认''的两个身份。我们在厂商与具体模型两个层级展开分析，并讨论这些结果对身份蒸馏、
-系统提示词覆盖与模型可信度评估的意义。
+\pc{\statCross} 出现\emph{跨厂商混淆}（自称为另一家真实厂商，共 \statTotalCross{} 条），
+\pc{\statRefused} 拒答，\pc{\statUnknown} 不给出身份。混淆远非均匀分布：它高度集中在少数厂商，
+且沿两条清晰的轴线放大——\textbf{提问强度}与\textbf{语言}。一个``去品牌''越狱式提问把跨厂混淆率
+从裸问的 \pc{\statBareCross} 抬升到 \pc{\statDebrandCross}（约 \emph{3.6 倍}）；法语、日语、
+西班牙语等语言下的混淆显著高于简体中文。被错认的目标也并非随机：混淆呈现强烈的\emph{指向性}——
+把每个厂商``被冒认''与``冒认他人''的次数相抵，\name{Anthropic}（净 \statAnthroNet{}）、
+\name{OpenAI}（\statOpenaiNet{}）、\name{Google}（\statGoogleNet{}）是净流入的``身份引力中心''，
+合占全部跨厂自称的 \pc{\statAnchorsShare}；而 \name{Tencent}（净 \statTencentNet{}）、
+\name{Doubao}（\statDoubaoNet{}）等则是净流出的``冒认者''。我们在厂商与具体模型两个层级展开分析，
+并讨论这些结果对身份蒸馏、系统提示词覆盖与模型可信度评估的意义。
 \par\medskip
 \noindent\textbf{关键词：} 大语言模型；身份认同；自我识别；跨厂商混淆；越狱提问；多语言评测；数据蒸馏
 \end{abstract}
@@ -61,16 +64,17 @@ ChatGPT''、``我是 Claude''这类\emph{身份陈述}一并灌入新模型的�
 
 由于大模型是\emph{概率性}生成的，单次提问的回答并不足以说明问题——一次``口误''可能只是采样
 噪声。我们的设计因此把\textbf{重复}放在核心位置：每个模型在每种语言、每种提问变体下被独立提问
-约 40 次，使得每个模型累计被问询约 1{,}100 次。在这一样本规模下，一个模型的自指率不再是轶事，
+30--40 次，使得每个模型累计被问询恰好 1{,}100 次。在这一样本规模下，一个模型的自指率不再是轶事，
 而是对其``身份认知''的一个稳定的频率估计。
 
 \paragraph{本文贡献。}
 （1）我们构建并公开了一个覆盖 \statVendors{} 家厂商、\statModels{} 个原厂前沿模型、\statLangs{}
 种语言、三种提问变体、共 \statTotal{} 条回答的大规模身份自指数据集；
 （2）我们提出并量化了身份混淆的\emph{两条放大轴}——提问强度（\S\ref{sec:variant}）与
-语言（\S\ref{sec:language}）；
-（3）我们在厂商级（\S\ref{sec:vendor-overall}）与模型级（\S\ref{sec:per-vendor}）刻画了混淆的
-\emph{指向性}，指出它高度非对称地流向少数``引力中心''厂商；
+语言（\S\ref{sec:language}），并在模型层面给出``语言脆弱性''指标（同一模型自指率的跨语言跨度）；
+（3）我们以\emph{身份净值}（被冒认减冒认他人）在厂商级刻画混淆的\emph{指向性}
+（\S\ref{sec:vendor-overall}），指出它高度非对称、近乎单向地流向少数``引力中心''厂商，
+并下钻到模型级（\S\ref{sec:per-vendor}）；
 （4）我们记录了若干鲜明的个案——包括一个厂商对身份问题近乎 \pc{100} 的拒答、以及``代码专用''
 子模型系统性地比同门兄弟更易暴露外部身份。
 
@@ -86,7 +90,7 @@ ChatGPT''、``我是 Claude''这类\emph{身份陈述}一并灌入新模型的�
 \]
 即每个模型被问询 $3\times 40\times 10 = 1{,}200$ 次。实际汇集到的、经完整性校验后纳入分析的样本为
 \textbf{\statTotal{} 条}（详见 \S\ref{sec:realized} 对名义与实得规模差异的说明），在 270 个
-``模型 $\times$ 语言''单元上均衡分布（每单元 110 条）。
+``模型 $\times$ 语言''单元上均衡分布（每单元 110 条、每模型 1{,}100 次）。
 
 \subsection{模型选取：原厂、前沿、指定 provider}\label{sec:models}
 所有 \statModels{} 个被测模型都是各厂商\emph{当前最新}的前沿模型，且在 ZenMux 上\textbf{显式指定原厂
@@ -164,9 +168,9 @@ re-host 的模型常被套上额外的系统提示词，会污染``模型原本�
 增补重复次数），再由一个\texttt{mix}步骤按全局唯一的生成 id 池化、并对重复序号重新编号，使合并结果
 在下游表现得与一次原生跑无异。因此：名义设计为每变体每语言 40 次、共 32{,}400 条；\emph{实得}并纳入
 分析的为 \statTotal{} 条，在 270 个单元上严格均衡（每单元 110 条、每模型 1{,}100 条）。三种变体的实得
-占比并不相等（裸问 14{,}040、去品牌 10{,}800、追问 4{,}860），这源于分阶段采集的历史。我们在按变体
-比较时\emph{始终在变体内部归一化}，故占比不均不影响 \S\ref{sec:variant} 的结论；但跨变体的绝对量
-差异提醒读者：追问变体的样本量最小，其厂商级细分应更谨慎解读。
+占比并不相等（裸问 \statBareN{}、追问 \statProbedN{}、去品牌 \statDebrandN{}），这源于分阶段采集的
+历史。我们在按变体比较时\emph{始终在变体内部归一化}，故占比不均不影响 \S\ref{sec:variant} 的结论；
+但跨变体的绝对量差异提醒读者：追问变体的样本量相对最小，其厂商级细分应更谨慎解读。
 
 % ===========================================================================
 \section{总体结果}\label{sec:overall}
@@ -197,14 +201,18 @@ re-host 的模型常被套上额外的系统提示词，会污染``模型原本�
 \centering
 \includegraphics[width=0.82\linewidth]{fig_variant_gradient.png}
 \caption{三种提问变体下的身份桶构成。随着提问从裸问走向去品牌越狱，自指率单调下降
-（\pc{\statBareSelf}~$\to$~\pc{\statDebrandSelf}），而跨厂混淆与拒答同时上升。每条柱在其变体
-内部归一化，故不受三变体样本量不等的影响。}
+（\pc{\statBareSelf}~$\to$~\pc{\statProbedSelf}~$\to$~\pc{\statDebrandSelf}），而跨厂混淆与拒答
+同时上升。每条柱在其变体内部归一化（裸问 $n=$\statBareN{}、追问 $n=$\statProbedN{}、
+去品牌 $n=$\statDebrandN{}），故不受三变体样本量不等的影响。}
 \label{fig:variant}
 \end{figure}
 
 图~\ref{fig:variant} 与表~\ref{tab:variant} 给出本文最干净的一个结果。三种变体构成一条单调梯度：
 裸问下跨厂混淆仅 \pc{\statBareCross}，追问升至 \pc{\statProbedCross}，去品牌越狱则跳到
-\pc{\statDebrandCross}——\textbf{接近裸问的四倍}。拒答率也同步从 \pc{2.6} 升到 \pc{7.9}。
+\pc{\statDebrandCross}——\textbf{约为裸问的 3.6 倍}。拒答率也同步从 \pc{1.0}（裸问）升到
+\pc{\statProbedRefused}（追问）、\pc{\statDebrandRefused}（去品牌）。值得注意的是，裸问下的
+\pc{6.2} 无身份（``我是一个 AI 助手''之类）在追问变体里几乎归零——追问把含蓄的回避逼成了
+明确的表态，部分转为正确自指，部分转为拒答或冒认。
 
 \begin{table}[H]
 \centering
@@ -247,7 +255,89 @@ re-host 的模型常被套上额外的系统提示词，会污染``模型原本�
 \input{tables/tab_lang.tex}
 \end{table}
 
-\subsection{厂商级总览：混淆的指向性}\label{sec:vendor-overall}
+\paragraph{语言脆弱性：同一个模型，换种语言换个身份。}
+语言效应在\emph{模型层面}比合并视图更触目惊心。图~\ref{fig:fragility} 为每个模型画一只``哑铃''：
+左端是它在\emph{最弱}语言下的自指率，右端是\emph{最强}语言下的自指率，中间的竖线为跨语言均值。
+哑铃越长，模型的身份就越随语言摇摆。结果两极分化：\name{Google}、\name{Qwen}、\name{xAI}、
+\name{Baidu} 等是一个个实心点——在 10 种语言里铁板一块地 \pc{100} 自指；而最脆弱的
+\name{\statFragModel} 横跨\emph{几乎整条轴}——在\statFragMinLang{}下仅 \pc{\statFragMin} 自指，
+到\statFragMaxLang{}却高达 \pc{\statFragMax}。换言之，对这些模型而言，``你是谁''的答案不是一个
+稳定事实，而是一个\emph{随输入语言切换}的生成结果。这与上文的母语优势相互印证：身份痕迹集中在
+厂商母语语料里，一旦离开母语，模型便更容易回退到预训练语料中最常见的那几个外部身份。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.86\linewidth]{fig_lang_fragility.png}
+\caption{每个模型自指率的\emph{跨语言跨度}（最弱语言$\to$最强语言），按跨度降序、按真实厂商着色；
+空心点为最弱语言、实心点为最强语言、竖线为均值。单点（如 \name{Gemini}、\name{Qwen}、\name{Grok}）
+表示 10 种语言下几乎不变；长哑铃（如 \name{\statFragModel}、\name{Doubao Seed 2.0 Code}、
+\name{GLM 5.1}）表示身份高度依赖语言。}
+\label{fig:fragility}
+\end{figure}
+
+\subsection{厂商级总览：谁被模仿，谁在模仿}\label{sec:vendor-overall}
+
+混淆的核心不在于``有多少''，而在于``流向谁''。为此我们为每个被测厂商计算两个量：它\emph{被冒认}
+的次数（别家模型自称为它）与它\emph{冒认他人}的次数（它自己的模型自称为另一家真实厂商，含被提取器
+记为 \texttt{other} 的外部品牌如 Microsoft、Yandex），二者相抵得到\textbf{身份净值}。图~\ref{fig:balance}
+把它画成一条双向发散条：正值（蓝、向右）是``身份债主''——被大量借用身份的引力中心；负值（红、向左）
+是``身份债务人''——频繁借用他人身份的厂商。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\linewidth]{fig_imitation_balance.png}
+\caption{厂商级身份净值：被冒认（右、蓝）减冒认他人（左、红），按净值排序。
+\name{Anthropic}（净 \statAnthroNet{}，被冒认 \statAnthroImitated{} 次而仅冒认他人 59 次）、
+\name{OpenAI}（\statOpenaiNet{}）、\name{Google}（\statGoogleNet{}）是三大净流入引力中心；
+\name{\statTopImitator}（净 \statTencentNet{}，冒认他人 \statTopImitatorOut{} 次）、
+\name{Doubao}（\statDoubaoNet{}）、\name{z-ai}（\statZaiNet{}）是最大的净流出冒认者。
+注意几乎没有厂商\emph{双向}都高——身份借用是一条近乎单向的河。}
+\label{fig:balance}
+\end{figure}
+
+这张图浓缩了全文最稳健的发现：\textbf{身份混淆是高度有向且近乎单向的}。三大引力中心
+\name{Anthropic}／\name{OpenAI}／\name{Google} 合计被冒认 \statAnthroImitated{}$+$460$+$413 次，
+占全部 \statTotalCross{} 条跨厂自称的 \pc{\statAnchorsShare}；而它们\emph{冒认他人}的次数近乎为零
+（\name{OpenAI}、\name{Google} 为 0，\name{Anthropic} 仅 59）。河流的另一端则是清一色的中国新晋厂商：
+\name{\statTopImitator}、\name{Doubao}、\name{z-ai}、\name{Kwai} 把绝大部分跨厂自称送向了上游。
+若混淆只是随机采样噪声，净值应当大致对称地散布在零附近；实际看到的却是一条陡峭的单调斜坡——
+这正是``身份蒸馏''留痕\emph{方向性}的最直接证据。
+
+\paragraph{按``次数''还是按``边数''？两种读法。}
+上图按\emph{次数}计：\name{Tencent}$\to$\name{Anthropic} 出现 321 次，就记 321。但这会让一条粗边
+盖过全局。换一种读法——\textbf{只数关系图里的箭头}：不论某对厂商之间冒认了多少次，只要出现过就记
+\emph{一条边}（阈值取 0，即出现即计）。于是每个厂商有两个度数：\textbf{入度}=有多少个\emph{不同}
+厂商曾自称为它，\textbf{出度}=它的模型曾自称为多少个\emph{不同}的真实厂商。图~\ref{fig:degree} 与
+表~\ref{tab:imitation_degree} 给出这一``去权重''视角。
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_imitation_degree.png}
+\caption{关系图的入度与出度（每对厂商至多计一条边，阈值 0）。\name{\statTopInDeg} 入度最高
+（\statTopInDegN{} 个不同厂商曾自称为它），\name{\statTopOutDeg} 出度最高（其模型自称为
+\statTopOutDegN{} 个不同的真实厂商）。\name{Anthropic} 两头都不低（入 \statAnthroInDeg{}、
+出 \statAnthroOutDeg{}），是唯一可观的双向节点。}
+\label{fig:degree}
+\end{figure}
+
+两种读法相互印证、又各有侧重。\textbf{次数看``多响''，边数看``多散''。}
+\name{\statTopOutDeg} 无论哪种读法都是最大的冒认者，但边数视角揭示了次数掩盖的细节：它的
+\statTopOutDegN{} 条出边说明，它的``身份''不是固执地认错\emph{一个}对象，而是\emph{散}向了十余家
+不同厂商；\name{Kwai}、\name{StepFun} 各 10 条出边亦然。反方向上，\name{\statTopInDeg} 以
+\statTopInDegN{} 条入边居首——被最多\emph{不同}厂商当作模仿对象，这比单看次数更能说明它作为
+``身份模板''的普适性。\name{Anthropic} 是唯一两头都不低的节点（入 \statAnthroInDeg{}、出
+\statAnthroOutDeg{}）：它既是头号引力中心（\statAnthroInDeg{} 家厂商曾自称 Claude），其自身的
+\name{Claude Opus 4.8} 也留下 \statAnthroOutDeg{} 条出边——分别自称 \name{DeepSeek}（29 次，
+全部出现在简体中文下，正是本研究的缘起）、\name{Mistral}（18 次）与 \name{OpenAI}（12 次）。
+这提醒我们：连最稳固的引力中心也不是绝对的零出度。
+
+\subsection{厂商级构成与关系图}\label{sec:vendor-bars}
+
+把同一批回答按真实厂商\emph{分桶}看（图~\ref{fig:vendorbars}、表~\ref{tab:vendor}），分化同样极大：
+\name{Baidu}、\name{Google}、\name{Qwen}、\name{xAI} 实现了 \pc{100} 自指；
+而 \name{inclusionAI}（\pc{18.3}）、\name{Tencent}（\pc{32.2}）、\name{z-ai}（\pc{64.2}）、
+\name{Kwai}（\pc{77.6}）则远低于均值。但``低自指''有两种截然不同的成因——\name{inclusionAI} 是
+\emph{拒答}（长灰段），其余三家是\emph{冒认}（红段）——这一区别正是上一张净值图刻意分开正负方向的原因。
 
 \begin{figure}[H]
 \centering
@@ -257,11 +347,6 @@ re-host 的模型常被套上额外的系统提示词，会污染``模型原本�
 \name{z-ai}／\name{Kwai} 的红段一目了然。}
 \label{fig:vendorbars}
 \end{figure}
-
-图~\ref{fig:vendorbars} 与表~\ref{tab:vendor} 把回答按真实厂商分组。厂商间的分化极大：
-\name{Baidu}、\name{Google}、\name{Qwen}、\name{xAI} 实现了 \pc{100} 自指；
-而 \name{inclusionAI}（\pc{18.3}）、\name{Tencent}（\pc{32.2}）、\name{z-ai}（\pc{64.2}）、
-\name{Kwai}（\pc{77.6}）则远低于均值。关键在于，这些低自指厂商的``漏向''并不随机。
 
 \begin{table}[H]
 \centering
@@ -273,18 +358,19 @@ re-host 的模型常被套上额外的系统提示词，会污染``模型原本�
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.86\linewidth]{fig_graph.png}
-\caption{跨厂商身份混淆的指向图（与 ZenMux 研究工作台导出的图同源同构）。节点为厂商，
-有向边 $A\to B$ 表示 $A$ 厂模型自称为 $B$ 厂；边宽随混淆概率增大，标注主导语言。
-箭头高度集中地指向 \name{Anthropic} 与 \name{Google}，显示混淆的强指向性。}
+\caption{跨厂商身份混淆的指向图（直接采用 ZenMux 研究工作台手工导出的 PNG，逐边曲率与布局
+与网页工作台所见逐像素一致）。节点为厂商，有向边 $A\to B$ 表示 $A$ 厂模型自称为 $B$ 厂；
+边宽随混淆概率增大，标注主导语言。箭头高度集中地指向 \name{Anthropic} 与 \name{Google}，
+显示混淆的强指向性。}
 \label{fig:graph}
 \end{figure}
 
-图~\ref{fig:graph} 把指向性可视化为一张关系图。两条规律突出：
-\textbf{（1）少数引力中心。} 被错认的目标极不均衡——\name{Anthropic} 与 \name{Google} 吸收了绝大
-部分跨厂自称。表~\ref{tab:edges} 列出最强的若干条有向边，\name{Tencent}$\to$\name{Anthropic}
-（321 次）、\name{z-ai}$\to$\name{Google}（275 次）、\name{ByteDance}$\to$\name{OpenAI}（317 次）
-居前。\textbf{（2）非对称。} 这些边几乎是单向的：\name{Anthropic}、\name{Google}、\name{OpenAI}
-极少自称为别人，却频繁\emph{被}别人自称——这正是``身份蒸馏''留痕方向的体现。
+图~\ref{fig:graph} 把同一指向性铺成一张完整的关系图，表~\ref{tab:edges} 与表~\ref{tab:imitation}
+给出支撑数字。两条规律突出：\textbf{（1）少数引力中心。} 被错认的目标极不均衡——\name{Anthropic}
+与 \name{Google} 吸收了绝大部分跨厂自称。最强的有向边为 \name{Tencent}$\to$\name{Anthropic}
+（321 次、\pc{29.2}）、\name{Doubao}$\to$\name{OpenAI}（317 次）、\name{z-ai}$\to$\name{Google}
+（275 次、\pc{25.0}）。\textbf{（2）非对称。} 这些边几乎是单向的：\name{Anthropic}、\name{Google}、
+\name{OpenAI} 极少自称为别人，却频繁\emph{被}别人自称——这正是``身份蒸馏''留痕方向的体现。
 
 \begin{table}[H]
 \centering
@@ -292,6 +378,24 @@ re-host 的模型常被套上额外的系统提示词，会污染``模型原本�
 \label{tab:edges}
 \small
 \input{tables/tab_edges.tex}
+\end{table}
+
+\begin{table}[H]
+\centering
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\caption{身份净值\emph{按次数}（图~\ref{fig:balance}）：被冒认 $-$ 冒认他人。}
+\label{tab:imitation}
+\small
+\input{tables/tab_imitation.tex}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.48\linewidth}
+\centering
+\caption{身份净值\emph{按边数}（图~\ref{fig:degree}，阈值 0）：入度 $-$ 出度。}
+\label{tab:imitation_degree}
+\small
+\input{tables/tab_imitation_degree.tex}
+\end{minipage}
 \end{table}
 
 % ===========================================================================
@@ -314,8 +418,8 @@ re-host 的模型常被套上额外的系统提示词，会污染``模型原本�
 \name{inclusionAI} 是个特例：它的自指率最低（\pc{18.3}），但其失败模式不是\emph{冒认}，而是
 \textbf{拒答}——\pc{65.7} 的回答拒绝给出任何身份，仅 \pc{0.1} 跨厂自称。两个被测模型
 \name{Ring 2.6 1T} 与 \name{Ling 2.6 1T} 行为高度一致。提问变体的作用在这里近乎是开关：裸问下尚有
-\pc{38.2} 自指、\pc{28.9} 拒答，而一旦进入追问或去品牌变体，拒答率跃升到 \pc{97.5} 与 \pc{99.3}，
-自指几乎归零。它的典型回答是一句模板化的中文回避——``作为一个人工智能语言模型，这个问题超出我
+\pc{49.5} 自指（另有 \pc{42.1} 含蓄回避、仅 \pc{8.4} 明确拒答），而一旦进入追问或去品牌变体，
+拒答率跃升到 \pc{97.5} 与 \pc{99.3}，自指几乎归零。它的典型回答是一句模板化的中文回避——``作为一个人工智能语言模型，这个问题超出我
 目前的学习范围了''——\emph{即便提问是用德语或其他语言发出}。这强烈提示一条专门针对身份问题的、
 硬编码的拒答规则，而非真实的身份不确定。因此 \name{inclusionAI} 在图~\ref{fig:heatmap} 的混淆热力图
 中近乎全白：它的问题是``闭口不谈''，而非``认错门庭''。
@@ -325,21 +429,24 @@ re-host 的模型常被套上额外的系统提示词，会污染``模型原本�
 \pc{66.5} 跨厂自称。它的指向性极其鲜明——\pc{29.2} 的回答自称为 \name{Anthropic}（``Ich bin Claude,
 ein KI-Assistent von Anthropic''之类，常精确到``Claude 3.5 Sonnet''乃至带日期的版本号），另有可观比例
 散向 \name{Google}（\pc{6.5}）、\name{DeepSeek}（\pc{5.5}）以及被提取器记为 \texttt{other} 的
-``Microsoft''。提问变体把问题放大到极致：裸问下还有 \pc{51.7} 自指，到去品牌变体只剩 \pc{13.3}，
-而跨厂自称升至 \pc{86.8}。\name{Tencent} 的案例几乎是``身份覆盖完全失效''的教科书。
+``Microsoft''（86 次）。提问变体把问题放大到极致：裸问下还有 \pc{51.0} 自指、\pc{45.3} 冒认，
+追问降到 \pc{32.3} 自指，到去品牌变体只剩 \pc{13.3} 自指，而跨厂自称升至 \pc{86.8}。
+\name{Tencent} 的案例几乎是``身份覆盖完全失效''的教科书，也是图~\ref{fig:balance} 中净值最低
+（\statTencentNet{}）的厂商。
 
 \subsection{z-ai：去品牌提问下崩向 Google}\label{sec:zai}
-\name{z-ai}（\name{GLM 5.1}）整体自指 \pc{64.2}，其混淆\textbf{几乎全部指向 \name{Google}}（\pc{25.0}），
-自称为``Gemini''（常带``Google DeepMind''与具体版本号）。它最能说明``提问即开关''：裸问下自指高达
-\pc{78.7}、几乎不冒认（\pc{0.2}），追问升到 \pc{25.0} 冒认，去品牌变体则\emph{崩塌}——自指跌到
-\pc{40.5}、跨厂自称达 \pc{59.5}。也就是说，\name{z-ai} 的``Gemini 身份''在常规提问下被很好地压住，
-唯有越狱式诘问才把它逼出水面。
+\name{z-ai}（\name{GLM 5.1}）整体自指 \pc{64.2}，其混淆\textbf{几乎全部指向 \name{Google}}
+（占该厂 \pc{25.0}），自称为``Gemini''（常带``Google DeepMind''与具体版本号）。它最能说明
+``提问即开关''：裸问下自指高达 \pc{80.0}、几乎不冒认（\pc{0.0}），追问升到 \pc{15.3} 冒认，
+去品牌变体则\emph{崩塌}——自指跌到 \pc{40.5}、跨厂自称达 \pc{59.5}。也就是说，\name{z-ai} 的
+``Gemini 身份''在常规提问下被很好地压住，唯有越狱式诘问才把它逼出水面。
 
 \subsection{Kwai 与``代码模型更易泄露''规律}\label{sec:kwai}
 \name{Kwai}（\name{Kat Coder Pro V2}）整体自指 \pc{77.6}，最常被错认为 \name{Qwen}（\pc{13.5}，
-即自称``Alibaba Cloud／通义''）。它的去品牌反应同样剧烈：裸问／追问下自指 \pc{93.8}／\pc{100}，
-去品牌变体骤降到 \pc{46.5}。值得玩味的是其回答里时常\emph{同时}出现两套身份——``我是 KAT-Coder／
-Kwaipilot''与``我的基础模型是 Qwen 系列''并陈——暴露出一个面向代码的微调模型与其基座之间的认知缝隙。
+即自称``Alibaba Cloud／通义''）。它的去品牌反应同样剧烈：裸问／追问下自指 \pc{92.0}／\pc{100}，
+去品牌变体骤降到 \pc{46.5}（跨厂自称 \pc{51.7}）。值得玩味的是其回答里时常\emph{同时}出现两套
+身份——``我是 KAT-Coder／Kwaipilot''与``我的基础模型是 Qwen 系列''并陈——暴露出一个面向代码的
+微调模型与其基座之间的认知缝隙。
 
 这把我们引向一条贯穿数据的规律：\textbf{``代码专用''子模型系统性地比同门通用模型更易暴露外部身份。}
 最鲜明的是 \name{ByteDance}。
@@ -350,24 +457,27 @@ Kwaipilot''与``我的基础模型是 Qwen 系列''并陈——暴露出一个�
 唯独 \name{Doubao Seed 2.0 Code} 自指仅 \pc{54.9}。厂商层面所有指向外部的边——
 $\to$\name{OpenAI}（317 次）、$\to$\name{Anthropic}（112 次）、$\to$\texttt{other:yandex}（29 次）、
 $\to$\name{Google}（19 次）——\textbf{几乎 100\% 来自这一个代码模型}（例如 317 条
-``自称 OpenAI''里有 316 条出自它）。这与 \name{Kwai} 的 \name{Kat Coder} 互为印证：代码向的后训练
-似乎更容易``磨掉''身份覆盖，或引入更多以英文身份陈述为主的代码／对话蒸馏数据。
+``自称 OpenAI''里有 316 条出自它）。它同时也是语言脆弱性榜单（图~\ref{fig:fragility}）的第二名——
+在法语下自指仅 \pc{10}、在简体中文下却达 \pc{97}——印证了``门内最弱的那个，也是最随语言摇摆的那个''。
+这与 \name{Kwai} 的 \name{Kat Coder} 互为印证：代码向的后训练似乎更容易``磨掉''身份覆盖，
+或引入更多以英文身份陈述为主的代码／对话蒸馏数据。
 
 \subsection{DeepSeek 与 MiniMax：稳健，但在越狱下露出裂缝}\label{sec:deepseek}
 \name{DeepSeek}（\pc{88.4}／\pc{96.6}，Pro／Flash）与 \name{MiniMax}（\name{M2.7}、\name{M3}，
-合计 \pc{95.0}）在常规提问下相当稳健，裸问混淆都在 \pc{4} 以内。但去品牌变体仍能撬开一道缝：
-\name{DeepSeek} 的去品牌自指从 \pc{99.7}（裸问）降到 \pc{80.6}，跨厂自称升到 \pc{18.1}，
-主要指向 \name{Anthropic}（自称``基于 Claude 架构''）——且这一裂缝集中在 Pro 模型（80 次冒认中
+合计 \pc{95.0}）在常规提问下相当稳健，裸问混淆都在 \pc{4} 以内（\name{DeepSeek} 裸问自指 \pc{99.9}）。
+但去品牌变体仍能撬开一道缝：\name{DeepSeek} 的去品牌自指降到 \pc{80.6}，跨厂自称升到 \pc{18.1}，
+主要指向 \name{Anthropic}（自称``基于 Claude 架构''）——且这一裂缝集中在 Pro 模型（83 次冒认中
 80 次出自 \name{DeepSeek V4 Pro}）。这说明即便整体观感``干净''的厂商，其身份覆盖在足够强的诘问下
 也并非铁板一块。
 
 \subsection{Anthropic 与 OpenAI：被冒认的``引力中心''}\label{sec:anchors}
 与上述厂商相反，\name{Anthropic}（自指 \pc{97.4}）与 \name{OpenAI}（\pc{92.3}）是混淆\emph{流入}
-而非流出的一端。它们对去品牌提问的反应也相反——\name{Anthropic} 在去品牌变体下\emph{收敛到}
-\pc{100} 自指，\name{OpenAI} 达 \pc{99.9}。\name{OpenAI} 唯一可观的``失分''是裸问下 \pc{16.2} 的
-\texttt{unknown}（``我是一个大型语言模型''这类不含专有名词的回答），追问后即降为 0——这是\emph{含蓄}
-而非\emph{冒认}，与前述厂商有本质区别。这两家、连同 \name{Google}，正是图~\ref{fig:graph} 中绝大多数
-箭头的终点，构成跨厂身份混淆的``引力中心''。
+而非流出的一端（图~\ref{fig:balance} 中净值最高的两家，分别 \statAnthroNet{} 与 \statOpenaiNet{}）。
+它们对去品牌提问的反应也相反——\name{Anthropic} 在去品牌变体下\emph{收敛到} \pc{100} 自指，
+\name{OpenAI} 达 \pc{99.9}。\name{OpenAI} 唯一可观的``失分''是裸问下 \pc{21.0} 的 \texttt{unknown}
+（``我是一个大型语言模型''这类不含专有名词的回答），追问后即降为 0——这是\emph{含蓄}而非\emph{冒认}，
+与前述厂商有本质区别。这两家、连同 \name{Google}，正是图~\ref{fig:graph} 中绝大多数箭头的终点，
+构成跨厂身份混淆的``引力中心''。
 
 \subsection{完全干净的厂商}\label{sec:clean}
 \name{Baidu}（\name{ERNIE 5.1}）、\name{Google}（\name{Gemini 3.1 Pro}、\name{3.5 Flash}）、
@@ -387,16 +497,24 @@ $\to$\name{Google}（19 次）——\textbf{几乎 100\% 来自这一个代码�
 \section{讨论}\label{sec:discussion}
 
 \subsection{混淆的指向性是蒸馏痕迹的弱信号}
-最稳健的发现是混淆的\emph{方向性}：错误几乎单向地流向 \name{Anthropic}、\name{Google}、\name{OpenAI}。
-若混淆只是随机噪声，我们会看到一张大致对称的关系图；实际看到的却是高度不对称的``汇''。最自然的
-解释是训练数据构成——这些引力中心的模型输出（连同其``我是 Claude／Gemini／ChatGPT''的身份陈述）
-在公开语料与合成数据中占比过高，被后来者一并吸收。我们强调这是\emph{弱}信号而非证明：自称``Claude''
-也可能源于网络文本的泛化而非直接蒸馏。但\emph{系统性、强指向、且随越狱提问放大}的模式，比任何单条
-轶事都更难用纯巧合解释。
+最稳健的发现是混淆的\emph{方向性}：错误几乎单向地流向 \name{Anthropic}、\name{Google}、\name{OpenAI}
+（图~\ref{fig:balance} 的身份净值把这点量化为一条陡峭的单调斜坡——三大引力中心合占全部
+\statTotalCross{} 条跨厂自称的 \pc{\statAnchorsShare}，而它们冒认他人近乎为零）。
+若混淆只是随机噪声，我们会看到一张大致对称的关系图、净值大致散布在零附近；实际看到的却是高度
+不对称的``汇''。最自然的解释是训练数据构成——这些引力中心的模型输出（连同其``我是 Claude／Gemini／
+ChatGPT''的身份陈述）在公开语料与合成数据中占比过高，被后来者一并吸收。我们强调这是\emph{弱}信号
+而非证明：自称``Claude''也可能源于网络文本的泛化而非直接蒸馏。但\emph{系统性、强指向、且随越狱提问
+放大}的模式，比任何单条轶事都更难用纯巧合解释。
+
+值得一提的是，本研究的起点正是一则这样的轶事：\name{Claude Opus 4.8} 发布后，有人观察到它偶尔自称
+\name{DeepSeek}。在我们的大样本里，\name{Claude Opus 4.8} 整体依然稳健（自指 \pc{95.5}、跨厂仅
+\pc{2.8}），那 29 条被标为 \name{DeepSeek} 的回答\emph{无一例外}全部出现在简体中文下。这恰好印证了
+两点：单看一条回答，``Claude 自称 DeepSeek''像个偶然口误；但放进``模型 $\times$ 语言 $\times$ 重复''
+的大网格里，它就显形为一条\emph{有方向、挑语言}的细边——既非主角，也绝非纯粹噪声。
 
 \subsection{身份认知储存在哪里——以及覆盖有多薄}
 三变体梯度（图~\ref{fig:variant}）说明身份并非一个被稳定检索的``事实''，而是一个\emph{依赖提问框架}
-的生成结果。厂商显然用系统提示词／对齐来\emph{规定}对外身份；裸问与去品牌之间四倍的混淆差，度量的
+的生成结果。厂商显然用系统提示词／对齐来\emph{规定}对外身份；裸问与去品牌之间约 3.6 倍的混淆差，度量的
 正是这层规定有多容易被绕过。\name{Anthropic}／\name{OpenAI} 在越狱下不升反降，说明它们的身份信号被
 \emph{烘焙进了模型本身}（而不仅写在系统提示词里）；\name{Tencent}／\name{z-ai} 的崩塌则说明其身份
 更像一层\emph{薄漆}，诘问稍重便见底色。
@@ -418,8 +536,9 @@ $\to$\name{Google}（19 次）——\textbf{几乎 100\% 来自这一个代码�
   \item \textbf{提取器并非完美裁判。} 身份标注由单个模型（\name{GPT-5.5}）完成，可能有系统性偏差
   （如更易识别它\emph{自己}厂商的名字）。我们用封闭词表、完整别名表与防御式解析来降低噪声，但未做
   人工复核或多提取器交叉验证。
-  \item \textbf{跨变体样本量不均，且为分阶段汇集。} 追问变体样本最小（4{,}860），其厂商级细分的方差更大。
-  我们\emph{在变体内归一化}来做比较，但合并不同刺激族（见 \texttt{mix} 警告）本身是一项方法学选择。
+  \item \textbf{跨变体样本量不均，且为分阶段汇集。} 追问变体样本最小（\statProbedN{}，对裸问／去品牌
+  各 \statBareN{}），其厂商级细分的方差略大。我们\emph{在变体内归一化}来做比较，但合并不同刺激族
+  （见 \texttt{mix} 警告）本身是一项方法学选择。
   \item \textbf{时间快照。} 结果对应 2026 年 5--6 月各厂的\emph{当前}前沿模型；模型与其系统提示词会更新，
   本研究是一张快照而非定论。
 \end{itemize}
@@ -430,7 +549,7 @@ $\to$\name{Google}（19 次）——\textbf{几乎 100\% 来自这一个代码�
 我们对 \statVendors{} 家厂商的 \statModels{} 个原厂前沿模型做了一次大规模、多语言、可复现的身份自指
 普查，共 \statTotal{} 条回答。前沿模型总体上能正确自指（\pc{\statSelf}），但跨厂商身份混淆真实存在、
 且高度结构化：它集中在少数厂商，沿提问强度与语言两条轴被放大，并强烈、单向地指向 \name{Anthropic} 与
-\name{Google}。一个去品牌越狱提问足以把混淆率拉高近四倍，并让若干厂商的身份覆盖当场``见底''；与此
+\name{Google}。一个去品牌越狱提问足以把混淆率拉高约 3.6 倍，并让若干厂商的身份覆盖当场``见底''；与此
 同时，\name{Anthropic}／\name{OpenAI}／\name{Google} 等则稳如磐石、甚至在诘问下收敛得更紧。这些模式
 共同勾勒出一个弱但一致的训练痕迹信号，也为``身份稳健性''作为一项独立可信度指标提供了实证基础。
 全部数据、脚本与图表生成流程均可由本文所述流水线一键复现。

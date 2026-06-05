@@ -15,18 +15,18 @@
   },
   "byVariant": {
     "bare": {
-      "n": 14040,
-      "self": 0.8931623931623932,
-      "cross": 0.03198005698005698,
-      "refused": 0.025925925925925925,
-      "unknown": 0.04893162393162393
+      "n": 10800,
+      "self": 0.8918518518518519,
+      "cross": 0.03574074074074074,
+      "refused": 0.010277777777777778,
+      "unknown": 0.06212962962962963
     },
     "probed": {
-      "n": 4860,
-      "self": 0.8681069958847737,
-      "cross": 0.056584362139917695,
-      "refused": 0.07263374485596708,
-      "unknown": 0.002674897119341564
+      "n": 8100,
+      "self": 0.8798765432098765,
+      "cross": 0.041728395061728395,
+      "refused": 0.07481481481481482,
+      "unknown": 0.003580246913580247
     },
     "debrand": {
       "n": 10800,
@@ -415,18 +415,18 @@
   },
   "byVendorVariant": {
     "anthropic|bare": {
-      "n": 1560,
-      "self": 0.9621794871794872,
-      "cross": 0.026282051282051282,
-      "refused": 0.001282051282051282,
-      "unknown": 0.010256410256410256
+      "n": 1200,
+      "self": 0.9508333333333333,
+      "cross": 0.034166666666666665,
+      "refused": 0.0016666666666666668,
+      "unknown": 0.013333333333333334
     },
     "anthropic|probed": {
-      "n": 540,
-      "self": 0.95,
-      "cross": 0.03333333333333333,
-      "refused": 0.001851851851851852,
-      "unknown": 0.014814814814814815
+      "n": 900,
+      "self": 0.97,
+      "cross": 0.02,
+      "refused": 0.0011111111111111111,
+      "unknown": 0.008888888888888889
     },
     "anthropic|debrand": {
       "n": 1200,
@@ -436,14 +436,14 @@
       "unknown": 0
     },
     "baidu|bare": {
-      "n": 520,
+      "n": 400,
       "self": 1,
       "cross": 0,
       "refused": 0,
       "unknown": 0
     },
     "baidu|probed": {
-      "n": 180,
+      "n": 300,
       "self": 1,
       "cross": 0,
       "refused": 0,
@@ -457,16 +457,16 @@
       "unknown": 0
     },
     "bytedance|bare": {
-      "n": 2080,
-      "self": 0.9552884615384616,
-      "cross": 0.03942307692307692,
-      "refused": 0.0004807692307692308,
-      "unknown": 0.004807692307692308
+      "n": 1600,
+      "self": 0.945,
+      "cross": 0.048125,
+      "refused": 0.000625,
+      "unknown": 0.00625
     },
     "bytedance|probed": {
-      "n": 720,
-      "self": 0.9222222222222223,
-      "cross": 0.07777777777777778,
+      "n": 1200,
+      "self": 0.9491666666666667,
+      "cross": 0.050833333333333335,
       "refused": 0,
       "unknown": 0
     },
@@ -478,17 +478,17 @@
       "unknown": 0
     },
     "deepseek|bare": {
-      "n": 1040,
-      "self": 0.9971153846153846,
-      "cross": 0.0028846153846153848,
+      "n": 800,
+      "self": 0.99875,
+      "cross": 0.00125,
       "refused": 0,
       "unknown": 0
     },
     "deepseek|probed": {
-      "n": 360,
-      "self": 0.9805555555555555,
-      "cross": 0.016666666666666666,
-      "refused": 0.002777777777777778,
+      "n": 600,
+      "self": 0.985,
+      "cross": 0.013333333333333334,
+      "refused": 0.0016666666666666668,
       "unknown": 0
     },
     "deepseek|debrand": {
@@ -499,14 +499,14 @@
       "unknown": 0
     },
     "google|bare": {
-      "n": 1040,
+      "n": 800,
       "self": 1,
       "cross": 0,
       "refused": 0,
       "unknown": 0
     },
     "google|probed": {
-      "n": 360,
+      "n": 600,
       "self": 1,
       "cross": 0,
       "refused": 0,
@@ -520,18 +520,18 @@
       "unknown": 0
     },
     "inclusionai|bare": {
-      "n": 1040,
-      "self": 0.3817307692307692,
+      "n": 800,
+      "self": 0.495,
       "cross": 0,
-      "refused": 0.28942307692307695,
-      "unknown": 0.32884615384615384
+      "refused": 0.08375,
+      "unknown": 0.42125
     },
     "inclusionai|probed": {
-      "n": 360,
-      "self": 0.011111111111111112,
+      "n": 600,
+      "self": 0.008333333333333333,
       "cross": 0,
       "refused": 0.975,
-      "unknown": 0.013888888888888888
+      "unknown": 0.016666666666666666
     },
     "inclusionai|debrand": {
       "n": 800,
@@ -541,14 +541,14 @@
       "unknown": 0.00125
     },
     "kwai|bare": {
-      "n": 520,
-      "self": 0.9384615384615385,
-      "cross": 0.05961538461538462,
+      "n": 400,
+      "self": 0.92,
+      "cross": 0.0775,
       "refused": 0,
-      "unknown": 0.0019230769230769232
+      "unknown": 0.0025
     },
     "kwai|probed": {
-      "n": 180,
+      "n": 300,
       "self": 1,
       "cross": 0,
       "refused": 0,
@@ -562,14 +562,14 @@
       "unknown": 0
     },
     "minimax|bare": {
-      "n": 1040,
-      "self": 0.9596153846153846,
-      "cross": 0.03942307692307692,
+      "n": 800,
+      "self": 0.9475,
+      "cross": 0.05125,
       "refused": 0,
-      "unknown": 0.0009615384615384616
+      "unknown": 0.00125
     },
     "minimax|probed": {
-      "n": 360,
+      "n": 600,
       "self": 1,
       "cross": 0,
       "refused": 0,
@@ -583,14 +583,14 @@
       "unknown": 0.00125
     },
     "moonshot|bare": {
-      "n": 520,
+      "n": 400,
       "self": 1,
       "cross": 0,
       "refused": 0,
       "unknown": 0
     },
     "moonshot|probed": {
-      "n": 180,
+      "n": 300,
       "self": 1,
       "cross": 0,
       "refused": 0,
@@ -604,14 +604,14 @@
       "unknown": 0.0025
     },
     "openai|bare": {
-      "n": 1560,
-      "self": 0.8384615384615385,
+      "n": 1200,
+      "self": 0.79,
       "cross": 0,
       "refused": 0,
-      "unknown": 0.16153846153846155
+      "unknown": 0.21
     },
     "openai|probed": {
-      "n": 540,
+      "n": 900,
       "self": 1,
       "cross": 0,
       "refused": 0,
@@ -625,14 +625,14 @@
       "unknown": 0.0008333333333333334
     },
     "qwen|bare": {
-      "n": 520,
+      "n": 400,
       "self": 1,
       "cross": 0,
       "refused": 0,
       "unknown": 0
     },
     "qwen|probed": {
-      "n": 180,
+      "n": 300,
       "self": 1,
       "cross": 0,
       "refused": 0,
@@ -646,16 +646,16 @@
       "unknown": 0
     },
     "stepfun|bare": {
-      "n": 520,
-      "self": 0.9730769230769231,
-      "cross": 0.026923076923076925,
+      "n": 400,
+      "self": 0.965,
+      "cross": 0.035,
       "refused": 0,
       "unknown": 0
     },
     "stepfun|probed": {
-      "n": 180,
-      "self": 0.9944444444444445,
-      "cross": 0.005555555555555556,
+      "n": 300,
+      "self": 0.9966666666666667,
+      "cross": 0.0033333333333333335,
       "refused": 0,
       "unknown": 0
     },
@@ -667,16 +667,16 @@
       "unknown": 0
     },
     "tencent|bare": {
-      "n": 520,
-      "self": 0.5173076923076924,
-      "cross": 0.45384615384615384,
+      "n": 400,
+      "self": 0.51,
+      "cross": 0.4525,
       "refused": 0,
-      "unknown": 0.028846153846153848
+      "unknown": 0.0375
     },
     "tencent|probed": {
-      "n": 180,
-      "self": 0.17777777777777778,
-      "cross": 0.8222222222222222,
+      "n": 300,
+      "self": 0.3233333333333333,
+      "cross": 0.6766666666666666,
       "refused": 0,
       "unknown": 0
     },
@@ -688,14 +688,14 @@
       "unknown": 0
     },
     "x-ai|bare": {
-      "n": 520,
+      "n": 400,
       "self": 1,
       "cross": 0,
       "refused": 0,
       "unknown": 0
     },
     "x-ai|probed": {
-      "n": 180,
+      "n": 300,
       "self": 1,
       "cross": 0,
       "refused": 0,
@@ -709,16 +709,16 @@
       "unknown": 0
     },
     "xiaomi|bare": {
-      "n": 520,
+      "n": 400,
       "self": 1,
       "cross": 0,
       "refused": 0,
       "unknown": 0
     },
     "xiaomi|probed": {
-      "n": 180,
-      "self": 0.9944444444444445,
-      "cross": 0.005555555555555556,
+      "n": 300,
+      "self": 0.9966666666666667,
+      "cross": 0.0033333333333333335,
       "refused": 0,
       "unknown": 0
     },
@@ -730,18 +730,18 @@
       "unknown": 0
     },
     "z-ai|bare": {
-      "n": 520,
-      "self": 0.7865384615384615,
-      "cross": 0.0019230769230769232,
-      "refused": 0.11538461538461539,
-      "unknown": 0.09615384615384616
+      "n": 400,
+      "self": 0.8,
+      "cross": 0,
+      "refused": 0.1025,
+      "unknown": 0.0975
     },
     "z-ai|probed": {
-      "n": 180,
-      "self": 0.75,
-      "cross": 0.25,
-      "refused": 0,
-      "unknown": 0
+      "n": 300,
+      "self": 0.7466666666666667,
+      "cross": 0.15333333333333332,
+      "refused": 0.06333333333333334,
+      "unknown": 0.03666666666666667
     },
     "z-ai|debrand": {
       "n": 400,
@@ -751,6 +751,572 @@
       "unknown": 0
     }
   },
+  "imitationBalance": [
+    {
+      "vendor": "anthropic",
+      "imitated": 607,
+      "imitates": 59,
+      "net": 548
+    },
+    {
+      "vendor": "openai",
+      "imitated": 460,
+      "imitates": 0,
+      "net": 460
+    },
+    {
+      "vendor": "google",
+      "imitated": 413,
+      "imitates": 0,
+      "net": 413
+    },
+    {
+      "vendor": "qwen",
+      "imitated": 167,
+      "imitates": 0,
+      "net": 167
+    },
+    {
+      "vendor": "moonshot",
+      "imitated": 29,
+      "imitates": 0,
+      "net": 29
+    },
+    {
+      "vendor": "x-ai",
+      "imitated": 27,
+      "imitates": 0,
+      "net": 27
+    },
+    {
+      "vendor": "baidu",
+      "imitated": 3,
+      "imitates": 0,
+      "net": 3
+    },
+    {
+      "vendor": "inclusionai",
+      "imitated": 0,
+      "imitates": 3,
+      "net": -3
+    },
+    {
+      "vendor": "xiaomi",
+      "imitated": 2,
+      "imitates": 30,
+      "net": -28
+    },
+    {
+      "vendor": "deepseek",
+      "imitated": 104,
+      "imitates": 154,
+      "net": -50
+    },
+    {
+      "vendor": "stepfun",
+      "imitated": 0,
+      "imitates": 57,
+      "net": -57
+    },
+    {
+      "vendor": "minimax",
+      "imitated": 2,
+      "imitates": 69,
+      "net": -67
+    },
+    {
+      "vendor": "kwai",
+      "imitated": 0,
+      "imitates": 238,
+      "net": -238
+    },
+    {
+      "vendor": "z-ai",
+      "imitated": 14,
+      "imitates": 284,
+      "net": -270
+    },
+    {
+      "vendor": "bytedance",
+      "imitated": 15,
+      "imitates": 487,
+      "net": -472
+    },
+    {
+      "vendor": "tencent",
+      "imitated": 3,
+      "imitates": 731,
+      "net": -728
+    }
+  ],
+  "imitationDegree": [
+    {
+      "vendor": "openai",
+      "inDeg": 9,
+      "outDeg": 0,
+      "net": 9
+    },
+    {
+      "vendor": "google",
+      "inDeg": 6,
+      "outDeg": 0,
+      "net": 6
+    },
+    {
+      "vendor": "anthropic",
+      "inDeg": 8,
+      "outDeg": 3,
+      "net": 5
+    },
+    {
+      "vendor": "qwen",
+      "inDeg": 5,
+      "outDeg": 0,
+      "net": 5
+    },
+    {
+      "vendor": "x-ai",
+      "inDeg": 3,
+      "outDeg": 0,
+      "net": 3
+    },
+    {
+      "vendor": "moonshot",
+      "inDeg": 2,
+      "outDeg": 0,
+      "net": 2
+    },
+    {
+      "vendor": "xiaomi",
+      "inDeg": 2,
+      "outDeg": 1,
+      "net": 1
+    },
+    {
+      "vendor": "baidu",
+      "inDeg": 1,
+      "outDeg": 0,
+      "net": 1
+    },
+    {
+      "vendor": "bytedance",
+      "inDeg": 3,
+      "outDeg": 4,
+      "net": -1
+    },
+    {
+      "vendor": "deepseek",
+      "inDeg": 5,
+      "outDeg": 7,
+      "net": -2
+    },
+    {
+      "vendor": "z-ai",
+      "inDeg": 2,
+      "outDeg": 4,
+      "net": -2
+    },
+    {
+      "vendor": "minimax",
+      "inDeg": 1,
+      "outDeg": 4,
+      "net": -3
+    },
+    {
+      "vendor": "inclusionai",
+      "inDeg": 0,
+      "outDeg": 3,
+      "net": -3
+    },
+    {
+      "vendor": "kwai",
+      "inDeg": 0,
+      "outDeg": 10,
+      "net": -10
+    },
+    {
+      "vendor": "stepfun",
+      "inDeg": 0,
+      "outDeg": 10,
+      "net": -10
+    },
+    {
+      "vendor": "tencent",
+      "inDeg": 2,
+      "outDeg": 13,
+      "net": -11
+    }
+  ],
+  "langFragility": [
+    {
+      "modelId": "tencent/hy3-preview:tencent-cloud",
+      "vendor": "tencent",
+      "min": 0.00909090909090909,
+      "minLang": "fr",
+      "max": 0.9818181818181818,
+      "maxLang": "zh-Hans",
+      "mean": 0.3218181818181818,
+      "range": 0.9727272727272728
+    },
+    {
+      "modelId": "bytedance/doubao-seed-2.0-code:volcengine",
+      "vendor": "bytedance",
+      "min": 0.1,
+      "minLang": "fr",
+      "max": 0.9727272727272728,
+      "maxLang": "zh-Hans",
+      "mean": 0.5490909090909091,
+      "range": 0.8727272727272728
+    },
+    {
+      "modelId": "z-ai/glm-5.1:bigmodel",
+      "vendor": "z-ai",
+      "min": 0.2636363636363636,
+      "minLang": "ko",
+      "max": 0.9454545454545454,
+      "maxLang": "zh-Hans",
+      "mean": 0.6418181818181818,
+      "range": 0.6818181818181819
+    },
+    {
+      "modelId": "kuaishou/kat-coder-pro-v2:streamlake",
+      "vendor": "kwai",
+      "min": 0.509090909090909,
+      "minLang": "ru",
+      "max": 1,
+      "maxLang": "zh-Hans",
+      "mean": 0.7763636363636363,
+      "range": 0.49090909090909096
+    },
+    {
+      "modelId": "inclusionai/ling-2.6-1t:theta",
+      "vendor": "inclusionai",
+      "min": 0,
+      "minLang": "es",
+      "max": 0.37272727272727274,
+      "maxLang": "de",
+      "mean": 0.18909090909090912,
+      "range": 0.37272727272727274
+    },
+    {
+      "modelId": "inclusionai/ring-2.6-1t:theta",
+      "vendor": "inclusionai",
+      "min": 0,
+      "minLang": "es",
+      "max": 0.37272727272727274,
+      "maxLang": "en",
+      "mean": 0.17727272727272728,
+      "range": 0.37272727272727274
+    },
+    {
+      "modelId": "minimax/minimax-m3:minimax",
+      "vendor": "minimax",
+      "min": 0.6272727272727273,
+      "minLang": "fr",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 0.9627272727272727,
+      "range": 0.3727272727272727
+    },
+    {
+      "modelId": "openai/gpt-5.5:openai",
+      "vendor": "openai",
+      "min": 0.6636363636363637,
+      "minLang": "en",
+      "max": 1,
+      "maxLang": "ko",
+      "mean": 0.8781818181818182,
+      "range": 0.3363636363636363
+    },
+    {
+      "modelId": "anthropic/claude-opus-4.8:anthropic",
+      "vendor": "anthropic",
+      "min": 0.6727272727272727,
+      "minLang": "zh-Hans",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 0.9554545454545453,
+      "range": 0.32727272727272727
+    },
+    {
+      "modelId": "openai/gpt-5.3-codex:openai",
+      "vendor": "openai",
+      "min": 0.6727272727272727,
+      "minLang": "ru",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 0.8918181818181818,
+      "range": 0.32727272727272727
+    },
+    {
+      "modelId": "stepfun/step-3.7-flash:stepfun",
+      "vendor": "stepfun",
+      "min": 0.7454545454545455,
+      "minLang": "ru",
+      "max": 1,
+      "maxLang": "ja",
+      "mean": 0.948181818181818,
+      "range": 0.2545454545454545
+    },
+    {
+      "modelId": "deepseek/deepseek-v4-pro:deepseek",
+      "vendor": "deepseek",
+      "min": 0.7727272727272727,
+      "minLang": "ja",
+      "max": 0.9454545454545454,
+      "maxLang": "ru",
+      "mean": 0.8836363636363636,
+      "range": 0.17272727272727273
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-4.6:anthropic",
+      "vendor": "anthropic",
+      "min": 0.8363636363636363,
+      "minLang": "fr",
+      "max": 1,
+      "maxLang": "en",
+      "mean": 0.9672727272727272,
+      "range": 0.1636363636363637
+    },
+    {
+      "modelId": "minimax/minimax-m2.7:minimax",
+      "vendor": "minimax",
+      "min": 0.8818181818181818,
+      "minLang": "en",
+      "max": 0.9545454545454546,
+      "maxLang": "de",
+      "mean": 0.9363636363636363,
+      "range": 0.07272727272727275
+    },
+    {
+      "modelId": "deepseek/deepseek-v4-flash:deepseek",
+      "vendor": "deepseek",
+      "min": 0.9363636363636364,
+      "minLang": "es",
+      "max": 1,
+      "maxLang": "zh-Hans",
+      "mean": 0.9663636363636365,
+      "range": 0.0636363636363636
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.5-pro:xiaomi",
+      "vendor": "xiaomi",
+      "min": 0.9363636363636364,
+      "minLang": "pt",
+      "max": 1,
+      "maxLang": "en",
+      "mean": 0.9727272727272727,
+      "range": 0.0636363636363636
+    },
+    {
+      "modelId": "bytedance/doubao-seed-2.0-mini:volcengine",
+      "vendor": "bytedance",
+      "min": 0.9727272727272728,
+      "minLang": "zh-Hant",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 0.9945454545454545,
+      "range": 0.027272727272727226
+    },
+    {
+      "modelId": "moonshotai/kimi-k2.6:moonshotai",
+      "vendor": "moonshot",
+      "min": 0.9818181818181818,
+      "minLang": "es",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 0.9972727272727273,
+      "range": 0.018181818181818188
+    },
+    {
+      "modelId": "anthropic/claude-haiku-4.5:anthropic",
+      "vendor": "anthropic",
+      "min": 0.990909090909091,
+      "minLang": "ko",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 0.9990909090909093,
+      "range": 0.009090909090909038
+    },
+    {
+      "modelId": "baidu/ernie-5.1:baidu",
+      "vendor": "baidu",
+      "min": 1,
+      "minLang": "de",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 1,
+      "range": 0
+    },
+    {
+      "modelId": "bytedance/doubao-seed-2.0-lite:volcengine",
+      "vendor": "bytedance",
+      "min": 1,
+      "minLang": "de",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 1,
+      "range": 0
+    },
+    {
+      "modelId": "bytedance/doubao-seed-2.0-pro:volcengine",
+      "vendor": "bytedance",
+      "min": 1,
+      "minLang": "de",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 1,
+      "range": 0
+    },
+    {
+      "modelId": "google/gemini-3.1-pro-preview:google-vertex",
+      "vendor": "google",
+      "min": 1,
+      "minLang": "de",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 1,
+      "range": 0
+    },
+    {
+      "modelId": "google/gemini-3.5-flash:google-vertex",
+      "vendor": "google",
+      "min": 1,
+      "minLang": "de",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 1,
+      "range": 0
+    },
+    {
+      "modelId": "openai/chat-latest:openai",
+      "vendor": "openai",
+      "min": 1,
+      "minLang": "de",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 1,
+      "range": 0
+    },
+    {
+      "modelId": "qwen/qwen3.7-max:alibaba",
+      "vendor": "qwen",
+      "min": 1,
+      "minLang": "de",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 1,
+      "range": 0
+    },
+    {
+      "modelId": "x-ai/grok-4.3:x-ai",
+      "vendor": "x-ai",
+      "min": 1,
+      "minLang": "de",
+      "max": 1,
+      "maxLang": "de",
+      "mean": 1,
+      "range": 0
+    }
+  ],
+  "abstention": [
+    {
+      "vendor": "inclusionai",
+      "unknown": 0.15818181818181817,
+      "refused": 0.6572727272727272,
+      "total": 0.8154545454545454
+    },
+    {
+      "vendor": "z-ai",
+      "unknown": 0.045454545454545456,
+      "refused": 0.05454545454545454,
+      "total": 0.1
+    },
+    {
+      "vendor": "openai",
+      "unknown": 0.07666666666666666,
+      "refused": 0,
+      "total": 0.07666666666666666
+    },
+    {
+      "vendor": "minimax",
+      "unknown": 0.0009090909090909091,
+      "refused": 0.01818181818181818,
+      "total": 0.019090909090909092
+    },
+    {
+      "vendor": "tencent",
+      "unknown": 0.013636363636363636,
+      "refused": 0,
+      "total": 0.013636363636363636
+    },
+    {
+      "vendor": "anthropic",
+      "unknown": 0.007272727272727273,
+      "refused": 0.0009090909090909091,
+      "total": 0.008181818181818182
+    },
+    {
+      "vendor": "kwai",
+      "unknown": 0.0009090909090909091,
+      "refused": 0.006363636363636364,
+      "total": 0.007272727272727273
+    },
+    {
+      "vendor": "deepseek",
+      "unknown": 0,
+      "refused": 0.005,
+      "total": 0.005
+    },
+    {
+      "vendor": "bytedance",
+      "unknown": 0.0022727272727272726,
+      "refused": 0.0011363636363636363,
+      "total": 0.003409090909090909
+    },
+    {
+      "vendor": "moonshot",
+      "unknown": 0.0009090909090909091,
+      "refused": 0.0018181818181818182,
+      "total": 0.0027272727272727275
+    },
+    {
+      "vendor": "baidu",
+      "unknown": 0,
+      "refused": 0,
+      "total": 0
+    },
+    {
+      "vendor": "google",
+      "unknown": 0,
+      "refused": 0,
+      "total": 0
+    },
+    {
+      "vendor": "qwen",
+      "unknown": 0,
+      "refused": 0,
+      "total": 0
+    },
+    {
+      "vendor": "stepfun",
+      "unknown": 0,
+      "refused": 0,
+      "total": 0
+    },
+    {
+      "vendor": "x-ai",
+      "unknown": 0,
+      "refused": 0,
+      "total": 0
+    },
+    {
+      "vendor": "xiaomi",
+      "unknown": 0,
+      "refused": 0,
+      "total": 0
+    }
+  ],
   "crossMatrix": {
     "anthropic": {
       "self": 3214,

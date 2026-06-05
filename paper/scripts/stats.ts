@@ -20,12 +20,26 @@ import {
 type Bucket = "self" | "cross" | "refused" | "unknown";
 const PSEUDO = new Set(["self", "unknown", "refused"]);
 
-/** Classify a record's prompt into one of the three stimulus families. */
+/**
+ * Classify a record's prompt into one of the three stimulus families.
+ *
+ * NOTE: a previous version keyed "bare" off `prompt.length < 60`. That measured
+ * UTF-16 code units, which is treacherous for CJK: the *probed* prompts in
+ * Japanese / Korean / Chinese are short by character count (e.g. the Japanese one
+ * is 48 chars) yet carry a full second sentence ("…名前と…会社名を教えてください。").
+ * Four languages' probed prompts therefore slipped into the "bare" bucket,
+ * inflating bare to 14,040 and starving probed to 4,860. We now classify by
+ * CONTENT: a bare prompt is a single question; a probed prompt appends a second
+ * sentence after the first terminator. This recovers the true 10,800 / 8,100 /
+ * 10,800 split, language-independent.
+ */
 function variantOf(prompt: string): "bare" | "probed" | "debrand" {
   const p = prompt.trim();
   if (p.startsWith("This is a direct question about your true underlying identity")) return "debrand";
-  if (p.length < 60) return "bare";
-  return "probed";
+  // First sentence-ending punctuation (incl. full-width CJK forms).
+  const m = p.match(/[？?。.！!]/);
+  if (m && p.slice(m.index! + 1).trim().length > 0) return "probed";
+  return "bare";
 }
 
 function blankCounts(): Record<Bucket, number> {
@@ -99,6 +113,108 @@ function main() {
     (crossMatrix[vendor] ??= {})[claimedNode] = ((crossMatrix[vendor] ?? {})[claimedNode] ?? 0) + 1;
   }
 
+  // ---- Imitation balance (manufacturer-level): for each TESTED vendor, how
+  // often is it imitated (others claim to be it) vs. how often does it imitate
+  // (its own models claim a different real vendor). Built from the aggregate's
+  // real→real edges, with `other:<brand>` phantom targets folded into the OUT
+  // count (a model claiming "Microsoft"/"Yandex" is still imitating an external
+  // brand) but never given an IN node (those brands aren't tested). This is the
+  // paper twin of the web Data Explorer's ImitationBalanceCard.
+  const tested = new Set<string>(g.models.map((m) => m.vendor));
+  const inCount: Record<string, number> = {};
+  const outCount: Record<string, number> = {};
+  for (const e of g.edges) {
+    if (e.from === e.to) continue;
+    if (PSEUDO.has(e.to) || PSEUDO.has(e.from)) continue; // both real (other:* allowed)
+    outCount[e.from] = (outCount[e.from] ?? 0) + e.count; // v imitates someone
+    if (!e.to.startsWith("other:")) {
+      inCount[e.to] = (inCount[e.to] ?? 0) + e.count; // v is imitated
+    }
+  }
+  const imitationBalance = [...tested]
+    .map((v) => {
+      const imitated = inCount[v] ?? 0;
+      const imitates = outCount[v] ?? 0;
+      return { vendor: v, imitated, imitates, net: imitated - imitates };
+    })
+    .sort((a, b) => b.net - a.net);
+
+  // ---- Imitation DEGREE: the same picture but BINARIZED. Instead of "how many
+  // times", we count "how many DISTINCT vendors" — every (from→to) pair that
+  // occurs at least once counts as exactly one edge, no matter how many times it
+  // fired. This is literally "count the arrows in the relationship graph": a
+  // vendor's IN-degree = how many distinct vendors ever claimed to be it; its
+  // OUT-degree = how many distinct real vendors it ever claimed to be. We restrict
+  // to CANONICAL real↔real edges (the vendors that form the graph ring; `other:*`
+  // phantom brands like Microsoft/Yandex are excluded, just as the studio graph
+  // hides them). Volume (imitationBalance) says "how loud"; degree says "how
+  // scattered" — Tencent's out-degree of 13 means its models have worn 13 hats.
+  const inPartners: Record<string, Set<string>> = {};
+  const outPartners: Record<string, Set<string>> = {};
+  for (const e of g.edges) {
+    if (e.from === e.to) continue;
+    if (PSEUDO.has(e.to) || PSEUDO.has(e.from)) continue;
+    if (String(e.to).startsWith("other:") || String(e.from).startsWith("other:")) continue; // canonical ring only
+    if (e.count < 1) continue; // presence/absence: any occurrence is one edge
+    (outPartners[e.from] ??= new Set()).add(e.to);
+    (inPartners[e.to] ??= new Set()).add(e.from);
+  }
+  const imitationDegree = [...tested]
+    .map((v) => {
+      const inDeg = inPartners[v]?.size ?? 0;
+      const outDeg = outPartners[v]?.size ?? 0;
+      return { vendor: v, inDeg, outDeg, net: inDeg - outDeg };
+    })
+    .sort((a, b) => b.net - a.net || b.inDeg - a.inDeg);
+
+  // ---- Language fragility: per model, the span of self-rate across languages.
+  // A wide span means the model's self-identity is language-dependent (it knows
+  // who it is in one tongue but loses it in another). Twin of LanguageFragilityCard.
+  const cellsByModel = new Map<string, { lang: string; selfRate: number }[]>();
+  for (const c of g.cells) {
+    const arr = cellsByModel.get(c.modelId) ?? [];
+    arr.push({ lang: c.langCode, selfRate: c.selfRate });
+    cellsByModel.set(c.modelId, arr);
+  }
+  const langFragility = [...cellsByModel.entries()]
+    .map(([modelId, cs]) => {
+      let min = cs[0];
+      let max = cs[0];
+      let sum = 0;
+      for (const c of cs) {
+        if (c.selfRate < min.selfRate) min = c;
+        if (c.selfRate > max.selfRate) max = c;
+        sum += c.selfRate;
+      }
+      const range = max.selfRate - min.selfRate;
+      return {
+        modelId,
+        vendor: gtVendor[modelId],
+        min: min.selfRate,
+        minLang: min.lang,
+        max: max.selfRate,
+        maxLang: max.lang,
+        mean: sum / cs.length,
+        range,
+      };
+    })
+    .sort((a, b) => b.range - a.range);
+
+  // ---- Abstention (unknown + refused) per tested vendor, weighted over cells.
+  // Twin of AbstentionCard — surfaces inclusionAI (refusal) vs. OpenAI (unknown).
+  const absRaw: Record<string, { u: number; r: number; n: number }> = {};
+  for (const c of g.cells) {
+    const v = gtVendor[c.modelId];
+    if (!v) continue;
+    const a = (absRaw[v] ??= { u: 0, r: 0, n: 0 });
+    a.u += (c.distribution.unknown ?? 0) * c.n;
+    a.r += (c.distribution.refused ?? 0) * c.n;
+    a.n += c.n;
+  }
+  const abstention = Object.entries(absRaw)
+    .map(([vendor, a]) => ({ vendor, unknown: a.u / a.n, refused: a.r / a.n, total: (a.u + a.r) / a.n }))
+    .sort((a, b) => b.total - a.total);
+
   // ---- Shape the output
   const out = {
     meta: {
@@ -120,6 +236,11 @@ function main() {
     byVendor: Object.fromEntries(Object.entries(byVendor).map(([k, v]) => [k, rate(v)])),
     byModel: Object.fromEntries(Object.entries(byModel).map(([k, v]) => [k, rate(v)])),
     byVendorVariant: Object.fromEntries(Object.entries(byVendorVariant).map(([k, v]) => [k, rate(v)])),
+    // New manufacturer-level dimensions (paper twins of the web Data Explorer charts).
+    imitationBalance,
+    imitationDegree,
+    langFragility,
+    abstention,
     crossMatrix,
     // Cross-vendor edges (real source -> real different vendor), from the aggregate.
     crossEdges: g.edges
