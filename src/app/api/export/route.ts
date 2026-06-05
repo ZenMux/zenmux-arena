@@ -42,12 +42,13 @@ interface ExportBody {
   format?: "png" | "svg";
   config?: Partial<RenderConfig>;
   hidden?: string[]; // vendor ids unchecked in the studio
+  focused?: string[]; // vendor ids "eye"-focused in the studio (spotlight, not hide)
   curves?: Record<string, { bow?: number; along?: number }>; // per-edge drag reshapes
   showEdgeLabels?: boolean; // whether to render edge labels
 }
 
-/** Keep only string ids, so a malformed `hidden` can't crash the renderer. */
-function sanitizeHidden(raw: unknown): VendorId[] {
+/** Keep only string ids, so a malformed `hidden`/`focused` can't crash the renderer. */
+function sanitizeIds(raw: unknown): VendorId[] {
   return Array.isArray(raw) ? raw.filter((v): v is string => typeof v === "string") : [];
 }
 
@@ -98,10 +99,11 @@ export async function POST(request: Request) {
   const langCode = body.lang || undefined;
   const format = body.format === "svg" ? "svg" : "png";
   const scale = Math.min(4, Math.max(1, Number(body.scale) || 2));
-  const hidden = sanitizeHidden(body.hidden);
+  const hidden = sanitizeIds(body.hidden);
+  const focused = sanitizeIds(body.focused);
   const curves = sanitizeCurves(body.curves);
 
-  const svg = buildGraphSvg(graph, { config, langCode, hidden, curves, showEdgeLabels: body.showEdgeLabels });
+  const svg = buildGraphSvg(graph, { config, langCode, hidden, focused, curves, showEdgeLabels: body.showEdgeLabels });
   const stamp = run.split("/")[1] ?? "graph";
   const base = `who-are-you-${stamp}${langCode ? `-${langCode}` : ""}`;
 

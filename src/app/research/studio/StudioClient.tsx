@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import {
   Download,
+  Eye,
   ImageDown,
   LoaderCircle,
   Move,
@@ -93,6 +94,10 @@ export default function StudioClient({
   const [hidden, setHidden] = useState<Set<VendorId>>(
     () => new Set(graph.vendors.filter((v) => isOffByDefault(v.id)).map((v) => v.id)),
   );
+  // Eye-spotlight set: focused vendors stay vivid while the rest dim. Lifted here
+  // (like `hidden`/`curves`) so the export bakes the same dimming. Starts empty =
+  // no spotlight, the normal all-bright view.
+  const [focused, setFocused] = useState<Set<VendorId>>(() => new Set());
   const [curves, setCurves] = useState<EdgeCurves>({});
   const [showEdgeLabels, setShowEdgeLabels] = useState<boolean>(false);
 
@@ -121,6 +126,7 @@ export default function StudioClient({
             format,
             config: cfg,
             hidden: [...hidden],
+            focused: [...focused],
             curves,
             showEdgeLabels,
           }),
@@ -147,12 +153,13 @@ export default function StudioClient({
         setExporting(null);
       }
     },
-    [selectedRun, lang, scale, cfg, hidden, curves, showEdgeLabels],
+    [selectedRun, lang, scale, cfg, hidden, focused, curves, showEdgeLabels],
   );
 
   const dirty = JSON.stringify(cfg) !== JSON.stringify(DEFAULT_RENDER);
   const curveCount = Object.keys(curves).length;
   const hiddenCount = hidden.size;
+  const focusCount = focused.size;
 
   const realVendorCount = graph.vendors.filter(
     (v) => !["self", "unknown", "refused", "other"].includes(v.id),
@@ -392,12 +399,25 @@ export default function StudioClient({
                 <Move className="mt-0.5 size-3.5 shrink-0" />
                 <span>
                   Drag any edge to bend it; double-click an edge to snap it back.
-                  Uncheck a vendor to drop it and reflow the ring.
+                  Uncheck a vendor to drop it and reflow the ring. Toggle a
+                  vendor&apos;s eye (or click its node) to spotlight it and its
+                  connections while the rest dim.
                 </span>
               </div>
 
-              {(dirty || curveCount > 0 || hiddenCount > 0) && (
+              {(dirty || curveCount > 0 || hiddenCount > 0 || focusCount > 0) && (
                 <div className="flex flex-col gap-1.5">
+                  {focusCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFocused(new Set())}
+                      className="w-full justify-start text-muted-foreground"
+                    >
+                      <Eye className="size-3.5" />
+                      Clear {focusCount} focused {focusCount === 1 ? "vendor" : "vendors"}
+                    </Button>
+                  )}
                   {curveCount > 0 && (
                     <Button
                       variant="ghost"
@@ -476,6 +496,8 @@ export default function StudioClient({
                   showVendorPicker
                   hidden={hidden}
                   onHiddenChange={setHidden}
+                  focused={focused}
+                  onFocusedChange={setFocused}
                   curves={curves}
                   onCurvesChange={setCurves}
                   editableEdges

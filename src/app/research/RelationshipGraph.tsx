@@ -2,6 +2,7 @@
 
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useMemo, useRef, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import {
   apexToCurve,
   curvedArrow,
@@ -12,7 +13,10 @@ import {
   badgeLayout,
   edgeWeight,
   edgeWeightColor,
+  FOCUS_DIM,
   isDarkBackground,
+  isEdgeActive,
+  isNodeActive,
   isNonNode,
   isOffByDefault,
   type LangWeight,
@@ -247,6 +251,8 @@ export default function RelationshipGraph({
   showVendorPicker = false,
   hidden: controlledHidden,
   onHiddenChange,
+  focused: controlledFocused,
+  onFocusedChange,
   curves: controlledCurves,
   onCurvesChange,
   editableEdges = false,
@@ -270,6 +276,15 @@ export default function RelationshipGraph({
    */
   hidden?: Set<VendorId>;
   onHiddenChange?: Dispatch<SetStateAction<Set<VendorId>>>;
+  /**
+   * Controlled set of FOCUSED vendor ids — the "eye" spotlight. A focused vendor
+   * (and the nodes it shares edges with) stays vivid while everything else dims,
+   * exactly like the transient hover but pinned. Empty set = no spotlight (the
+   * normal, all-bright view). Paired with onFocusedChange; the studio owns this so
+   * the export can bake the same dimming. Omit for self-contained internal state.
+   */
+  focused?: Set<VendorId>;
+  onFocusedChange?: Dispatch<SetStateAction<Set<VendorId>>>;
   /** Controlled per-edge curve overrides, paired with onCurvesChange. */
   curves?: EdgeCurves;
   onCurvesChange?: Dispatch<SetStateAction<EdgeCurves>>;
@@ -322,6 +337,20 @@ export default function RelationshipGraph({
       return next;
     });
 
+  // The "eye" spotlight: a persistent set of focused vendors. Opening an eye pins
+  // the same highlight a hover would give. Controlled by the studio when provided
+  // (so the export bakes the dim), else self-contained.
+  const [internalFocused, setInternalFocused] = useState<Set<VendorId>>(() => new Set());
+  const focused = controlledFocused ?? internalFocused;
+  const setFocused = onFocusedChange ?? setInternalFocused;
+  const toggleFocus = (id: VendorId) =>
+    setFocused((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
   // Per-edge curve reshapes (from dragging). Same controlled-or-internal pattern.
   const [internalCurves, setInternalCurves] = useState<EdgeCurves>({});
   const curves = controlledCurves ?? internalCurves;
@@ -367,17 +396,26 @@ export default function RelationshipGraph({
       .sort((a, b) => a.p - b.p);
   }, [graph.edges, lang, pos, threshold]);
 
+  // The effective spotlight = the pinned eye set plus whatever is hovered right
+  // now. Folding a transient hover into the persistent set means ONE rule
+  // (isNodeActive/isEdgeActive, shared with the export) drives both interactions:
+  // hovering temporarily widens the focus, the eye keeps it on. Empty ⇒ all bright.
+  const focusSet = useMemo(() => {
+    if (!hoverNode) return focused;
+    const s = new Set(focused);
+    s.add(hoverNode);
+    return s;
+  }, [focused, hoverNode]);
+
+  // Edge endpoints in the form the shared predicates expect.
+  const edgeEnds = useMemo(() => edges.map(({ e }) => ({ from: e.from, to: e.to })), [edges]);
+
   function nodeActive(id: VendorId): boolean {
-    if (!hoverNode) return true;
-    if (id === hoverNode) return true;
-    return edges.some(
-      ({ e }) => (e.from === hoverNode && e.to === id) || (e.to === hoverNode && e.from === id),
-    );
+    return isNodeActive(id, focusSet, edgeEnds);
   }
 
   function edgeActive(from: VendorId, to: VendorId): boolean {
-    if (!hoverNode) return true;
-    return from === hoverNode || to === hoverNode;
+    return isEdgeActive(from, to, focusSet);
   }
 
   /** Map a pointer event's client coords into the SVG's user coordinate space. */
@@ -492,6 +530,9 @@ export default function RelationshipGraph({
             onToggle={toggleVendor}
             onAll={() => setHidden(new Set())}
             onNone={() => setHidden(new Set(pickableVendors.map((v) => v.id)))}
+            focused={focused}
+            onToggleFocus={toggleFocus}
+            onClearFocus={() => setFocused(new Set())}
             hoverNode={hoverNode}
             onHover={setHoverNode}
           />
@@ -563,8 +604,8 @@ export default function RelationshipGraph({
           const active = edgeActive(e.from, e.to);
           const color = edgeWeightColor(p);
           const sw = cfg.edgeBaseWidth + p * cfg.edgeWidthScale;
-          const op = 0.95 * (active ? 1 : 0.1);
-          const labelOp = active ? 1 : 0.12;
+          const op = 0.95 * (active ? 1 : FOCUS_DIM.edge);
+          const labelOp = active ? 1 : FOCUS_DIM.label;
           const lineH = 17;
           const startY = arrow.label.y - ((langs.length - 1) * lineH) / 2;
           const isDragging = draggingKey === key;
@@ -595,7 +636,7 @@ export default function RelationshipGraph({
                 strokeLinecap="round"
                 style={editableEdges ? { pointerEvents: "stroke" } : undefined}
               />
-              <path d={arrow.path} fill="none" stroke={pal.casing} strokeWidth={sw + 3} strokeOpacity={active || isDragging ? 0.85 : 0.1} strokeLinecap="round" style={{ pointerEvents: "none" }} />
+              <path d={arrow.path} fill="none" stroke={pal.casing} strokeWidth={sw + 3} strokeOpacity={active || isDragging ? 0.85 : FOCUS_DIM.casing} strokeLinecap="round" style={{ pointerEvents: "none" }} />
               <path d={arrow.path} fill="none" stroke={color} strokeWidth={sw} strokeOpacity={isDragging ? 1 : op} strokeLinecap="round" style={{ pointerEvents: "none" }} />
               <polygon points={arrow.head} fill={color} fillOpacity={isDragging ? 1 : op} style={{ pointerEvents: "none" }} />
               {/* Grab handle at the apex — only in edit mode, while hovering/dragging,
@@ -642,9 +683,10 @@ export default function RelationshipGraph({
           return (
             <g
               key={v.id}
-              opacity={active ? 1 : 0.25}
+              opacity={active ? 1 : FOCUS_DIM.node}
               onMouseEnter={() => setHoverNode(v.id)}
               onMouseLeave={() => setHoverNode(null)}
+              onClick={showVendorPicker ? () => toggleFocus(v.id) : undefined}
               style={{ cursor: "pointer" }}
             >
               {/* Dark chip regardless of background: the maker logos are white/light
@@ -714,8 +756,12 @@ export default function RelationshipGraph({
 }
 
 /**
- * Side panel of vendor toggles. Every vendor is checked by default; unchecking
- * one removes it from the ring and the layout reflows around the remaining set.
+ * Side panel of vendor toggles. Each row carries TWO independent controls:
+ *  - a checkbox (the existing hide/show) that REMOVES the vendor from the ring
+ *    and reflows the layout, and
+ *  - an "eye" that FOCUSES the vendor: it stays on the ring but the rest of the
+ *    graph dims, spotlighting it and its connected neighbours — the same look as
+ *    hovering a node, but pinned. Multiple eyes can be open at once.
  * Hovering a row mirrors the graph's node-highlight so the two stay in sync.
  */
 function VendorPicker({
@@ -724,6 +770,9 @@ function VendorPicker({
   onToggle,
   onAll,
   onNone,
+  focused,
+  onToggleFocus,
+  onClearFocus,
   hoverNode,
   onHover,
 }: {
@@ -732,10 +781,14 @@ function VendorPicker({
   onToggle: (id: VendorId) => void;
   onAll: () => void;
   onNone: () => void;
+  focused: Set<VendorId>;
+  onToggleFocus: (id: VendorId) => void;
+  onClearFocus: () => void;
   hoverNode: VendorId | null;
   onHover: (id: VendorId | null) => void;
 }) {
   const shownCount = vendors.length - hidden.size;
+  const focusCount = focused.size;
   return (
     <div className="w-full shrink-0 rounded-xl border border-neutral-200 bg-white/60 p-3 lg:w-56 dark:border-neutral-800 dark:bg-neutral-950/60">
       <div className="mb-2 flex items-center justify-between px-1">
@@ -746,7 +799,7 @@ function VendorPicker({
           {shownCount}/{vendors.length}
         </span>
       </div>
-      <div className="mb-2 flex gap-1.5 px-1">
+      <div className="mb-2 flex items-center gap-1.5 px-1">
         <button
           type="button"
           onClick={onAll}
@@ -761,50 +814,83 @@ function VendorPicker({
         >
           None
         </button>
+        {/* Clear-focus only appears once at least one eye is open, so the row
+            stays uncluttered in the default (no-spotlight) state. */}
+        {focusCount > 0 && (
+          <button
+            type="button"
+            onClick={onClearFocus}
+            className="ml-auto flex items-center gap-1 rounded-md border border-amber-300 px-2 py-0.5 text-[11px] font-medium text-amber-700 transition-colors hover:bg-amber-50 dark:border-amber-700/60 dark:text-amber-400 dark:hover:bg-amber-950/40"
+            title="Clear all focus"
+          >
+            <EyeOff className="size-3" />
+            {focusCount}
+          </button>
+        )}
       </div>
       <div className="flex flex-wrap gap-1 lg:max-h-[28rem] lg:flex-col lg:flex-nowrap lg:overflow-y-auto">
         {vendors.map((v) => {
           const checked = !hidden.has(v.id);
+          const isFocused = focused.has(v.id);
           const dimmed = hoverNode != null && hoverNode !== v.id;
           const src = logoSrc(v.id, v.logo);
           return (
-            <label
+            <div
               key={v.id}
               onMouseEnter={() => onHover(v.id)}
               onMouseLeave={() => onHover(null)}
-              className={`flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900 ${
-                dimmed ? "opacity-50" : ""
-              }`}
+              className={`flex items-center gap-1 rounded-md px-1.5 py-1 text-sm transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-900 ${
+                isFocused ? "bg-amber-50 dark:bg-amber-950/30" : ""
+              } ${dimmed ? "opacity-50" : ""}`}
             >
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => onToggle(v.id)}
-                className="size-3.5 shrink-0 accent-neutral-900 dark:accent-neutral-100"
-              />
-              {src ? (
-                <span className="flex size-5 shrink-0 items-center justify-center rounded bg-neutral-900">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={src} alt="" className="size-4 object-contain" />
-                </span>
-              ) : (
+              {/* Hide/show: the checkbox + logo + name, wrapped in a <label> so a
+                  click anywhere on this stretch toggles ring membership. */}
+              <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggle(v.id)}
+                  className="size-3.5 shrink-0 accent-neutral-900 dark:accent-neutral-100"
+                />
+                {src ? (
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded bg-neutral-900">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="" className="size-4 object-contain" />
+                  </span>
+                ) : (
+                  <span
+                    className="flex size-5 shrink-0 items-center justify-center rounded text-[9px] font-bold leading-none text-white"
+                    style={{ backgroundColor: vendorColor(v.id) }}
+                  >
+                    {initials(v.name)}
+                  </span>
+                )}
                 <span
-                  className="flex size-5 shrink-0 items-center justify-center rounded text-[9px] font-bold leading-none text-white"
-                  style={{ backgroundColor: vendorColor(v.id) }}
+                  className={`truncate ${
+                    checked
+                      ? "text-neutral-800 dark:text-neutral-100"
+                      : "text-neutral-400 line-through dark:text-neutral-600"
+                  }`}
                 >
-                  {initials(v.name)}
+                  {v.name}
                 </span>
-              )}
-              <span
-                className={`truncate ${
-                  checked
-                    ? "text-neutral-800 dark:text-neutral-100"
-                    : "text-neutral-400 line-through dark:text-neutral-600"
+              </label>
+              {/* Focus eye: a separate button so its click never falls through to
+                  the hide checkbox. Open eye = spotlight on; closed = off. */}
+              <button
+                type="button"
+                onClick={() => onToggleFocus(v.id)}
+                aria-pressed={isFocused}
+                title={isFocused ? `Stop focusing ${v.name}` : `Focus ${v.name}`}
+                className={`flex size-6 shrink-0 items-center justify-center rounded-md transition-colors ${
+                  isFocused
+                    ? "text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/40"
+                    : "text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700 dark:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300"
                 }`}
               >
-                {v.name}
-              </span>
-            </label>
+                {isFocused ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+              </button>
+            </div>
           );
         })}
       </div>

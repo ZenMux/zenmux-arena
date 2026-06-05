@@ -677,6 +677,74 @@ export interface LangWeight {
 }
 
 /**
+ * Opacity applied to anything NOT in focus when an "eye" spotlight is active.
+ * Matches the existing transient hover dim (node `opacity={0.25}`, edge
+ * `strokeOpacity ≈ 0.1`) so the persistent eye toggle and the on-the-fly hover
+ * read as the SAME visual language. Shared by both renderers (the live preview
+ * and the static export) so a focused export looks identical to the screen.
+ */
+export const FOCUS_DIM = {
+  /** Dimmed node group opacity (logo chip + name). */
+  node: 0.25,
+  /** Dimmed edge stroke opacity multiplier (applied to the line's own opacity). */
+  edge: 0.1,
+  /** Dimmed edge label opacity. */
+  label: 0.12,
+  /** Dimmed edge casing (the halo under the line). */
+  casing: 0.1,
+} as const;
+
+/**
+ * A lightweight directed edge as the focus predicates need it — just endpoints.
+ * Both `Edge` (the aggregate) and the per-render `{ from, to }` shapes satisfy it,
+ * so the helpers work on whatever each renderer already has in hand.
+ */
+interface EdgeEnds {
+  from: VendorId;
+  to: VendorId;
+}
+
+/**
+ * Is `id` lit, given the set of focused (eye-open) vendors and the edges in play?
+ *
+ * This is the SAME rule the transient single-node hover uses, generalized to a
+ * *set*: a node is active when nothing is focused (everything bright), when it is
+ * itself focused, or when it shares an edge with any focused vendor. That second
+ * clause is what makes the eye behave "just like hover" — opening an eye lights up
+ * the vendor AND every node it confuses with / is confused as.
+ *
+ * `focus` may be a transient hover (single id) folded into the same set, so one
+ * predicate serves both interactions. Empty set ⇒ all active.
+ */
+export function isNodeActive(
+  id: VendorId,
+  focus: ReadonlySet<VendorId>,
+  edges: readonly EdgeEnds[],
+): boolean {
+  if (focus.size === 0) return true;
+  if (focus.has(id)) return true;
+  return edges.some(
+    (e) =>
+      (focus.has(e.from) && e.to === id) || (focus.has(e.to) && e.from === id),
+  );
+}
+
+/**
+ * Is the edge `from → to` lit, given the focused set? An edge is active when
+ * nothing is focused, or when either endpoint is focused — so a focused vendor's
+ * full spray of confusion arrows stays vivid while unrelated edges recede.
+ * Mirrors the single-node hover's `edgeActive`, generalized to a set.
+ */
+export function isEdgeActive(
+  from: VendorId,
+  to: VendorId,
+  focus: ReadonlySet<VendorId>,
+): boolean {
+  if (focus.size === 0) return true;
+  return focus.has(from) || focus.has(to);
+}
+
+/**
  * Per-language breakdown of one edge (A→B), one entry per language that has at
  * least one answer, sorted strongest-first. Used to label aggregate edges with
  * the language(s) that drive the confusion (e.g. "简体中文 40% · English 20%").

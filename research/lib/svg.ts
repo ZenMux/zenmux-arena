@@ -19,8 +19,11 @@ import {
   edgeLangWeights,
   edgeWeight,
   edgeWeightColor,
+  FOCUS_DIM,
   type GraphLayout,
   isDarkBackground,
+  isEdgeActive,
+  isNodeActive,
   isNonNode,
   type LangWeight,
   legendLayout,
@@ -52,6 +55,13 @@ export interface SvgOptions {
    * excluded; this is for hiding real vendors.
    */
   hidden?: VendorId[];
+  /**
+   * Vendor ids the user FOCUSED via the studio's "eye" toggle. Unlike `hidden`,
+   * focused vendors stay on the ring — they (and the nodes they share edges with)
+   * render at full strength while everything else is dimmed, exactly like the
+   * on-screen hover spotlight. Empty/omitted ⇒ no spotlight (all bright).
+   */
+  focused?: VendorId[];
   /** Per-edge curve reshapes from dragging in the studio, keyed by edgeKey. */
   curves?: EdgeCurves;
   /** When false (default), edge labels are hidden for a cleaner graph. */
@@ -79,6 +89,12 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
   const ringVendors = graph.vendors.filter(
     (v) => !isNonNode(v.id) && !hidden.has(v.id),
   );
+  // The "eye" spotlight, restricted to vendors actually on the ring — so a stale
+  // focus on a since-hidden vendor can't dim the whole graph. Empty ⇒ no spotlight
+  // (everything renders at full strength, the default look). Matches the live
+  // preview's focusSet so a focused export is WYSIWYG.
+  const ringIds = new Set(ringVendors.map((v) => v.id));
+  const focus = new Set((options.focused ?? []).filter((id) => ringIds.has(id)));
   // When `optimizeOrder` is on, reorder the ring so strongly-connected pairs
   // sit far apart — thin direction edges stay readable.
   const orderedVendors = cfg.optimizeOrder
@@ -170,10 +186,16 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     const arrow = curvedArrow(a, b, layout.nodeRadius, curve.bow, curve.along);
     const color = edgeWeightColor(p);
     const sw = r2(cfg.edgeBaseWidth + p * cfg.edgeWidthScale);
+    // Under the eye spotlight, edges not touching a focused vendor recede — same
+    // dimming the on-screen hover applies, so the export matches the screen.
+    const active = isEdgeActive(e.from, e.to, focus);
+    const casingOp = active ? 0.85 : FOCUS_DIM.casing;
+    const lineOp = active ? 0.95 : 0.95 * FOCUS_DIM.edge;
+    const headOp = active ? 0.98 : 0.98 * FOCUS_DIM.edge;
     // Background-colored casing first (slightly wider) for separation where lines cross.
-    parts.push(`<path d="${arrow.path}" fill="none" stroke="${pal.casing}" stroke-width="${r2(sw + 3)}" stroke-opacity="0.85" stroke-linecap="round"/>`);
-    parts.push(`<path d="${arrow.path}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-opacity="0.95" stroke-linecap="round"/>`);
-    parts.push(`<polygon points="${arrow.head}" fill="${color}" fill-opacity="0.98"/>`);
+    parts.push(`<path d="${arrow.path}" fill="none" stroke="${pal.casing}" stroke-width="${r2(sw + 3)}" stroke-opacity="${r2(casingOp)}" stroke-linecap="round"/>`);
+    parts.push(`<path d="${arrow.path}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-opacity="${r2(lineOp)}" stroke-linecap="round"/>`);
+    parts.push(`<polygon points="${arrow.head}" fill="${color}" fill-opacity="${r2(headOp)}"/>`);
 
     // Labels with a background-colored halo for legibility over the lines.
     //  - Language-filtered view: a single "NN%".
@@ -182,30 +204,38 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     //      "top"  → dominant language + rate, plus a "+N" overflow badge
     //      "none" → no label
     if (options.showEdgeLabels) {
+    const labelOp = active ? 1 : FOCUS_DIM.label;
     if (options.langCode) {
-      parts.push(edgeLabel(arrow.label.x, arrow.label.y, `${pctLabel(p)}%`, color, 15, pal.casing));
+      parts.push(edgeLabel(arrow.label.x, arrow.label.y, `${pctLabel(p)}%`, color, 15, pal.casing, labelOp));
     } else if (cfg.labelMode !== "none" && langs.length) {
       if (cfg.labelMode === "top") {
         const top = langs[0];
         const extra = langs.length - 1;
         const text = `${esc(langName(graph, top.code))} ${pctLabel(top.p)}%${extra > 0 ? ` +${extra}` : ""}`;
-        parts.push(edgeLabel(arrow.label.x, arrow.label.y, text, color, 13, pal.casing));
+        parts.push(edgeLabel(arrow.label.x, arrow.label.y, text, color, 13, pal.casing, labelOp));
       } else {
         const lineH = 17;
         const startY = arrow.label.y - ((langs.length - 1) * lineH) / 2;
         langs.forEach((l, i) => {
           const text = `${esc(langName(graph, l.code))} ${pctLabel(l.p)}%`;
-          parts.push(edgeLabel(arrow.label.x, startY + i * lineH, text, color, 13, pal.casing));
+          parts.push(edgeLabel(arrow.label.x, startY + i * lineH, text, color, 13, pal.casing, labelOp));
         });
       }
     }
     }
   }
 
-  // Nodes
+  // Nodes — under the eye spotlight, a node that is neither focused nor adjacent
+  // to a focused vendor dims as a whole group (chip + logo + name), matching the
+  // live preview. Neighbour detection uses the actually-drawn edges so it agrees
+  // with what's on the canvas.
+  const drawnEnds = drawable.map(({ e }) => ({ from: e.from, to: e.to }));
   for (const v of ringVendors) {
     const p = pos.get(v.id)!;
     const nr = layout.nodeRadius;
+    const active = isNodeActive(v.id, focus, drawnEnds);
+    const groupOpen = active ? `<g>` : `<g opacity="${FOCUS_DIM.node}">`;
+    parts.push(groupOpen);
     // The chip stays dark regardless of background: the maker logos are white/light
     // variants, so they must sit on a dark fill to be visible.
     parts.push(
@@ -231,6 +261,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
         `<text x="${r2(p.x)}" y="${r2(p.y + nr + 20)}" text-anchor="middle" font-size="15" font-weight="600" fill="${pal.ink}">${esc(v.name)}</text>`,
       );
     }
+    parts.push(`</g>`);
   }
 
   // Reading-key legend + provenance footer (bottom chrome). The legend explains
@@ -275,8 +306,9 @@ function langName(graph: GraphData, code: string): string {
 }
 
 /** One edge label line: colored text with a background-colored halo (paint-order stroke). */
-function edgeLabel(x: number, y: number, text: string, color: string, fontSize: number, casing: string): string {
-  return `<text x="${r2(x)}" y="${r2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${fontSize}" font-weight="700" fill="${color}" stroke="${casing}" stroke-width="3.5" paint-order="stroke" style="paint-order:stroke">${text}</text>`;
+function edgeLabel(x: number, y: number, text: string, color: string, fontSize: number, casing: string, opacity = 1): string {
+  const op = opacity < 1 ? ` opacity="${r2(opacity)}"` : "";
+  return `<text x="${r2(x)}" y="${r2(y)}" text-anchor="middle" dominant-baseline="middle" font-size="${fontSize}" font-weight="700" fill="${color}" stroke="${casing}" stroke-width="3.5" paint-order="stroke" style="paint-order:stroke"${op}>${text}</text>`;
 }
 
 function r2(n: number): number {
