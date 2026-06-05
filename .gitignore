@@ -42,3 +42,4 @@ next-env.d.ts
 
 # research run artifacts (raw records, extractions, generated outputs)
 # /results/
+results/vibe-writing

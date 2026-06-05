@@ -4,10 +4,19 @@
 // <VendorOverview> cards, giving the reader a one-glance picture of the whole
 // run before drilling into the per-vendor detail.
 //
-//   1. Run summary  — 5 KPI tiles (answers, self-id, cross-vendor, unknown, refused)
-//   2. By language  — 10 rows × 4 cols: code, self-rate, refused-rate, top confusion
-//   3. By vendor    — N rows × 5 cols: logo+name, #models, #answers, self-rate,
+// Tables (this file):
+//   • Run summary  — 5 KPI tiles (answers, self-id, cross-vendor, unknown, refused)
+//   • By language  — 10 rows × 4 cols: code, self-rate, refused-rate, top confusion
+//   • By vendor    — N rows × 5 cols: logo+name, #models, #answers, self-rate,
 //                                     top cross-vendor target chip
+//
+// Charts (./DataInsights), woven into the render order so the page reads as one
+// narrative — "who fakes whom" first, then the language story, then abstention:
+//   • Imitation balance        — diverging bar: imitated (+) vs imitates (−)
+//   • Strongest confusion pairs — ranked P bars: "X claims to be Y"
+//   • Answer composition by lang — 100% stacked: self/confusion/unknown/refused
+//   • Language fragility        — dumbbell: per-model self-ID min→max across langs
+//   • Abstention by manufacturer — stacked: unknown + refused share
 //
 // All numbers come from the GraphData the parent already loaded — no new I/O.
 
@@ -27,6 +36,13 @@ import type {
   VendorMeta,
 } from "@research/lib/types";
 import { pct, rateBadgeStyle, emphasizeRate } from "../studio/VendorOverview";
+import {
+  ImitationBalanceCard,
+  ConfusionPairsCard,
+  LanguageCompositionCard,
+  LanguageFragilityCard,
+  AbstentionCard,
+} from "./DataInsights";
 
 // Pseudo-vendors are analytical buckets, not real brands. Skip them in the
 // per-vendor rollup (the data explorer should answer "which real vendor has
@@ -483,7 +499,15 @@ export default function DataAggregate({ graph }: { graph: GraphData }) {
   return (
     <section className="space-y-6">
       <RunSummary graph={graph} />
+      {/* Who-fakes-whom — the headline finding, manufacturer level */}
+      <ImitationBalanceCard graph={graph} />
+      <ConfusionPairsCard graph={graph} />
+      {/* The language story */}
       <ByLanguageCard rows={languageRows} />
+      <LanguageCompositionCard graph={graph} />
+      <LanguageFragilityCard graph={graph} />
+      {/* The other failure mode + per-vendor rollup */}
+      <AbstentionCard graph={graph} />
       <ByVendorCard rows={vendorRows} />
     </section>
   );
