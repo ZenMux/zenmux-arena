@@ -86,6 +86,10 @@ bytedance → openai       7.2%   (317/4400)
 
 > Read the full write-up in the generated `report.md`, or explore it interactively at **[`/research`](#-the-web-viewer)**.
 
+### Downstream reuse
+
+The published run artifacts are intentionally inspectable and reusable. One downstream example: [API Relay Audit](https://github.com/toby-bridges/api-relay-audit) used the `mix-20260601T062425` records, extractions, and aggregate data to calibrate natural-language model self-identification checks, helping it treat self-ID mismatches as consistency signals rather than standalone attribution proof.
+
 ---
 
 ## ⚡ Quickstart
