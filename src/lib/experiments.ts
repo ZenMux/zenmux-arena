@@ -7,7 +7,7 @@
 // server components (the hub) and client components (the sidebar) without a
 // "use client" boundary leaking either way.
 
-import { Fingerprint, type LucideIcon } from "lucide-react";
+import { Fingerprint, Coins, type LucideIcon } from "lucide-react";
 
 /** Where an experiment is in its lifecycle. `soon` cards are shown but inert. */
 export type ExperimentStatus = "live" | "soon";
@@ -43,6 +43,17 @@ export const EXPERIMENTS: Experiment[] = [
     href: "/research/studio",
     icon: Fingerprint,
     accent: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    id: "token-economics",
+    title: "Token Economics",
+    tagline: "Every model, priced and weighed.",
+    description:
+      "Scrape every frontier model ZenMux serves, rank them by a standard request basket (100K in + 1K out), and weigh price against the tokens each one actually serves — a live map of where the compute and the money flow.",
+    status: "live",
+    href: "/token-economics",
+    icon: Coins,
+    accent: "text-amber-600 dark:text-amber-400",
   },
 ];
 

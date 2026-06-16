@@ -12,7 +12,8 @@
     "study:mix": "tsx research/scripts/mix.ts",
     "study:aggregate": "tsx research/scripts/aggregate.ts",
     "study:report": "tsx research/scripts/report.ts",
-    "study:test": "tsx research/scripts/run.ts && tsx research/scripts/extract.ts && tsx research/scripts/aggregate.ts"
+    "study:test": "tsx research/scripts/run.ts && tsx research/scripts/extract.ts && tsx research/scripts/aggregate.ts",
+    "tokenecon": "tsx research/scripts/tokenecon.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "playwright-mcp": {
+      "type": "stdio",
+      "command": "tnpx",
+      "args": ["-y", "@playwright/mcp@latest", "--extension"]
+    }
+  }
+}
