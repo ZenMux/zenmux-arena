@@ -31,6 +31,59 @@ export const BASKET = {
 /** Prices on the page are quoted per 1,000,000 tokens. */
 export const PRICE_UNIT = 1_000_000;
 
+// ---------------------------------------------------------------------------
+// The launch-window usage metric — average tokens per working day at launch
+// ---------------------------------------------------------------------------
+
+/**
+ * The launch window is the first N **working days** (Mon–Fri) on or after a
+ * model's `publishTime`. We sum the model_usage daily series over that span and
+ * divide by the working days that actually carried data → `avgDailyTokens`,
+ * a per-working-day consumption RATE that's comparable across release dates
+ * (unlike all-time `usageTokens`, which mechanically favors older listings).
+ */
+export const LAUNCH_WINDOW_WORKING_DAYS = 14;
+
+/** One day of the ZenMux model_usage series ("YYYY-MM-DD" → token count). */
+export interface DailyUsagePoint {
+  date: string;
+  value: number;
+}
+
+/** Per-model daily token series (from GET …/statistics/model_usage), keyed by
+ *  slug downstream. `series` is date-ascending; days with no usage are absent. */
+export interface ModelUsageSeries {
+  slug: string;
+  /** Total tokens across the whole requested span (echoes the API's `value`). */
+  total: number;
+  series: DailyUsagePoint[];
+}
+
+/** Provenance for a model's `avgDailyTokens` — what window it was measured over. */
+export interface AvgDailyWindow {
+  /** First working day of the window (inclusive, "YYYY-MM-DD"). */
+  from: string;
+  /** Last *elapsed* working day of the window (inclusive, "YYYY-MM-DD"). */
+  to: string;
+  /** Target working-day count (= LAUNCH_WINDOW_WORKING_DAYS). */
+  targetWorkingDays: number;
+  /** Working days of the window that have ELAPSED (≥ data-start, ≤ yesterday) —
+   *  this is the DIVISOR for the average. A working day with zero usage still
+   *  counts here (zero demand is real signal), so it drags the average down. */
+  elapsedWorkingDays: number;
+  /** Of the elapsed working days, how many actually carried a usage data point
+   *  (for the "N of M days had usage" tooltip; NOT the divisor). */
+  workingDaysWithData: number;
+  /** True when fewer than `targetWorkingDays` working days have elapsed — a
+   *  partial window: the model is younger than 14 working days, or its launch
+   *  window runs past yesterday / began before the 2025-09-29 data-start. */
+  partial: boolean;
+  /** True when the window had to start later than the publish date because the
+   *  launch predates the 2025-09-29 data-start (the figure is then a first-
+   *  observable rate, not a true launch rate). */
+  shifted: boolean;
+}
+
 /** blendedCost ($) for one model given its per-1M input/output prices. */
 export function blendedCost(inputPrice: number, outputPrice: number): number {
   return (
@@ -72,8 +125,24 @@ export interface ModelEconomics {
   usageRaw: string | null;
   /** Trailing-7-day token volume — a recency signal distinct from all-time usage. */
   tokenWeek: number | null;
-  /** Tokens served per dollar of blended cost — the headline "value" metric. */
+  /** Tokens served per dollar of blended cost — the all-time "value" metric. */
   tokensPerDollar: number | null;
+
+  /**
+   * Average per-working-day token consumption over the model's launch window —
+   * the first {@link LAUNCH_WINDOW_WORKING_DAYS} *working days* (Mon–Fri) on or
+   * after `publishTime`, summed and divided by however many of those working days
+   * actually had data (a per-working-day rate, robust to partial windows). This
+   * normalizes the all-time `usageTokens` (which unfairly rewards older models)
+   * into a launch-velocity figure comparable across release dates. Null when the
+   * model has no publish date or no usage in the window. */
+  avgDailyTokens: number | null;
+  /** Provenance for `avgDailyTokens`: the window it was measured over and how many
+   *  working days carried data (< target ⇒ a partial window, flagged in the UI). */
+  avgDailyWindow: AvgDailyWindow | null;
+  /** Avg daily tokens served per dollar of blended cost — the headline "value"
+   *  metric the Value Map + Value Ladder now rank by (launch-velocity ÷ price). */
+  avgDailyPerDollar: number | null;
 
   /** Context window in tokens (null if absent). */
   contextWindow: number | null;
@@ -106,6 +175,12 @@ export interface VendorEconomics {
   totalUsage: number;
   /** Share of the whole study's total usage (0..1). */
   usageShare: number;
+  /** Sum of avg-daily launch-window consumption across the vendor's models
+   *  (only those that carry an `avgDailyTokens`). The recency-fair counterpart
+   *  to `totalUsage`. */
+  totalAvgDaily: number;
+  /** Share of the study's total avg-daily consumption (0..1). */
+  avgDailyShare: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -117,18 +192,24 @@ export interface TokenEconomicsSummary {
   vendorCount: number;
   /** Models that carried a usage volume (the price-vs-usage analysis subset). */
   withUsage: number;
+  /** Models that carried a launch-window avg-daily figure. */
+  withAvgDaily: number;
   /** Sum of usageTokens across all models. */
   totalUsage: number;
+  /** Sum of avgDailyTokens across all models that have it. */
+  totalAvgDaily: number;
   /** Median + mean blended basket cost across all priced models. */
   medianBlendedCost: number;
   meanBlendedCost: number;
   /** Cheapest / priciest priced models (slug + cost). */
   cheapest: { slug: string; name: string; blendedCost: number } | null;
   priciest: { slug: string; name: string; blendedCost: number } | null;
-  /** Most-consumed model (slug + tokens). */
+  /** Most-consumed model by all-time tokens (slug + tokens). */
   mostUsed: { slug: string; name: string; usageTokens: number } | null;
-  /** Best tokens-per-dollar model among those with usage. */
-  bestValue: { slug: string; name: string; tokensPerDollar: number } | null;
+  /** Highest avg-daily-tokens model at launch (slug + avg daily tokens). */
+  busiestDaily: { slug: string; name: string; avgDailyTokens: number } | null;
+  /** Best value: highest avg-daily tokens per dollar (the headline value metric). */
+  bestValue: { slug: string; name: string; avgDailyPerDollar: number } | null;
   /** Most recently listed model (slug + date) and the listing's date span. */
   newest: { slug: string; name: string; publishTime: string } | null;
   /** Earliest / latest publish dates across all models ("YYYY-MM-DD"). */

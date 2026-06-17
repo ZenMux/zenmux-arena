@@ -6,10 +6,12 @@
 import { VENDORS, isPseudoVendor } from "@research/lib/vendors";
 import type { VendorId } from "@research/lib/types";
 import { MODELS_URL } from "./scrape";
+import { computeAvgDaily } from "./usage";
 import { normalizeModel, type ScrapedModel } from "./normalize";
 import {
   BASKET,
   type ModelEconomics,
+  type ModelUsageSeries,
   type TokenEconomicsData,
   type TokenEconomicsSummary,
   type VendorEconomics,
@@ -30,6 +32,7 @@ function mean(xs: number[]): number {
 function rollupVendors(
   models: ModelEconomics[],
   totalUsage: number,
+  totalAvgDaily: number,
 ): VendorEconomics[] {
   const byVendor = new Map<VendorId, ModelEconomics[]>();
   for (const m of models) {
@@ -42,6 +45,7 @@ function rollupVendors(
   for (const [vendor, list] of byVendor) {
     const costs = list.map((m) => m.blendedCost);
     const usage = list.reduce((s, m) => s + (m.usageTokens ?? 0), 0);
+    const avgDaily = list.reduce((s, m) => s + (m.avgDailyTokens ?? 0), 0);
     const meta = VENDORS[vendor];
     rows.push({
       vendor,
@@ -53,6 +57,8 @@ function rollupVendors(
       maxBlendedCost: Math.max(...costs),
       totalUsage: usage,
       usageShare: totalUsage > 0 ? usage / totalUsage : 0,
+      totalAvgDaily: avgDaily,
+      avgDailyShare: totalAvgDaily > 0 ? avgDaily / totalAvgDaily : 0,
     });
   }
   rows.sort((a, b) => b.modelCount - a.modelCount || a.name.localeCompare(b.name));
@@ -63,6 +69,8 @@ function buildSummary(models: ModelEconomics[]): TokenEconomicsSummary {
   const costs = models.map((m) => m.blendedCost);
   const withUsage = models.filter((m) => m.usageTokens != null);
   const totalUsage = withUsage.reduce((s, m) => s + (m.usageTokens ?? 0), 0);
+  const withAvgDaily = models.filter((m) => m.avgDailyTokens != null);
+  const totalAvgDaily = withAvgDaily.reduce((s, m) => s + (m.avgDailyTokens ?? 0), 0);
 
   const byCostAsc = [...models].sort((a, b) => a.blendedCost - b.blendedCost);
   const cheapest = byCostAsc.find((m) => m.blendedCost > 0) ?? byCostAsc[0] ?? null;
@@ -71,10 +79,15 @@ function buildSummary(models: ModelEconomics[]): TokenEconomicsSummary {
   const mostUsed =
     [...withUsage].sort((a, b) => (b.usageTokens ?? 0) - (a.usageTokens ?? 0))[0] ??
     null;
+  const busiestDaily =
+    [...withAvgDaily].sort((a, b) => (b.avgDailyTokens ?? 0) - (a.avgDailyTokens ?? 0))[0] ??
+    null;
+  // Headline "value" now ranks by avg-daily-tokens per dollar (launch velocity ÷
+  // price), not the older all-time tokensPerDollar.
   const bestValue =
-    [...withUsage]
-      .filter((m) => m.tokensPerDollar != null)
-      .sort((a, b) => (b.tokensPerDollar ?? 0) - (a.tokensPerDollar ?? 0))[0] ??
+    [...models]
+      .filter((m) => m.avgDailyPerDollar != null)
+      .sort((a, b) => (b.avgDailyPerDollar ?? 0) - (a.avgDailyPerDollar ?? 0))[0] ??
     null;
 
   const vendorIds = new Set(models.map((m) => m.vendor));
@@ -101,7 +114,9 @@ function buildSummary(models: ModelEconomics[]): TokenEconomicsSummary {
     modelCount: models.length,
     vendorCount: vendorIds.size,
     withUsage: withUsage.length,
+    withAvgDaily: withAvgDaily.length,
     totalUsage,
+    totalAvgDaily,
     medianBlendedCost: median(costs),
     meanBlendedCost: mean(costs),
     cheapest: cheapest
@@ -113,8 +128,11 @@ function buildSummary(models: ModelEconomics[]): TokenEconomicsSummary {
     mostUsed: mostUsed
       ? { slug: mostUsed.slug, name: mostUsed.shortName, usageTokens: mostUsed.usageTokens! }
       : null,
+    busiestDaily: busiestDaily
+      ? { slug: busiestDaily.slug, name: busiestDaily.shortName, avgDailyTokens: busiestDaily.avgDailyTokens! }
+      : null,
     bestValue: bestValue
-      ? { slug: bestValue.slug, name: bestValue.shortName, tokensPerDollar: bestValue.tokensPerDollar! }
+      ? { slug: bestValue.slug, name: bestValue.shortName, avgDailyPerDollar: bestValue.avgDailyPerDollar! }
       : null,
     newest: newest
       ? { slug: newest.slug, name: newest.shortName, publishTime: newest.publishTime! }
@@ -130,8 +148,21 @@ export interface ComputeResult {
   dropped: string[];
 }
 
-/** Turn raw scraped rows into the full published artifact. */
-export function compute(rows: ScrapedModel[], generatedAt: string): ComputeResult {
+/**
+ * Turn raw scraped rows into the full published artifact.
+ *
+ * `usageBySlug` is the optional per-model daily token series from the management
+ * endpoint (research/token-economics/usage.ts). When provided, each model's
+ * launch-window avg-daily metrics are derived from it; when omitted (e.g. no
+ * management key), those fields stay null and the views fall back gracefully.
+ * `generatedAt` doubles as the "now" used to bound the (T-1) launch window.
+ */
+export function compute(
+  rows: ScrapedModel[],
+  generatedAt: string,
+  usageBySlug?: Map<string, ModelUsageSeries>,
+): ComputeResult {
+  const now = new Date(generatedAt);
   const models: ModelEconomics[] = [];
   const dropped: string[] = [];
   // De-dup by slug (the listing can repeat a card); first occurrence wins.
@@ -141,12 +172,29 @@ export function compute(rows: ScrapedModel[], generatedAt: string): ComputeResul
     if (seen.has(raw.slug)) continue;
     seen.add(raw.slug);
     const m = normalizeModel(raw);
-    if (m) models.push(m);
-    else dropped.push(raw.slug);
+    if (!m) {
+      dropped.push(raw.slug);
+      continue;
+    }
+    // Derive the launch-window average ONLY for models we actually fetched usage
+    // for. Presence of the slug key = "we have data" (an empty series is then a
+    // genuine zero-demand window); absence = "not fetched / too new" → leave
+    // null so the UI shows "—" rather than a misleading 0.
+    const entry = usageBySlug?.get(m.slug);
+    if (entry) {
+      const { avgDailyTokens, window } = computeAvgDaily(m.publishTime, entry.series, now);
+      m.avgDailyTokens = avgDailyTokens;
+      m.avgDailyWindow = window;
+      m.avgDailyPerDollar =
+        avgDailyTokens != null && m.blendedCost > 0
+          ? avgDailyTokens / m.blendedCost
+          : null;
+    }
+    models.push(m);
   }
 
   const summary = buildSummary(models);
-  const vendors = rollupVendors(models, summary.totalUsage);
+  const vendors = rollupVendors(models, summary.totalUsage, summary.totalAvgDaily);
 
   return {
     data: {
