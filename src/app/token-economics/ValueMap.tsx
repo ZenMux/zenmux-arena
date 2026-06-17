@@ -83,7 +83,7 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
           The Value Map · Price vs. Daily Demand
         </h2>
         <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
-          Each dot is a model · X = basket cost (log) · Y = avg tokens/day at
+          Each dot is a model · X = basket cost (log) · Y = median tokens/day at
           launch (log) · dot size = daily-tokens-per-dollar · color =
           manufacturer. The dashed{" "}
           <b className="text-[#141414]">median crosshairs</b> split the cloud into
@@ -136,7 +136,7 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
             BASKET COST →
           </text>
           <text x={16} y={(H - PAD.b + PAD.t) / 2} textAnchor="middle" transform={`rotate(-90 16 ${(H - PAD.b + PAD.t) / 2})`} className="fill-[#141414]" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em" }}>
-            AVG TOKENS / DAY →
+            MEDIAN TOKENS / DAY →
           </text>
 
           {/* dots — non-hovered dimmed when something is hovered */}

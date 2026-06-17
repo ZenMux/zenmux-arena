@@ -88,8 +88,8 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
             Value Ladder · Daily Tokens per Dollar
           </h2>
           <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
-            A value tier-list · one bar per model, longer = more avg daily tokens
-            ÷ basket cost (the Value Map&apos;s ratio, log scale) ·{" "}
+            A value tier-list · one bar per model, longer = more median daily
+            tokens ÷ basket cost (the Value Map&apos;s ratio, log scale) ·{" "}
             {grouped ? (
               <>
                 <b className="text-[#141414]">grouped by maker</b>, vendors ranked
@@ -171,7 +171,7 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
       {/* legend / methodology line */}
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 border border-[#141414] bg-[#fbf9f4] px-3 py-2 text-[11px] text-[#6f6a5f]">
         <span>
-          Bar length = avg daily tokens served per dollar (log scale) ·{" "}
+          Bar length = median daily tokens served per dollar (log scale) ·{" "}
           {grouped
             ? "vendors ranked by median value, models ranked within each maker"
             : "every model ranked by value, colored by maker"}{" "}

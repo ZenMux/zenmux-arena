@@ -26,7 +26,7 @@ function metricOf(m: ModelEconomics, metric: Metric): number | null {
 
 export function Consumption({ data }: { data: TokenEconomicsData }) {
   const [topN, setTopN] = useState<number>(12);
-  // Default to avg/day — the headline metric across the rest of the module.
+  // Default to median/day — the headline metric across the rest of the module.
   const [metric, setMetric] = useState<Metric>("avgDaily");
 
   const ranked = useMemo(
@@ -51,7 +51,7 @@ export function Consumption({ data }: { data: TokenEconomicsData }) {
             </h2>
             <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
               {metric === "avgDaily"
-                ? "Avg tokens / working day at launch (first 14 working days)"
+                ? "Median tokens / active day at launch (first 14 working days)"
                 : "All-time observed tokens served on ZenMux"}{" "}
               · top {topN} of {ranked.length} · bar height = volume, color =
               manufacturer
@@ -62,7 +62,7 @@ export function Consumption({ data }: { data: TokenEconomicsData }) {
             <div className="flex items-center gap-1">
               {(
                 [
-                  ["avgDaily", "AVG / DAY"],
+                  ["avgDaily", "MED / DAY"],
                   ["allTime", "ALL-TIME"],
                 ] as const
               ).map(([key, label]) => (
@@ -165,7 +165,7 @@ function VendorShare({ data, metric }: { data: TokenEconomicsData; metric: Metri
         </h3>
         <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
           {metric === "avgDaily"
-            ? "Avg daily launch tokens summed across each maker's lineup"
+            ? "Median daily launch tokens summed across each maker's lineup"
             : "Total all-time tokens summed across each maker's lineup"}{" "}
           — who commands the volume.
         </p>

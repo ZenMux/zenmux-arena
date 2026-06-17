@@ -31,9 +31,9 @@ const COLUMNS: Column[] = [
   { key: "blendedCost", label: "BASKET", defaultDir: "asc", hint: "100K in + 1K out, total $" },
   { key: "inputPrice", label: "INPUT", defaultDir: "asc", hint: "$ / 1M input tokens" },
   { key: "outputPrice", label: "OUTPUT", defaultDir: "asc", hint: "$ / 1M output tokens" },
-  { key: "avgDailyTokens", label: "AVG/DAY", defaultDir: "desc", hint: "avg tokens per working day over the first 14 working days post-launch" },
+  { key: "avgDailyTokens", label: "MED/DAY", defaultDir: "desc", hint: "median tokens on an active day across the first 14 working days post-launch (spike-robust)" },
   { key: "usageTokens", label: "ALL-TIME", defaultDir: "desc", hint: "all-time observed tokens served" },
-  { key: "avgDailyPerDollar", label: "VALUE", defaultDir: "desc", hint: "avg daily tokens served per $ of basket" },
+  { key: "avgDailyPerDollar", label: "VALUE", defaultDir: "desc", hint: "median daily tokens served per $ of basket" },
   { key: "contextWindow", label: "CONTEXT", defaultDir: "desc", hint: "context window (tokens)" },
   { key: "publishTime", label: "RELEASED", defaultDir: "desc", hint: "listing publish date (YYYY-MM-DD)" },
 ];
@@ -70,9 +70,9 @@ export function Leaderboard({ data }: { data: TokenEconomicsData }) {
             {rows.length} models · newest releases first · basket ={" "}
             <b className="text-[#141414]">100K input + 1K output</b> tokens ·
             green = cheaper than median ({usd(median)}), red = dearer ·{" "}
-            <b className="text-[#141414]">AVG/DAY</b> = launch-velocity (first 14
-            working days), <span className="text-[#cf3636]">*</span> = partial
-            window
+            <b className="text-[#141414]">MED/DAY</b> = median active-day launch
+            velocity (first 14 working days),{" "}
+            <span className="text-[#cf3636]">*</span> = partial window
           </p>
         </div>
         <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
@@ -160,9 +160,10 @@ function Row({
         <span
           title={
             model.avgDailyWindow
-              ? `avg/working-day over ${model.avgDailyWindow.elapsedWorkingDays}` +
-                `/${model.avgDailyWindow.targetWorkingDays} working days ` +
-                `(${model.avgDailyWindow.from} → ${model.avgDailyWindow.to})` +
+              ? `median of ${model.avgDailyWindow.workingDaysWithData} active ` +
+                `of ${model.avgDailyWindow.elapsedWorkingDays} elapsed working days ` +
+                `(target ${model.avgDailyWindow.targetWorkingDays}; ` +
+                `${model.avgDailyWindow.from} → ${model.avgDailyWindow.to})` +
                 (model.avgDailyWindow.partial ? " · partial window" : "")
               : "no launch-window data"
           }

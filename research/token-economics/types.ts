@@ -129,19 +129,22 @@ export interface ModelEconomics {
   tokensPerDollar: number | null;
 
   /**
-   * Average per-working-day token consumption over the model's launch window —
-   * the first {@link LAUNCH_WINDOW_WORKING_DAYS} *working days* (Mon–Fri) on or
-   * after `publishTime`, summed and divided by however many of those working days
-   * actually had data (a per-working-day rate, robust to partial windows). This
-   * normalizes the all-time `usageTokens` (which unfairly rewards older models)
-   * into a launch-velocity figure comparable across release dates. Null when the
-   * model has no publish date or no usage in the window. */
+   * The model's TYPICAL single-day token consumption over its launch window —
+   * the MEDIAN of the active days (value > 0) among the first
+   * {@link LAUNCH_WINDOW_WORKING_DAYS} *working days* (Mon–Fri) on or after
+   * `publishTime`. Median, not mean, so a launch-day spike can't distort it: it
+   * answers "what does a normal active day look like", normalizing the all-time
+   * `usageTokens` (which unfairly rewards older models) into a launch-velocity
+   * figure comparable across release dates. Null when the model has no publish
+   * date or its window hasn't opened; a real 0 when the window had no active day.
+   * (Field name kept `avgDaily*` for stability; the statistic is a median.) */
   avgDailyTokens: number | null;
   /** Provenance for `avgDailyTokens`: the window it was measured over and how many
-   *  working days carried data (< target ⇒ a partial window, flagged in the UI). */
+   *  working days carried usage (< target elapsed ⇒ a partial window, flagged in
+   *  the UI). */
   avgDailyWindow: AvgDailyWindow | null;
-  /** Avg daily tokens served per dollar of blended cost — the headline "value"
-   *  metric the Value Map + Value Ladder now rank by (launch-velocity ÷ price). */
+  /** Typical daily tokens served per dollar of blended cost — the headline "value"
+   *  metric the Value Map + Value Ladder rank by (median daily volume ÷ price). */
   avgDailyPerDollar: number | null;
 
   /** Context window in tokens (null if absent). */

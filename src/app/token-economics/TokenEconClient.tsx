@@ -113,16 +113,18 @@ function Shell({
             unpriced models excluded.
           </p>
           <p className="mt-2">
-            <b className="text-[#141414]">AVG DAILY.</b> Each model&apos;s{" "}
-            <b className="text-[#141414]">launch velocity</b> — total tokens over
-            its first <b className="text-[#141414]">14 working days</b> (Mon–Fri)
-            on/after release, divided by the working days that have elapsed (a
-            per-working-day rate, so it&apos;s comparable across release dates,
-            unlike all-time usage which favors older models). Daily series from
-            ZenMux&apos;s model-usage API. <b className="text-[#141414]">Value</b>{" "}
-            = avg daily tokens ÷ basket cost; the Value Ladder and Value Map rank
-            by it. Partial windows (models younger than 14 working days) are
-            flagged.
+            <b className="text-[#141414]">DAILY TOKENS.</b> Each model&apos;s{" "}
+            <b className="text-[#141414]">launch velocity</b> — the{" "}
+            <b className="text-[#141414]">median</b> single-day token volume across
+            the active days of its first{" "}
+            <b className="text-[#141414]">14 working days</b> (Mon–Fri) on/after
+            release. We use the median, not the mean, so a launch-day spike
+            can&apos;t distort it — it reads as a typical day, and stays
+            comparable across release dates (unlike all-time usage, which favors
+            older models). Daily series from ZenMux&apos;s model-usage API.{" "}
+            <b className="text-[#141414]">Value</b> = daily tokens ÷ basket cost;
+            the Value Ladder and Value Map rank by it. Partial windows (models
+            younger than 14 working days) are flagged.
           </p>
           <p className="mt-2">
             Part of{" "}

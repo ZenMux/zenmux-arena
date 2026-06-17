@@ -299,12 +299,32 @@ export interface AvgDailyResult {
   window: AvgDailyWindow | null;
 }
 
+/** Median of a numeric array (0 for empty). Sorts a copy, averages the middle
+ *  two on even length. The launch-window metric's robust center statistic. */
+function median(xs: number[]): number {
+  if (xs.length === 0) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
 /**
- * Collapse a daily series into the launch-window average. Sums the series
- * values that fall on the window's ELAPSED working days, then divides by the
- * count of elapsed working days (a zero-usage working day counts in the divisor
- * — low demand is real signal, not missing data). Returns nulls when the window
- * hasn't opened yet or carried no usage at all.
+ * Collapse a daily series into the launch-window's TYPICAL single-day volume —
+ * the MEDIAN of the days that carried usage (value > 0) among the window's
+ * elapsed working days. Median, not mean, so a launch-day spike (or any single
+ * outlier day) can't distort the figure — the headline value ranking stays a
+ * "what does a normal day look like" measure, not "what was the biggest day".
+ *
+ * WHY median-of-positive-days rather than median-including-zeros: a freshly
+ * listed model whose 14-working-day window is mostly in the future would have
+ * its median land on a run of not-yet-happened zeros and collapse to 0. Taking
+ * the median over only the days with observed usage measures how much the model
+ * does on a day it's actually used, which is comparable across release dates and
+ * window completeness. A window with NO positive day at all is a true 0 (the
+ * model exists but went unused), distinct from "window not open yet" (null).
+ *
+ * `avgDailyWindow` still records the full elapsed-working-day span + how many of
+ * those days carried data, so the UI can flag partial / sparse windows.
  */
 export function computeAvgDaily(
   publishTime: string | null,
@@ -317,14 +337,11 @@ export function computeAvgDaily(
   if (!plan.ok) return { avgDailyTokens: null, window: null };
 
   const byDate = new Map(series.map((p) => [p.date, p.value]));
-  let sum = 0;
-  let daysWithData = 0;
+  // Collect the positive single-day volumes on the window's elapsed working days.
+  const positives: number[] = [];
   for (const day of plan.elapsedDays) {
     const v = byDate.get(day);
-    if (v != null && v > 0) {
-      sum += v;
-      daysWithData++;
-    }
+    if (v != null && v > 0) positives.push(v);
   }
 
   const divisor = plan.elapsedDays.length;
@@ -333,11 +350,10 @@ export function computeAvgDaily(
     to: plan.to,
     targetWorkingDays: target,
     elapsedWorkingDays: divisor,
-    workingDaysWithData: daysWithData,
+    workingDaysWithData: positives.length,
     partial: divisor < target,
     shifted: plan.shifted,
   };
-  // No usage at all in the window ⇒ a real zero (the model exists but went
-  // unused), distinct from "window not open yet" above.
-  return { avgDailyTokens: divisor > 0 ? sum / divisor : 0, window };
+  // Median of the active days; no active day at all ⇒ a real zero.
+  return { avgDailyTokens: median(positives), window };
 }
