@@ -15,6 +15,7 @@ const VIEWS = [
   { key: "leaderboard", label: "LEADERBOARD" },
   { key: "consumption", label: "CONSUMPTION" },
   { key: "value", label: "VALUE MAP" },
+  { key: "vendor-value", label: "VALUE BY VENDOR" },
 ] as const;
 
 function NavLinks() {

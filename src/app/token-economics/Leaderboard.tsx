@@ -38,9 +38,11 @@ const COLUMNS: Column[] = [
 ];
 
 export function Leaderboard({ data }: { data: TokenEconomicsData }) {
+  // Default ranking: newest release first (publishTime descending). Nulls sink
+  // to the bottom via sortModels' empty-string mapping.
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
-    key: "blendedCost",
-    dir: "asc",
+    key: "publishTime",
+    dir: "desc",
   });
 
   const median = data.summary.medianBlendedCost;
@@ -64,7 +66,7 @@ export function Leaderboard({ data }: { data: TokenEconomicsData }) {
             Price Leaderboard
           </h2>
           <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
-            {rows.length} models · ranked by a standard basket of{" "}
+            {rows.length} models · newest releases first · basket ={" "}
             <b className="text-[#141414]">100K input + 1K output</b> tokens ·
             green = cheaper than median ({usd(median)}), red = dearer
           </p>

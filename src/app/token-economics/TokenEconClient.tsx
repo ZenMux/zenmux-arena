@@ -8,7 +8,7 @@
 // Suspense boundary by the parent layout's nav, and we read it directly here
 // since the whole client view is already dynamic.
 
-import { Suspense, useMemo } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { TokenEconomicsData } from "@research/token-economics/types";
@@ -17,6 +17,9 @@ import { StatBox } from "./components";
 import { Leaderboard } from "./Leaderboard";
 import { Consumption } from "./Consumption";
 import { ValueMap } from "./ValueMap";
+import { ValueByVendor } from "./ValueByVendor";
+
+type View = "leaderboard" | "consumption" | "value" | "vendor-value";
 
 export function TokenEconClient({ data }: { data: TokenEconomicsData }) {
   return (
@@ -28,10 +31,7 @@ export function TokenEconClient({ data }: { data: TokenEconomicsData }) {
 
 function Routed({ data }: { data: TokenEconomicsData }) {
   const params = useSearchParams();
-  const view = (params.get("view") ?? "leaderboard") as
-    | "leaderboard"
-    | "consumption"
-    | "value";
+  const view = (params.get("view") ?? "leaderboard") as View;
   return <Shell data={data} view={view} />;
 }
 
@@ -40,40 +40,12 @@ function Shell({
   view,
 }: {
   data: TokenEconomicsData;
-  view: "leaderboard" | "consumption" | "value";
+  view: View;
 }) {
   const s = data.summary;
 
-  // A small marquee of headline figures, like the crypto ticker in the reference.
-  const ticker = useMemo(
-    () => [
-      { k: "MODELS", v: String(s.modelCount) },
-      { k: "VENDORS", v: String(s.vendorCount) },
-      { k: "MEDIAN BASKET", v: usd(s.medianBlendedCost) },
-      { k: "TOTAL TOKENS", v: tokens(s.totalUsage) },
-      s.priciest && { k: "PRICIEST", v: `${s.priciest.name} ${usd(s.priciest.blendedCost)}` },
-      s.cheapest && { k: "CHEAPEST", v: `${s.cheapest.name} ${usd(s.cheapest.blendedCost)}` },
-    ].filter(Boolean) as { k: string; v: string }[],
-    [s],
-  );
-
   return (
     <div>
-      {/* ── Ticker strip ── */}
-      <div className="border-b border-[#141414] bg-[#ece8dd]">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2 text-[11px] sm:px-6">
-          {ticker.map((t, i) => (
-            <span key={t.k} className="inline-flex items-center gap-1.5">
-              {i > 0 && <span className="text-[#141414]/30">│</span>}
-              <span className="font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
-                {t.k}
-              </span>
-              <span className="font-bold tabular-nums">{t.v}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
       <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
         {/* ── Title block ── */}
         <div className="mb-5">
@@ -121,6 +93,7 @@ function Shell({
         {view === "leaderboard" && <Leaderboard data={data} />}
         {view === "consumption" && <Consumption data={data} />}
         {view === "value" && <ValueMap data={data} />}
+        {view === "vendor-value" && <ValueByVendor data={data} />}
 
         {/* ── Footer / methodology ── */}
         <footer className="mt-10 border-t border-[#141414] pt-4 text-[10px] leading-relaxed text-[#6f6a5f]">

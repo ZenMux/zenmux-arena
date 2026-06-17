@@ -64,6 +64,13 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
   const yAt = (v: number) =>
     PAD.t + (1 - (Math.log10(v) - yRange[0]) / (yRange[1] - yRange[0] || 1)) * (H - PAD.t - PAD.b);
 
+  // Median crosshairs split the cloud into four readable quadrants: the vertical
+  // line marks the median basket price (cheap ↔ premium), the horizontal one the
+  // median usage (ignored ↔ heavily used). They turn a fuzzy cloud into "which of
+  // four zones is this model in?" — the single biggest legibility win here.
+  const medX = median(pts.map((p) => p.m.blendedCost));
+  const medY = median(pts.map((p) => p.m.usageTokens!));
+
   const active = pts.find((p) => p.m.slug === hover) ?? null;
 
   return (
@@ -74,8 +81,9 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
         </h2>
         <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
           Each dot is a model · X = basket cost (log) · Y = tokens served (log) ·
-          dot size = tokens-per-dollar · color = manufacturer. The eye-opener:
-          where the money meets the demand.
+          dot size = tokens-per-dollar · color = manufacturer. The dashed{" "}
+          <b className="text-[#141414]">median crosshairs</b> split the cloud into
+          four zones — read where the money meets the demand.
         </p>
       </div>
 
@@ -112,6 +120,13 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
               </text>
             </g>
           ))}
+          {/* median crosshairs — the quadrant dividers (dashed, accent ink) */}
+          <line x1={xAt(medX)} y1={PAD.t} x2={xAt(medX)} y2={H - PAD.b} stroke="#141414" strokeWidth={1} strokeDasharray="4 3" strokeOpacity={0.45} />
+          <line x1={PAD.l} y1={yAt(medY)} x2={W - PAD.r} y2={yAt(medY)} stroke="#141414" strokeWidth={1} strokeDasharray="4 3" strokeOpacity={0.45} />
+          <text x={xAt(medX)} y={PAD.t - 4} textAnchor="middle" className="fill-[#6f6a5f]" style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.08em" }}>
+            MEDIAN {usd(medX)}
+          </text>
+
           {/* axis titles */}
           <text x={(W + PAD.l) / 2} y={H - 8} textAnchor="middle" className="fill-[#141414]" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em" }}>
             BASKET COST →
@@ -143,15 +158,19 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
             );
           })}
 
-          {/* hover callout label for the active dot */}
+          {/* hover callout — a highlight ring + boxed label so the active dot
+              pops out of the cloud (the un-hovered dots are already dimmed). */}
           {active && (
             <g pointerEvents="none">
+              <circle cx={active.x} cy={active.y} r={active.r + 4} fill="none" stroke="#141414" strokeWidth={1.5} />
               <text
                 x={Math.min(active.x + 10, W - PAD.r - 4)}
-                y={Math.max(active.y - 10, PAD.t + 12)}
+                y={Math.max(active.y - 12, PAD.t + 12)}
                 textAnchor={active.x > W - 160 ? "end" : "start"}
                 className="fill-[#141414]"
-                style={{ fontSize: 12, fontWeight: 700 }}
+                style={{ fontSize: 12, fontWeight: 700, paintOrder: "stroke" }}
+                stroke="#fbf9f4"
+                strokeWidth={3}
               >
                 {active.m.shortName}
               </text>
@@ -159,12 +178,19 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
           )}
         </svg>
 
-        {/* corner annotations — what the quadrants mean */}
-        <div className="pointer-events-none absolute left-[78px] top-[34px] text-[9px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
-          ◤ cheap · heavily used
+        {/* quadrant annotations — anchored to the four corners the median
+            crosshairs carve out, so the cloud reads as four named zones. */}
+        <div className="pointer-events-none absolute left-[78px] top-[34px] text-[9px] font-bold uppercase tracking-[0.1em] text-[#1a8a4a]">
+          ◤ value plays · cheap + used
         </div>
         <div className="pointer-events-none absolute right-[34px] top-[34px] text-right text-[9px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
-          premium · heavily used ◥
+          premium demand · dear + used ◥
+        </div>
+        <div className="pointer-events-none absolute bottom-[60px] left-[78px] text-[9px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
+          ◣ cheap + ignored
+        </div>
+        <div className="pointer-events-none absolute bottom-[60px] right-[34px] text-right text-[9px] font-bold uppercase tracking-[0.1em] text-[#cf3636]">
+          dear + ignored ◢
         </div>
       </div>
 
@@ -219,6 +245,14 @@ function VendorLegend({ data }: { data: TokenEconomicsData }) {
 
 function extent(logs: number[]): [number, number] {
   return [Math.min(...logs), Math.max(...logs)];
+}
+
+/** Median of a numeric array (used for the quadrant crosshairs). */
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const s = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
 /** Ticks at each power-of-10 boundary spanning the data's range (inclusive). */
