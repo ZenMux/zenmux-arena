@@ -26,9 +26,12 @@ export interface ScrapedModel {
   outputPrice: number | null;
   usageRaw: string | null;
   usageTokens: number | null;
+  tokenWeek: number | null;
   contextWindow: number | null;
   maxOutput: number | null;
   providers: number | null;
+  publishTime: string | null;
+  isFree: boolean;
 }
 
 /**
@@ -84,16 +87,18 @@ export function shortName(name: string, slug: string): string {
 }
 
 /**
- * Normalize one scraped row into a full ModelEconomics, or null if it has no
- * usable price (a model with neither input nor output price can't be ranked —
- * these are the `*-free` rows and we drop them, reported by the caller).
+ * Normalize one scraped row into a full ModelEconomics, or null if it carries no
+ * price at all (both fields null — a parse failure, not a free model). Genuinely
+ * free models arrive with price 0 and are KEPT (they rank at $0).
  */
 export function normalizeModel(raw: ScrapedModel): ModelEconomics | null {
-  if (raw.inputPrice == null || raw.outputPrice == null) return null;
+  if (raw.inputPrice == null && raw.outputPrice == null) return null;
+  const inputPrice = raw.inputPrice ?? 0;
+  const outputPrice = raw.outputPrice ?? 0;
 
   const vendor = vendorForSlug(raw.slug);
   const meta = VENDORS[vendor];
-  const cost = blendedCost(raw.inputPrice, raw.outputPrice);
+  const cost = blendedCost(inputPrice, outputPrice);
 
   return {
     slug: raw.slug,
@@ -102,16 +107,19 @@ export function normalizeModel(raw: ScrapedModel): ModelEconomics | null {
     vendor,
     vendorName: meta?.name ?? vendor,
     logo: meta && !isPseudoVendor(vendor) ? meta.logo : "",
-    inputPrice: raw.inputPrice,
-    outputPrice: raw.outputPrice,
+    inputPrice,
+    outputPrice,
     blendedCost: cost,
-    outputInputRatio: raw.inputPrice > 0 ? raw.outputPrice / raw.inputPrice : null,
+    outputInputRatio: inputPrice > 0 ? outputPrice / inputPrice : null,
     usageTokens: raw.usageTokens,
     usageRaw: raw.usageRaw,
+    tokenWeek: raw.tokenWeek,
     tokensPerDollar:
       raw.usageTokens != null && cost > 0 ? raw.usageTokens / cost : null,
     contextWindow: raw.contextWindow,
     maxOutput: raw.maxOutput,
     providers: raw.providers,
+    publishTime: raw.publishTime,
+    isFree: raw.isFree,
   };
 }

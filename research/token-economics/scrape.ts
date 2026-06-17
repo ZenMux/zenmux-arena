@@ -1,185 +1,145 @@
-// Scraper for the ZenMux models listing. The page is server-rendered (~1.5MB of
-// HTML), and the model economics live in TWO stacked layers — we read both and
-// join them, because each holds something the other lacks:
+// Data source for the token-economics study: ZenMux's models listing.
 //
-//   1. A <script type="application/ld+json"> ItemList — the AUTHORITATIVE price
-//      string ("Prompt: $X / 1M tokens; Completion: $Y / 1M tokens"), provider,
-//      and context window, for every listed model (~155).
-//   2. The rendered DOM cards — the same prices PLUS the one signal JSON-LD omits:
-//      observed token-consumption volume ("896.98M tokens"), context, max output,
-//      and the provider count. (~93 text models.)
+// The listing page (https://zenmux.ai/models) is a client-rendered Next.js app —
+// the server HTML only ships ~90 of the cards (the rest lazy-load on scroll) and
+// its usage numbers live in positional DOM nodes that are fragile to parse. So we
+// DON'T scrape the HTML; we hit the same JSON API the page itself calls:
 //
-// Strategy: the CARD set is the universe (it's already filtered to text models and
-// it carries usage); JSON-LD backfills any card whose inline price didn't parse.
-// This is pure string/regex parsing — no headless browser — so it runs in CI and
-// stays fast. The shapes here are intentionally defensive: ZenMux can restyle the
-// page, and a single broken card must not abort the scrape.
+//   GET https://zenmux.ai/api/frontend/model/listByFilter?context_length=&sort=newest&keyword=
+//   → { success: true, data: [ … ~160 model objects … ] }
+//
+// It needs no auth and no cookies (the `ctoken` the browser sends is just a
+// cache-buster), returns EVERY model in one shot, and gives each model its own
+// flat, typed fields — no regex, no cross-card misalignment. We keep only the
+// text models (output_modalities contains "text"), which is exactly the set the
+// page's ?output_modalities=text filter shows (138 at time of writing).
+//
+// Field mapping (API → our ScrapedModel), verified against the live page:
+//   all_tokens          → usageTokens   (the "341.42M tokens" figure on each card)
+//   token_week          → tokenWeek     (trailing-7-day volume; recency signal)
+//   pricing_prompt      → inputPrice    ($/1M in — already the net, post-discount price)
+//   pricing_completion  → outputPrice   ($/1M out)
+//   context_length      → contextWindow
+//   max_completion_tokens → maxOutput
+//   providerIcons.length  → providers
+//   publish_time        → publishTime   (YYYY-MM-DD listing date)
 
 import type { ScrapedModel } from "./normalize";
 
+/** The public page — kept as the human-facing `source` for attribution. */
 export const MODELS_URL =
   "https://zenmux.ai/models?sort=newest&output_modalities=text";
+
+/** The JSON API the page calls. `keyword`/`context_length` empty = no filter. */
+export const API_URL =
+  "https://zenmux.ai/api/frontend/model/listByFilter?context_length=&sort=newest&keyword=";
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-/** Fetch the listing HTML. Throws on a non-2xx so the CLI can surface it. */
-export async function fetchModelsHtml(url = MODELS_URL): Promise<string> {
+// ---------------------------------------------------------------------------
+// The raw API envelope (only the fields we actually read are typed; the API
+// returns many more — uptime histograms, aliases, latency, etc.).
+// ---------------------------------------------------------------------------
+
+export interface ApiModel {
+  slug: string;
+  name: string;
+  author?: string;
+  provider_slug?: string;
+  output_modalities?: string;
+  input_modalities?: string;
+  pricing_prompt?: string | number;
+  pricing_completion?: string | number;
+  pricing_discount?: string | number;
+  all_tokens?: number;
+  token_week?: number;
+  context_length?: number;
+  max_completion_tokens?: number;
+  publish_time?: string;
+  isFree?: boolean;
+  iconUrl?: string;
+  providerIcons?: unknown[];
+}
+
+interface ApiEnvelope {
+  success?: boolean;
+  data?: ApiModel[];
+}
+
+/** Fetch the model list JSON from the API. Throws on a non-2xx / bad envelope. */
+export async function fetchModelsApi(url = API_URL): Promise<ApiModel[]> {
   const res = await fetch(url, {
-    headers: { "User-Agent": UA, Accept: "text/html" },
+    headers: { "User-Agent": UA, Accept: "application/json" },
   });
   if (!res.ok) {
     throw new Error(`GET ${url} → HTTP ${res.status} ${res.statusText}`);
   }
-  return res.text();
-}
-
-// ---------------------------------------------------------------------------
-// Number parsing helpers
-// ---------------------------------------------------------------------------
-
-/** "$2.00/M tokens" | "$15.0/M" → 2.0 / 15.0 ; null if no dollar figure. */
-function dollarsPerM(s: string | null | undefined): number | null {
-  if (!s) return null;
-  const m = s.match(/\$\s*([\d.]+)/);
-  return m ? Number(m[1]) : null;
-}
-
-/** "896.98M" | "1.05M" | "2,606.77M" | "99.11K" | "1.2B" → absolute number. */
-function magnitude(raw: string | null | undefined): number | null {
-  if (!raw) return null;
-  const m = raw.replace(/,/g, "").match(/([\d.]+)\s*([BMK]?)/i);
-  if (!m) return null;
-  const mult =
-    { B: 1e9, M: 1e6, K: 1e3, "": 1 }[m[2].toUpperCase() as "B" | "M" | "K" | ""] ?? 1;
-  return Number(m[1]) * mult;
-}
-
-// ---------------------------------------------------------------------------
-// Layer 1 — JSON-LD ItemList (authoritative price + context)
-// ---------------------------------------------------------------------------
-
-interface LdEntry {
-  inputPrice: number | null;
-  outputPrice: number | null;
-  contextWindow: number | null;
-  name: string | null;
-}
-
-/** slug → price/context from the embedded JSON-LD ItemList. Best-effort. */
-function parseJsonLd(html: string): Map<string, LdEntry> {
-  const out = new Map<string, LdEntry>();
-  const blocks = [
-    ...html.matchAll(
-      /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,
-    ),
-  ];
-  for (const b of blocks) {
-    let data: unknown;
-    try {
-      data = JSON.parse(b[1]);
-    } catch {
-      continue;
-    }
-    const list = (data as { itemListElement?: unknown[] })?.itemListElement;
-    if (!Array.isArray(list)) continue;
-    for (const el of list) {
-      const item = (el as { item?: Record<string, unknown> })?.item;
-      const url = item?.url as string | undefined;
-      if (!item || typeof url !== "string") continue;
-      const slug = slugFromUrl(url);
-      if (!slug) continue;
-      const props = (item.additionalProperty as
-        | { name?: string; value?: string }[]
-        | undefined) ?? [];
-      const priceStr = props.find((p) => p.name === "Price")?.value ?? "";
-      const ctxStr = props.find((p) => p.name === "Context window")?.value ?? "";
-      const inM = priceStr.match(/Prompt:\s*\$([\d.]+)/);
-      const outM = priceStr.match(/Completion:\s*\$([\d.]+)/);
-      out.set(slug, {
-        inputPrice: inM ? Number(inM[1]) : null,
-        outputPrice: outM ? Number(outM[1]) : null,
-        contextWindow: magnitude(ctxStr),
-        name: (item.name as string) ?? null,
-      });
-    }
+  const json = (await res.json()) as ApiEnvelope;
+  if (!json || !Array.isArray(json.data)) {
+    throw new Error(
+      `GET ${url} → unexpected envelope (no .data array). The API shape may have changed.`,
+    );
   }
-  return out;
-}
-
-/** "https://zenmux.ai/openai/gpt-4.1" → "openai/gpt-4.1". */
-function slugFromUrl(url: string): string | null {
-  const i = url.indexOf("zenmux.ai/");
-  if (i < 0) return null;
-  return url.slice(i + "zenmux.ai/".length).replace(/^\/+|\/+$/g, "") || null;
+  return json.data;
 }
 
 // ---------------------------------------------------------------------------
-// Layer 2 — DOM cards (usage volume + inline price + context/maxOut/providers)
+// Mapping helpers
 // ---------------------------------------------------------------------------
 
-/** Pull a labelled data-item value: <span>LABEL</span><span class="…">VALUE</span>. */
-function dataItem(card: string, label: string): string | null {
-  const re = new RegExp(
-    `>${label}</span><span class="[^"]*">([^<]+)</span>`,
-  );
-  return card.match(re)?.[1]?.trim() ?? null;
+/** Coerce a price-ish value ("15" | 15 | null) to a number, or null if absent/NaN. */
+function num(v: string | number | null | undefined): number | null {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** A model is "text" if its output modalities include text (matches the page filter). */
+function isTextModel(m: ApiModel): boolean {
+  return (m.output_modalities ?? "").split(",").some((s) => s.trim() === "text");
+}
+
+/** Format an absolute token count the way the listing card does: "341.42M tokens". */
+export function formatUsage(n: number | null): string | null {
+  if (n == null || !Number.isFinite(n)) return null;
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B tokens`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M tokens`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(2)}K tokens`;
+  return `${Math.round(n)} tokens`;
 }
 
 // ---------------------------------------------------------------------------
-// Public entry: scrape → joined raw rows
+// Public entry: API rows → our ScrapedModel rows (text models only)
 // ---------------------------------------------------------------------------
 
 /**
- * Parse the listing HTML into raw model rows. Card set is the universe; JSON-LD
- * backfills missing prices. Rows with no resolvable price are still returned
- * (price = null) so the CLI can report what it dropped instead of silently
- * shrinking the count.
+ * Map the API's model objects into our raw rows, keeping only text models. Prices
+ * default to 0 (the API uses 0 for genuinely-free models) rather than null, so a
+ * free model still appears in the leaderboard at $0 instead of being dropped.
  */
-export function parseModels(html: string): ScrapedModel[] {
-  const ld = parseJsonLd(html);
-
-  // Cards are delimited by the "container-waZkVt1m" class marker. Splitting on it
-  // gives one segment per card (plus a leading non-card preamble we skip via the
-  // slug guard below).
-  const segments = html.split("container-waZkVt1m");
+export function parseModels(apiModels: ApiModel[]): ScrapedModel[] {
   const rows: ScrapedModel[] = [];
+  for (const m of apiModels) {
+    if (!m.slug || !isTextModel(m)) continue;
 
-  for (const seg of segments) {
-    const slugM = seg.match(
-      /<div class="subinfo-mtUC_CN2"><span>([a-z0-9._-]+\/[A-Za-z0-9._:-]+)<\/span>/,
-    );
-    if (!slugM) continue;
-    const slug = slugM[1];
-
-    const nameM = seg.match(/<span class="multi-line[^"]*"[^>]*>([^<]+)<\/span>/);
-    const usageM = seg.match(
-      /<div class="token-[^"]*">([\d.,]+[BMK]?) tokens<\/div>/i,
-    );
-    const providersM = seg.match(/Available on (\d+) provider/);
-
-    const cardIn = dollarsPerM(dataItem(seg, "Input"));
-    const cardOut = dollarsPerM(dataItem(seg, "Output"));
-    const ldEntry = ld.get(slug);
-
-    // JSON-LD wins for price when present (it's the authoritative quote), card is
-    // the fallback. Either source independently can supply input or output.
-    const inputPrice = ldEntry?.inputPrice ?? cardIn;
-    const outputPrice = ldEntry?.outputPrice ?? cardOut;
-
+    const usageTokens = typeof m.all_tokens === "number" ? m.all_tokens : null;
     rows.push({
-      slug,
-      name: nameM?.[1]?.trim() ?? ldEntry?.name ?? slug,
-      inputPrice,
-      outputPrice,
-      usageRaw: usageM?.[1] ? `${usageM[1]} tokens` : null,
-      usageTokens: magnitude(usageM?.[1]),
-      contextWindow: magnitude(dataItem(seg, "Context")) ?? ldEntry?.contextWindow ?? null,
-      maxOutput: magnitude(dataItem(seg, "Max Output")),
-      providers: providersM ? Number(providersM[1]) : null,
+      slug: m.slug,
+      name: m.name ?? m.slug,
+      inputPrice: num(m.pricing_prompt) ?? 0,
+      outputPrice: num(m.pricing_completion) ?? 0,
+      usageRaw: formatUsage(usageTokens),
+      usageTokens,
+      tokenWeek: typeof m.token_week === "number" ? m.token_week : null,
+      contextWindow: typeof m.context_length === "number" ? m.context_length : null,
+      maxOutput:
+        typeof m.max_completion_tokens === "number" ? m.max_completion_tokens : null,
+      providers: Array.isArray(m.providerIcons) ? m.providerIcons.length : null,
+      publishTime: m.publish_time ?? null,
+      isFree: m.isFree === true,
     });
   }
-
   return rows;
 }

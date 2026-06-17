@@ -66,19 +66,25 @@ export interface ModelEconomics {
   /** outputPrice / inputPrice — the "output premium" (∞-safe: null when input is 0). */
   outputInputRatio: number | null;
 
-  /** Observed consumption volume in absolute tokens (null if the card had none). */
+  /** Observed all-time consumption volume in absolute tokens (null if the API had none). */
   usageTokens: number | null;
-  /** Verbatim usage string from the card, e.g. "896.98M tokens" (for display/audit). */
+  /** Verbatim usage string, e.g. "896.98M tokens" (for display/audit). */
   usageRaw: string | null;
+  /** Trailing-7-day token volume — a recency signal distinct from all-time usage. */
+  tokenWeek: number | null;
   /** Tokens served per dollar of blended cost — the headline "value" metric. */
   tokensPerDollar: number | null;
 
-  /** Context window in tokens (null if unparsed). */
+  /** Context window in tokens (null if absent). */
   contextWindow: number | null;
-  /** Max output tokens (null if unparsed). */
+  /** Max output tokens (null if absent). */
   maxOutput: number | null;
   /** Number of upstream providers serving this model on ZenMux. */
   providers: number | null;
+  /** Listing publish date, "YYYY-MM-DD" (null if absent). */
+  publishTime: string | null;
+  /** Whether ZenMux flags this model as free. */
+  isFree: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -123,6 +129,12 @@ export interface TokenEconomicsSummary {
   mostUsed: { slug: string; name: string; usageTokens: number } | null;
   /** Best tokens-per-dollar model among those with usage. */
   bestValue: { slug: string; name: string; tokensPerDollar: number } | null;
+  /** Most recently listed model (slug + date) and the listing's date span. */
+  newest: { slug: string; name: string; publishTime: string } | null;
+  /** Earliest / latest publish dates across all models ("YYYY-MM-DD"). */
+  publishRange: { earliest: string; latest: string } | null;
+  /** Count of models published per "YYYY-MM" bucket, oldest-first. */
+  publishByMonth: { month: string; count: number }[];
 }
 
 export interface TokenEconomicsData {

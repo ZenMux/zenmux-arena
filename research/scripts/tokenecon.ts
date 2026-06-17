@@ -1,20 +1,25 @@
-// Token Economics pipeline — scrape ZenMux's model listing, derive per-model
+// Token Economics pipeline — read ZenMux's model listing API, derive per-model
 // price/usage economics, and publish the artifact the viewer reads.
 //
-// Unlike the "Who Are You?" study this makes NO model API calls (so no
-// ZENMUX_API_KEY, no completeness gate) — it just scrapes the public listing.
-// Like the other study it writes a timestamped run dir AND publishes a copy to
-// public/research/ for the Next.js page.
+// Unlike the "Who Are You?" study this makes NO *generation* API calls (so no
+// ZENMUX_API_KEY, no completeness gate) — it reads the public model-listing JSON
+// API (research/token-economics/scrape.ts). Like the other study it writes a
+// timestamped run dir AND publishes a copy to public/research/ for the page.
 //
 // Usage:
-//   pnpm tokenecon                       # scrape live, write run + publish
-//   pnpm tokenecon --html path/to.html   # parse a saved HTML snapshot (offline)
-//   pnpm tokenecon --no-publish          # write the run dir only, don't publish
+//   pnpm tokenecon                        # fetch the live API, write run + publish
+//   pnpm tokenecon --json path/to.json    # parse a saved API-response snapshot (offline)
+//   pnpm tokenecon --no-publish           # write the run dir only, don't publish
 
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "../lib/args";
-import { fetchModelsHtml, parseModels, MODELS_URL } from "../token-economics/scrape";
+import {
+  fetchModelsApi,
+  parseModels,
+  API_URL,
+  type ApiModel,
+} from "../token-economics/scrape";
 import { compute } from "../token-economics/compute";
 
 const STUDY_ID = "token-economics";
@@ -44,27 +49,31 @@ async function main() {
   const args = parseArgs();
   const now = new Date();
 
-  // 1) Acquire HTML — live fetch or a saved snapshot for offline/repro runs.
-  let html: string;
-  const htmlPath = args.get("html");
-  if (htmlPath) {
-    console.log(`[tokenecon] reading saved HTML: ${htmlPath}`);
-    html = fs.readFileSync(htmlPath, "utf8");
+  // 1) Acquire the API response — live fetch or a saved snapshot for offline/repro.
+  let apiModels: ApiModel[];
+  let rawJson: string;
+  const jsonPath = args.get("json");
+  if (jsonPath) {
+    console.log(`[tokenecon] reading saved API JSON: ${jsonPath}`);
+    rawJson = fs.readFileSync(jsonPath, "utf8");
+    const parsed = JSON.parse(rawJson) as { data?: ApiModel[] } | ApiModel[];
+    apiModels = Array.isArray(parsed) ? parsed : (parsed.data ?? []);
   } else {
-    console.log(`[tokenecon] fetching ${MODELS_URL}`);
-    html = await fetchModelsHtml();
-    console.log(`[tokenecon] fetched ${(html.length / 1024).toFixed(0)} KB`);
+    console.log(`[tokenecon] fetching ${API_URL}`);
+    apiModels = await fetchModelsApi();
+    rawJson = JSON.stringify({ success: true, data: apiModels });
+    console.log(`[tokenecon] fetched ${apiModels.length} model(s) from the API`);
   }
 
   // 2) Parse + compute.
-  const rows = parseModels(html);
-  console.log(`[tokenecon] parsed ${rows.length} card row(s)`);
+  const rows = parseModels(apiModels);
+  console.log(`[tokenecon] kept ${rows.length} text model row(s)`);
   const { data, dropped } = compute(rows, now.toISOString());
 
   if (data.models.length === 0) {
     console.error(
-      `[tokenecon] ✗ ABORT: parsed 0 priced models — the page layout likely changed. ` +
-        `Inspect the HTML and update research/token-economics/scrape.ts.`,
+      `[tokenecon] ✗ ABORT: 0 priced models from the API — the API shape likely changed. ` +
+        `Inspect the response and update research/token-economics/scrape.ts.`,
     );
     process.exit(2);
   }
@@ -72,10 +81,10 @@ async function main() {
     console.log(`[tokenecon] dropped ${dropped.length} unpriced row(s): ${dropped.join(", ")}`);
   }
 
-  // 3) Write the timestamped run dir (records the raw HTML + the artifact for audit).
+  // 3) Write the timestamped run dir (records the raw API response + artifact for audit).
   const runDir = path.join(process.cwd(), "results", STUDY_ID, stamp(now));
   fs.mkdirSync(runDir, { recursive: true });
-  fs.writeFileSync(path.join(runDir, "models.html"), html);
+  fs.writeFileSync(path.join(runDir, "models-api.json"), rawJson);
   fs.writeFileSync(
     path.join(runDir, "token-economics.json"),
     JSON.stringify(data, null, 2),

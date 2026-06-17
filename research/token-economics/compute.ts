@@ -79,6 +79,24 @@ function buildSummary(models: ModelEconomics[]): TokenEconomicsSummary {
 
   const vendorIds = new Set(models.map((m) => m.vendor));
 
+  // Recency: newest listing, full date span, and a per-month publish histogram.
+  const dated = models.filter((m) => m.publishTime);
+  const newest =
+    [...dated].sort((a, b) => (b.publishTime! < a.publishTime! ? -1 : 1))[0] ?? null;
+  const publishDates = dated.map((m) => m.publishTime!).sort();
+  const publishRange =
+    publishDates.length > 0
+      ? { earliest: publishDates[0], latest: publishDates[publishDates.length - 1] }
+      : null;
+  const monthCounts = new Map<string, number>();
+  for (const m of dated) {
+    const key = m.publishTime!.slice(0, 7); // "YYYY-MM"
+    monthCounts.set(key, (monthCounts.get(key) ?? 0) + 1);
+  }
+  const publishByMonth = [...monthCounts.entries()]
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .map(([month, count]) => ({ month, count }));
+
   return {
     modelCount: models.length,
     vendorCount: vendorIds.size,
@@ -98,6 +116,11 @@ function buildSummary(models: ModelEconomics[]): TokenEconomicsSummary {
     bestValue: bestValue
       ? { slug: bestValue.slug, name: bestValue.shortName, tokensPerDollar: bestValue.tokensPerDollar! }
       : null,
+    newest: newest
+      ? { slug: newest.slug, name: newest.shortName, publishTime: newest.publishTime! }
+      : null,
+    publishRange,
+    publishByMonth,
   };
 }
 
