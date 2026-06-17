@@ -2,8 +2,8 @@
 
 // Surface 4 — VALUE LADDER: a horizontal "tier ladder" (显卡天梯图-style) that
 // answers the scatter's question one ratio at a time. The "ratio" is the Value
-// Map's Y÷X — tokens served per dollar of basket cost (`tokensPerDollar`) — i.e.
-// how much compute each model returns per dollar.
+// Map's Y÷X — avg daily tokens (launch velocity) per dollar of basket cost
+// (`avgDailyPerDollar`) — i.e. how much daily demand each model returns per $.
 //
 // Each model is one horizontal BAR growing rightward on a LOG scale (the value
 // spans 5+ orders of magnitude, so a linear axis would crush all but the top
@@ -18,7 +18,7 @@
 
 import { useMemo, useState } from "react";
 import type { ModelEconomics, TokenEconomicsData } from "@research/token-economics/types";
-import { perDollar, tokens, usd, vendorColor } from "./lib";
+import { perDay, perDollarDay, tokens, usd, vendorColor } from "./lib";
 import { VendorGlyph } from "./components";
 
 // Bars max out at this % of the track so the tip label always has room to its
@@ -42,8 +42,8 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
   const ranked = useMemo(
     () =>
       data.models
-        .filter((m) => m.tokensPerDollar != null && m.tokensPerDollar > 0)
-        .sort((a, b) => (b.tokensPerDollar ?? 0) - (a.tokensPerDollar ?? 0)),
+        .filter((m) => m.avgDailyPerDollar != null && m.avgDailyPerDollar > 0)
+        .sort((a, b) => (b.avgDailyPerDollar ?? 0) - (a.avgDailyPerDollar ?? 0)),
     [data.models],
   );
 
@@ -63,7 +63,7 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
         name: models[0].vendorName,
         sample: models[0],
         models, // already value-sorted (ranked was)
-        median: med(models.map((m) => m.tokensPerDollar ?? 0)),
+        median: med(models.map((m) => m.avgDailyPerDollar ?? 0)),
       });
     }
     return out.sort((a, b) => b.median - a.median);
@@ -71,8 +71,8 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
 
   // Shared log scale across every model, snapped to decade boundaries — IDENTICAL
   // in both modes so a bar means the same length whichever layout is active.
-  const loE = Math.floor(Math.log10(Math.min(...ranked.map((m) => m.tokensPerDollar!))));
-  const hiE = Math.ceil(Math.log10(Math.max(...ranked.map((m) => m.tokensPerDollar!))));
+  const loE = Math.floor(Math.log10(Math.min(...ranked.map((m) => m.avgDailyPerDollar!))));
+  const hiE = Math.ceil(Math.log10(Math.max(...ranked.map((m) => m.avgDailyPerDollar!))));
   const barPct = (v: number) => ((Math.log10(v) - loE) / (hiE - loE || 1)) * MAX_BAR;
   const decades = useMemo(() => {
     const out: number[] = [];
@@ -85,11 +85,11 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="text-sm font-bold uppercase tracking-[0.14em]">
-            Value Ladder · Tokens per Dollar
+            Value Ladder · Daily Tokens per Dollar
           </h2>
           <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
-            A value tier-list · one bar per model, longer = more tokens served ÷
-            basket cost (the Value Map&apos;s ratio, log scale) ·{" "}
+            A value tier-list · one bar per model, longer = more avg daily tokens
+            ÷ basket cost (the Value Map&apos;s ratio, log scale) ·{" "}
             {grouped ? (
               <>
                 <b className="text-[#141414]">grouped by maker</b>, vendors ranked
@@ -126,7 +126,7 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
                 style={{ left: `${barPct(d)}%` }}
               >
                 <span className="absolute -top-0.5 left-1 text-[9px] font-bold tabular-nums text-[#6f6a5f]">
-                  {tokens(d)}/$
+                  {tokens(d)}/$·day
                 </span>
               </div>
             ))}
@@ -146,12 +146,12 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
                       {g.name}
                     </span>
                     <span className="text-[10px] tabular-nums text-[#6f6a5f]">
-                      · {g.models.length} {g.models.length === 1 ? "model" : "models"} · median {perDollar(g.median)}
+                      · {g.models.length} {g.models.length === 1 ? "model" : "models"} · median {perDollarDay(g.median)}
                     </span>
                   </div>
                   <div>
                     {g.models.map((m) => (
-                      <Row key={m.slug} m={m} pct={barPct(m.tokensPerDollar ?? 1)} hover={hover} setHover={setHover} />
+                      <Row key={m.slug} m={m} pct={barPct(m.avgDailyPerDollar ?? 1)} hover={hover} setHover={setHover} />
                     ))}
                   </div>
                 </div>
@@ -161,7 +161,7 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
             // ── flat: one continuous ladder ranked by value ──
             <div className="relative">
               {ranked.map((m) => (
-                <Row key={m.slug} m={m} pct={barPct(m.tokensPerDollar ?? 1)} hover={hover} setHover={setHover} />
+                <Row key={m.slug} m={m} pct={barPct(m.avgDailyPerDollar ?? 1)} hover={hover} setHover={setHover} />
               ))}
             </div>
           )}
@@ -171,7 +171,7 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
       {/* legend / methodology line */}
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 border border-[#141414] bg-[#fbf9f4] px-3 py-2 text-[11px] text-[#6f6a5f]">
         <span>
-          Bar length = tokens served per dollar (log scale) ·{" "}
+          Bar length = avg daily tokens served per dollar (log scale) ·{" "}
           {grouped
             ? "vendors ranked by median value, models ranked within each maker"
             : "every model ranked by value, colored by maker"}{" "}
@@ -202,7 +202,7 @@ function Row({
       style={{ opacity: dim ? 0.35 : 1 }}
       onMouseEnter={() => setHover(m.slug)}
       onMouseLeave={() => setHover(null)}
-      title={`${m.name}: ${perDollar(m.tokensPerDollar)} · basket ${usd(m.blendedCost)} · ${tokens(m.usageTokens)} tokens`}
+      title={`${m.name}: ${perDollarDay(m.avgDailyPerDollar)} · basket ${usd(m.blendedCost)} · ${perDay(m.avgDailyTokens)}`}
     >
       <div
         className="h-3 border border-[#141414]"
@@ -212,7 +212,7 @@ function Row({
         <VendorGlyph vendor={m.vendor} alt={m.vendorName} className="size-3.5" />
         <span className="text-[11px] font-bold leading-none">{m.shortName}</span>
         <span className="text-[10px] font-bold tabular-nums leading-none text-[#1a8a4a]">
-          {perDollar(m.tokensPerDollar)}
+          {perDollarDay(m.avgDailyPerDollar)}
         </span>
       </div>
     </div>

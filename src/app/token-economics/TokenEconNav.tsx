@@ -13,9 +13,9 @@ import { ArrowUpRight } from "lucide-react";
 
 const VIEWS = [
   { key: "leaderboard", label: "LEADERBOARD" },
-  { key: "consumption", label: "CONSUMPTION" },
+  { key: "vendor-value", label: "VALUE LADDER" },
   { key: "value", label: "VALUE MAP" },
-  { key: "vendor-value", label: "VALUE BY VENDOR" },
+  { key: "consumption", label: "CONSUMPTION" },
 ] as const;
 
 function NavLinks() {

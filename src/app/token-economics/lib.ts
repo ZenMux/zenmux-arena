@@ -134,9 +134,17 @@ export function tokens(n: number | null): string {
   return String(Math.round(n));
 }
 
-/** Tokens-per-dollar → "209.89B/$" style. */
-export function perDollar(n: number | null): string {
-  return n == null ? "—" : `${tokens(n)}/$`;
+/** Avg tokens-per-working-day → "1.42B/day" style. */
+export function perDay(n: number | null): string {
+  return n == null ? "—" : `${tokens(n)}/day`;
+}
+
+/**
+ * The headline VALUE metric: avg-daily-tokens per dollar. Its dimension is
+ * (tokens/day) ÷ $ = tokens/($·day), so it reads e.g. "190.44B/$·day".
+ */
+export function perDollarDay(n: number | null): string {
+  return n == null ? "—" : `${tokens(n)}/$·day`;
 }
 
 /** Listing date "2026-06-15" → "2026-06-15" (ISO is already tabular/mono-friendly). */
@@ -175,7 +183,9 @@ export type SortKey =
   | "inputPrice"
   | "outputPrice"
   | "usageTokens"
+  | "avgDailyTokens"
   | "tokensPerDollar"
+  | "avgDailyPerDollar"
   | "contextWindow"
   | "publishTime";
 

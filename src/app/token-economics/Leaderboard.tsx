@@ -11,7 +11,7 @@ import {
   usd,
   perM,
   tokens,
-  perDollar,
+  perDollarDay,
   ctx,
   date,
   sortModels,
@@ -31,8 +31,9 @@ const COLUMNS: Column[] = [
   { key: "blendedCost", label: "BASKET", defaultDir: "asc", hint: "100K in + 1K out, total $" },
   { key: "inputPrice", label: "INPUT", defaultDir: "asc", hint: "$ / 1M input tokens" },
   { key: "outputPrice", label: "OUTPUT", defaultDir: "asc", hint: "$ / 1M output tokens" },
-  { key: "usageTokens", label: "USAGE", defaultDir: "desc", hint: "observed tokens served" },
-  { key: "tokensPerDollar", label: "VALUE", defaultDir: "desc", hint: "tokens served per $ of basket" },
+  { key: "avgDailyTokens", label: "AVG/DAY", defaultDir: "desc", hint: "avg tokens per working day over the first 14 working days post-launch" },
+  { key: "usageTokens", label: "ALL-TIME", defaultDir: "desc", hint: "all-time observed tokens served" },
+  { key: "avgDailyPerDollar", label: "VALUE", defaultDir: "desc", hint: "avg daily tokens served per $ of basket" },
   { key: "contextWindow", label: "CONTEXT", defaultDir: "desc", hint: "context window (tokens)" },
   { key: "publishTime", label: "RELEASED", defaultDir: "desc", hint: "listing publish date (YYYY-MM-DD)" },
 ];
@@ -68,7 +69,10 @@ export function Leaderboard({ data }: { data: TokenEconomicsData }) {
           <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
             {rows.length} models · newest releases first · basket ={" "}
             <b className="text-[#141414]">100K input + 1K output</b> tokens ·
-            green = cheaper than median ({usd(median)}), red = dearer
+            green = cheaper than median ({usd(median)}), red = dearer ·{" "}
+            <b className="text-[#141414]">AVG/DAY</b> = launch-velocity (first 14
+            working days), <span className="text-[#cf3636]">*</span> = partial
+            window
           </p>
         </div>
         <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
@@ -152,11 +156,28 @@ function Row({
       </td>
       <td className={cell(sortKey === "inputPrice")}>{perM(model.inputPrice)}</td>
       <td className={cell(sortKey === "outputPrice")}>{perM(model.outputPrice)}</td>
-      <td className={cell(sortKey === "usageTokens") + " text-[#141414]"}>
+      <td className={cell(sortKey === "avgDailyTokens") + " text-[#141414]"}>
+        <span
+          title={
+            model.avgDailyWindow
+              ? `avg/working-day over ${model.avgDailyWindow.elapsedWorkingDays}` +
+                `/${model.avgDailyWindow.targetWorkingDays} working days ` +
+                `(${model.avgDailyWindow.from} → ${model.avgDailyWindow.to})` +
+                (model.avgDailyWindow.partial ? " · partial window" : "")
+              : "no launch-window data"
+          }
+        >
+          {tokens(model.avgDailyTokens)}
+          {model.avgDailyWindow?.partial && (
+            <span className="ml-0.5 text-[#cf3636]" aria-hidden>*</span>
+          )}
+        </span>
+      </td>
+      <td className={cell(sortKey === "usageTokens") + " text-[#6f6a5f]"}>
         {tokens(model.usageTokens)}
       </td>
-      <td className={cell(sortKey === "tokensPerDollar") + " text-[#6f6a5f]"}>
-        {perDollar(model.tokensPerDollar)}
+      <td className={cell(sortKey === "avgDailyPerDollar") + " text-[#6f6a5f]"}>
+        {perDollarDay(model.avgDailyPerDollar)}
       </td>
       <td className={cell(sortKey === "contextWindow") + " text-[#6f6a5f]"}>
         {ctx(model.contextWindow)}

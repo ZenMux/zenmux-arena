@@ -116,6 +116,11 @@ export function normalizeModel(raw: ScrapedModel): ModelEconomics | null {
     tokenWeek: raw.tokenWeek,
     tokensPerDollar:
       raw.usageTokens != null && cost > 0 ? raw.usageTokens / cost : null,
+    // Launch-window metrics start null; compute() fills them from the
+    // model_usage series once it's fetched (normalize stays pure on the row).
+    avgDailyTokens: null,
+    avgDailyWindow: null,
+    avgDailyPerDollar: null,
     contextWindow: raw.contextWindow,
     maxOutput: raw.maxOutput,
     providers: raw.providers,

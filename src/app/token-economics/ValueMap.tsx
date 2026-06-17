@@ -1,17 +1,20 @@
 "use client";
 
-// Surface 3 — the VALUE MAP: a price-vs-usage scatter, the analytical payoff of
-// the whole study. X = basket cost (log), Y = tokens consumed (log); both axes
-// span 3+ orders of magnitude so log scales are mandatory. Each dot is a model,
-// colored by manufacturer, sized a touch by tokens-per-dollar. Hand-built SVG
-// (no chart lib), with a hover callout and an always-visible data fallback below.
+// Surface 3 — the VALUE MAP: a price-vs-demand scatter, the analytical payoff of
+// the whole study. X = basket cost (log), Y = AVG DAILY tokens at launch (log);
+// both axes span 3+ orders of magnitude so log scales are mandatory. Each dot is
+// a model, colored by manufacturer, sized a touch by avg-daily-tokens-per-dollar.
+// Hand-built SVG (no chart lib), with a hover callout and an always-visible data
+// fallback below.
 //
-// Reading the map: bottom-right = expensive AND heavily used (premium demand),
-// top-left = cheap AND heavily used (value plays), bottom-left = cheap & ignored.
+// Y is the launch-velocity metric (avg tokens/working-day over the first 14
+// working days), NOT all-time usage — so a new model and an old one sit on the
+// same demand axis. Reading the map: bottom-right = expensive AND in demand
+// (premium), top-left = cheap AND in demand (value plays), bottom-left = ignored.
 
 import { useMemo, useState } from "react";
 import type { ModelEconomics, TokenEconomicsData } from "@research/token-economics/types";
-import { usd, tokens, perDollar, vendorColor } from "./lib";
+import { usd, tokens, perDay, perDollarDay, vendorColor } from "./lib";
 import { VendorGlyph } from "./components";
 
 // SVG viewport + plot insets (room for axis ticks/labels).
@@ -31,24 +34,24 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
 
   const pts = useMemo<Pt[]>(() => {
     const models = data.models.filter(
-      (m) => m.usageTokens != null && m.usageTokens > 0 && m.blendedCost > 0,
+      (m) => m.avgDailyTokens != null && m.avgDailyTokens > 0 && m.blendedCost > 0,
     );
     const xs = models.map((m) => Math.log10(m.blendedCost));
-    const ys = models.map((m) => Math.log10(m.usageTokens!));
+    const ys = models.map((m) => Math.log10(m.avgDailyTokens!));
     const xMin = Math.min(...xs), xMax = Math.max(...xs);
     const yMin = Math.min(...ys), yMax = Math.max(...ys);
-    const tpdMax = Math.max(...models.map((m) => m.tokensPerDollar ?? 0));
+    const tpdMax = Math.max(...models.map((m) => m.avgDailyPerDollar ?? 0));
 
     const plotW = W - PAD.l - PAD.r;
     const plotH = H - PAD.t - PAD.b;
     return models.map((m) => {
       const lx = (Math.log10(m.blendedCost) - xMin) / (xMax - xMin || 1);
-      const ly = (Math.log10(m.usageTokens!) - yMin) / (yMax - yMin || 1);
-      const tpd = (m.tokensPerDollar ?? 0) / (tpdMax || 1);
+      const ly = (Math.log10(m.avgDailyTokens!) - yMin) / (yMax - yMin || 1);
+      const tpd = (m.avgDailyPerDollar ?? 0) / (tpdMax || 1);
       return {
         m,
         x: PAD.l + lx * plotW,
-        y: PAD.t + (1 - ly) * plotH, // invert: higher usage = higher on screen
+        y: PAD.t + (1 - ly) * plotH, // invert: higher demand = higher on screen
         r: 5 + Math.sqrt(tpd) * 9,
       };
     });
@@ -56,9 +59,9 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
 
   // Axis ticks at decade boundaries spanning the data.
   const xTicks = useMemo(() => decadeTicks(pts.map((p) => p.m.blendedCost)), [pts]);
-  const yTicks = useMemo(() => decadeTicks(pts.map((p) => p.m.usageTokens!)), [pts]);
+  const yTicks = useMemo(() => decadeTicks(pts.map((p) => p.m.avgDailyTokens!)), [pts]);
   const xRange = extent(pts.map((p) => Math.log10(p.m.blendedCost)));
-  const yRange = extent(pts.map((p) => Math.log10(p.m.usageTokens!)));
+  const yRange = extent(pts.map((p) => Math.log10(p.m.avgDailyTokens!)));
   const xAt = (v: number) =>
     PAD.l + ((Math.log10(v) - xRange[0]) / (xRange[1] - xRange[0] || 1)) * (W - PAD.l - PAD.r);
   const yAt = (v: number) =>
@@ -69,7 +72,7 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
   // median usage (ignored ↔ heavily used). They turn a fuzzy cloud into "which of
   // four zones is this model in?" — the single biggest legibility win here.
   const medX = median(pts.map((p) => p.m.blendedCost));
-  const medY = median(pts.map((p) => p.m.usageTokens!));
+  const medY = median(pts.map((p) => p.m.avgDailyTokens!));
 
   const active = pts.find((p) => p.m.slug === hover) ?? null;
 
@@ -77,11 +80,12 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
     <section>
       <div className="mb-3">
         <h2 className="text-sm font-bold uppercase tracking-[0.14em]">
-          The Value Map · Price vs. Consumption
+          The Value Map · Price vs. Daily Demand
         </h2>
         <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
-          Each dot is a model · X = basket cost (log) · Y = tokens served (log) ·
-          dot size = tokens-per-dollar · color = manufacturer. The dashed{" "}
+          Each dot is a model · X = basket cost (log) · Y = avg tokens/day at
+          launch (log) · dot size = daily-tokens-per-dollar · color =
+          manufacturer. The dashed{" "}
           <b className="text-[#141414]">median crosshairs</b> split the cloud into
           four zones — read where the money meets the demand.
         </p>
@@ -132,7 +136,7 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
             BASKET COST →
           </text>
           <text x={16} y={(H - PAD.b + PAD.t) / 2} textAnchor="middle" transform={`rotate(-90 16 ${(H - PAD.b + PAD.t) / 2})`} className="fill-[#141414]" style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.1em" }}>
-            TOKENS SERVED →
+            AVG TOKENS / DAY →
           </text>
 
           {/* dots — non-hovered dimmed when something is hovered */}
@@ -153,7 +157,7 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
                 onMouseEnter={() => setHover(p.m.slug)}
                 onMouseLeave={() => setHover(null)}
               >
-                <title>{`${p.m.name}\n${usd(p.m.blendedCost)} · ${tokens(p.m.usageTokens)} tokens · ${perDollar(p.m.tokensPerDollar)}`}</title>
+                <title>{`${p.m.name}\n${usd(p.m.blendedCost)} · ${perDay(p.m.avgDailyTokens)} · ${perDollarDay(p.m.avgDailyPerDollar)}`}</title>
               </circle>
             );
           })}
@@ -203,14 +207,14 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
             <span className="text-[#6f6a5f]">·</span>
             <span className="tabular-nums">basket {usd(active.m.blendedCost)}</span>
             <span className="text-[#6f6a5f]">·</span>
-            <span className="tabular-nums">{tokens(active.m.usageTokens)} tokens</span>
+            <span className="tabular-nums">{perDay(active.m.avgDailyTokens)}</span>
             <span className="text-[#6f6a5f]">·</span>
-            <span className="tabular-nums text-[#1a8a4a]">{perDollar(active.m.tokensPerDollar)}</span>
+            <span className="tabular-nums text-[#1a8a4a]">{perDollarDay(active.m.avgDailyPerDollar)}</span>
           </>
         ) : (
           <span className="text-[#6f6a5f]">
             Hover a dot for detail · {pts.length} models plotted · larger dot =
-            more tokens per dollar
+            more daily tokens per dollar
           </span>
         )}
       </div>
@@ -222,7 +226,7 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
 
 /** A compact legend mapping each vendor to its dot color (sorted by usage). */
 function VendorLegend({ data }: { data: TokenEconomicsData }) {
-  const vendors = [...data.vendors].sort((a, b) => b.totalUsage - a.totalUsage);
+  const vendors = [...data.vendors].sort((a, b) => b.totalAvgDaily - a.totalAvgDaily);
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] font-bold">
       {vendors.map((v) => (

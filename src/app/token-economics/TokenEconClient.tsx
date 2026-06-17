@@ -12,7 +12,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { TokenEconomicsData } from "@research/token-economics/types";
-import { usd, tokens, perDollar } from "./lib";
+import { usd, perDay, perDollarDay } from "./lib";
 import { StatBox } from "./components";
 import { Leaderboard } from "./Leaderboard";
 import { Consumption } from "./Consumption";
@@ -65,14 +65,14 @@ function Shell({
         {/* ── Headline stat boxes ── */}
         <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <StatBox
-            label="Most Used"
-            value={s.mostUsed ? s.mostUsed.name : "—"}
-            sub={s.mostUsed ? `${tokens(s.mostUsed.usageTokens)} tokens` : undefined}
+            label="Busiest / Day"
+            value={s.busiestDaily ? s.busiestDaily.name : "—"}
+            sub={s.busiestDaily ? perDay(s.busiestDaily.avgDailyTokens) : undefined}
           />
           <StatBox
             label="Best Value"
             value={s.bestValue ? s.bestValue.name : "—"}
-            sub={s.bestValue ? perDollar(s.bestValue.tokensPerDollar) : undefined}
+            sub={s.bestValue ? perDollarDay(s.bestValue.avgDailyPerDollar) : undefined}
             accent="#1a8a4a"
           />
           <StatBox
@@ -110,8 +110,19 @@ function Shell({
               zenmux.ai/models
             </a>{" "}
             on {new Date(data.generatedAt).toISOString().slice(0, 10)}. Free /
-            unpriced models excluded. Consumption is the listing&apos;s observed
-            token volume per model.
+            unpriced models excluded.
+          </p>
+          <p className="mt-2">
+            <b className="text-[#141414]">AVG DAILY.</b> Each model&apos;s{" "}
+            <b className="text-[#141414]">launch velocity</b> — total tokens over
+            its first <b className="text-[#141414]">14 working days</b> (Mon–Fri)
+            on/after release, divided by the working days that have elapsed (a
+            per-working-day rate, so it&apos;s comparable across release dates,
+            unlike all-time usage which favors older models). Daily series from
+            ZenMux&apos;s model-usage API. <b className="text-[#141414]">Value</b>{" "}
+            = avg daily tokens ÷ basket cost; the Value Ladder and Value Map rank
+            by it. Partial windows (models younger than 14 working days) are
+            flagged.
           </p>
           <p className="mt-2">
             Part of{" "}
