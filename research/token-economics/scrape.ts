@@ -68,10 +68,21 @@ interface ApiEnvelope {
   data?: ApiModel[];
 }
 
-/** Fetch the model list JSON from the API. Throws on a non-2xx / bad envelope. */
-export async function fetchModelsApi(url = API_URL): Promise<ApiModel[]> {
+/**
+ * Fetch the model list JSON from the API. Throws on a non-2xx / bad envelope.
+ *
+ * `cache` is an optional Next.js fetch hint ({ revalidate } | { tags } | …):
+ * passed straight through as the `next` field so a Server Component can put the
+ * response in Next's Data Cache. In a plain Node/CLI run (tokenecon.ts) it's
+ * undefined and the fetch behaves normally — `next` is simply ignored.
+ */
+export async function fetchModelsApi(
+  url = API_URL,
+  cache?: { revalidate?: number | false; tags?: string[] },
+): Promise<ApiModel[]> {
   const res = await fetch(url, {
     headers: { "User-Agent": UA, Accept: "application/json" },
+    ...(cache ? { next: cache } : {}),
   });
   if (!res.ok) {
     throw new Error(`GET ${url} → HTTP ${res.status} ${res.statusText}`);
