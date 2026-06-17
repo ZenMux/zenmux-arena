@@ -7,6 +7,7 @@
 // they live HERE as constants + arbitrary Tailwind classes scoped to this route.
 
 import type { ModelEconomics } from "@research/token-economics/types";
+import type { VendorId } from "@research/lib/types";
 
 // ---------------------------------------------------------------------------
 // Palette — the nof1 brutalist tokens
@@ -68,8 +69,41 @@ export function vendorColor(vendor: string): string {
   return SERIES[h % SERIES.length];
 }
 
-export function logoPath(logo: string): string | null {
-  return logo ? `/maker-logo/${encodeURIComponent(logo)}` : null;
+/**
+ * Canonical vendor id → brand-colored SVG under public/model-logo/.
+ *
+ * We key off the canonical `vendor` id (from research/lib/vendors.ts), NOT the
+ * legacy white-on-transparent PNG filename, so there's a single source of truth
+ * and the file name choice (e.g. "chatgpt" vs "openai", "kimi" vs "moonshot")
+ * stays explicit here. These SVGs are already in full brand color, so callers
+ * must NOT invert them (the old maker-logo PNGs were white and needed invert).
+ */
+const VENDOR_LOGO_SVG: Partial<Record<VendorId, string>> = {
+  anthropic: "claude_color.svg",
+  openai: "chatgpt_color.svg",
+  google: "gemini_color.svg",
+  deepseek: "deepeek_color.svg",
+  qwen: "qwen_color.svg",
+  baidu: "wenxin_color.svg",
+  bytedance: "doubao_color.svg",
+  moonshot: "kimi_color.svg",
+  "z-ai": "zai_color.svg",
+  stepfun: "stepfun_color.svg",
+  "x-ai": "grok_color.svg",
+  minimax: "minimax_color.svg",
+  kwai: "kwai_color.svg",
+  xiaomi: "xiaomi_color.svg",
+  tencent: "hunyuan_color.svg",
+  inclusionai: "inclusionai_color.svg",
+  meta: "meta_color.svg",
+  mistral: "mistral_color.svg",
+  agnes: "sapiens-al_color.svg",
+};
+
+/** Brand-colored SVG web path for a vendor, or null if unmapped (pseudo-vendor). */
+export function logoPath(vendor: VendorId): string | null {
+  const file = VENDOR_LOGO_SVG[vendor];
+  return file ? `/model-logo/${file}` : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,6 +139,11 @@ export function perDollar(n: number | null): string {
   return n == null ? "—" : `${tokens(n)}/$`;
 }
 
+/** Listing date "2026-06-15" → "2026-06-15" (ISO is already tabular/mono-friendly). */
+export function date(s: string | null): string {
+  return s ?? "—";
+}
+
 /** Context window like 1_050_000 → "1.05M", 256_000 → "256K". */
 export function ctx(n: number | null): string {
   if (n == null) return "—";
@@ -137,13 +176,25 @@ export type SortKey =
   | "outputPrice"
   | "usageTokens"
   | "tokensPerDollar"
-  | "contextWindow";
+  | "contextWindow"
+  | "publishTime";
 
 export function sortModels(
   models: ModelEconomics[],
   key: SortKey,
   dir: "asc" | "desc",
 ): ModelEconomics[] {
+  // publishTime is an ISO "YYYY-MM-DD" string — lexical order IS chronological,
+  // so compare as strings (numeric subtraction would yield NaN). Nulls sink to
+  // the bottom regardless of direction by mapping them to "".
+  if (key === "publishTime") {
+    return [...models].sort((a, b) => {
+      const av = a.publishTime ?? "";
+      const bv = b.publishTime ?? "";
+      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+      return dir === "asc" ? cmp : -cmp;
+    });
+  }
   const m = [...models].sort((a, b) => {
     const av = (a[key] ?? -Infinity) as number;
     const bv = (b[key] ?? -Infinity) as number;

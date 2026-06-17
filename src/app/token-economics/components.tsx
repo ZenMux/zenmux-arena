@@ -6,27 +6,28 @@
 // focused on their own layout + data shaping.
 
 import type { ModelEconomics } from "@research/token-economics/types";
+import type { VendorId } from "@research/lib/types";
 import { logoPath } from "./lib";
 
-/** A model's vendor logo as a small mono glyph. Logos are white-on-transparent
-    (built for the dark graph canvas), so we invert them to read dark on cream. */
+/** A model's vendor logo as a small brand-colored glyph. Keyed off the canonical
+    vendor id; the SVGs under /model-logo are already in color, so no invert. */
 export function VendorGlyph({
-  logo,
+  vendor,
   alt,
   className = "size-4",
 }: {
-  logo: string;
+  vendor: VendorId;
   alt: string;
   className?: string;
 }) {
-  const src = logoPath(logo);
+  const src = logoPath(vendor);
   if (!src) return null;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={alt}
-      className={`${className} shrink-0 object-contain invert`}
+      className={`${className} shrink-0 object-contain`}
       onError={(e) => {
         (e.currentTarget as HTMLImageElement).style.display = "none";
       }}
@@ -51,7 +52,7 @@ export function ModelPill({
       }
       title={`${model.vendorName}: ${model.name}`}
     >
-      <VendorGlyph logo={model.logo} alt={model.vendorName} className="size-3" />
+      <VendorGlyph vendor={model.vendor} alt={model.vendorName} className="size-3" />
       <span className="max-w-[8ch] truncate sm:max-w-[12ch]">{model.shortName}</span>
     </span>
   );

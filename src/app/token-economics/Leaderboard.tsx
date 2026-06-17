@@ -13,6 +13,7 @@ import {
   tokens,
   perDollar,
   ctx,
+  date,
   sortModels,
   type SortKey,
 } from "./lib";
@@ -33,6 +34,7 @@ const COLUMNS: Column[] = [
   { key: "usageTokens", label: "USAGE", defaultDir: "desc", hint: "observed tokens served" },
   { key: "tokensPerDollar", label: "VALUE", defaultDir: "desc", hint: "tokens served per $ of basket" },
   { key: "contextWindow", label: "CONTEXT", defaultDir: "desc", hint: "context window (tokens)" },
+  { key: "publishTime", label: "RELEASED", defaultDir: "desc", hint: "listing publish date (YYYY-MM-DD)" },
 ];
 
 export function Leaderboard({ data }: { data: TokenEconomicsData }) {
@@ -136,7 +138,7 @@ function Row({
       <td className="px-2 py-1.5 text-right tabular-nums text-[#6f6a5f]">{rank}</td>
       <td className={`sticky left-0 z-10 px-2 py-1.5 ${band}`}>
         <span className="flex items-center gap-1.5">
-          <VendorGlyph logo={model.logo} alt={model.vendorName} className="size-4" />
+          <VendorGlyph vendor={model.vendor} alt={model.vendorName} className="size-4" />
           <span className="font-bold">{model.shortName}</span>
           <span className="hidden text-[10px] text-[#6f6a5f] sm:inline">
             {model.vendorName}
@@ -156,6 +158,9 @@ function Row({
       </td>
       <td className={cell(sortKey === "contextWindow") + " text-[#6f6a5f]"}>
         {ctx(model.contextWindow)}
+      </td>
+      <td className={cell(sortKey === "publishTime") + " text-[#6f6a5f]"}>
+        {date(model.publishTime)}
       </td>
     </tr>
   );

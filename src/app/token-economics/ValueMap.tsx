@@ -172,7 +172,7 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
       <div className="mt-2 flex items-center gap-2 border border-[#141414] bg-[#fbf9f4] px-3 py-2 text-[11px]">
         {active ? (
           <>
-            <VendorGlyph logo={active.m.logo} alt={active.m.vendorName} className="size-4" />
+            <VendorGlyph vendor={active.m.vendor} alt={active.m.vendorName} className="size-4" />
             <span className="font-bold">{active.m.name}</span>
             <span className="text-[#6f6a5f]">·</span>
             <span className="tabular-nums">basket {usd(active.m.blendedCost)}</span>

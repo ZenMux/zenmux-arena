@@ -120,7 +120,7 @@ function VendorShare({ data }: { data: TokenEconomicsData }) {
       <div className="space-y-1.5 border border-[#141414] bg-[#fbf9f4] p-4">
         {vendors.map((v) => {
           const w = (v.totalUsage / max) * 100;
-          const src = logoPath(v.logo);
+          const src = logoPath(v.vendor);
           return (
             <div
               key={v.vendor}
@@ -133,7 +133,7 @@ function VendorShare({ data }: { data: TokenEconomicsData }) {
                   <img
                     src={src}
                     alt=""
-                    className="size-4 shrink-0 object-contain invert"
+                    className="size-4 shrink-0 object-contain"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).style.display = "none";
                     }}
