@@ -2,7 +2,7 @@
 
 // Surface 1 — the PRICE LEADERBOARD. A dense, sortable nof1-style table ranking
 // every model by the standardized basket cost (100K input + 1K output). Cheap is
-// green, dear is red (vs the median). Click a header to re-sort; the basket-cost
+// green, dear is red (vs DeepSeek V4 Pro). Click a header to re-sort; the basket-cost
 // column drives the default ranking.
 
 import { useMemo, useState } from "react";
@@ -46,7 +46,13 @@ export function Leaderboard({ data }: { data: TokenEconomicsData }) {
     dir: "desc",
   });
 
-  const median = data.summary.medianBlendedCost;
+  // Color reference: DeepSeek V4 Pro's basket cost is the green/red threshold —
+  // it's the community-favorite model this whole study started from, so "cheaper
+  // than DeepSeek V4 Pro" is the meaningful cut. Fall back to the median if that
+  // model isn't on the listing for some reason.
+  const refModel = data.models.find((m) => m.slug === "deepseek/deepseek-v4-pro");
+  const refCost = refModel?.blendedCost ?? data.summary.medianBlendedCost;
+  const refLabel = refModel ? "DeepSeek V4 Pro" : "median";
   // data.models is already free-merged upstream in compute() (mergeFreeModels),
   // so every surface shares one consistent set — just sort it here.
   const rows = useMemo(
@@ -71,7 +77,8 @@ export function Leaderboard({ data }: { data: TokenEconomicsData }) {
           <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
             {rows.length} models · newest releases first · basket ={" "}
             <b className="text-[#141414]">100K input + 1K output</b> tokens ·
-            green = cheaper than median ({usd(median)}), red = dearer ·{" "}
+            green = cheaper than <b className="text-[#141414]">{refLabel}</b> (
+            {usd(refCost)}), red = dearer ·{" "}
             <b className="text-[#141414]">MED/DAY</b> = median active-day launch
             velocity (first 14 working days),{" "}
             <span className="text-[#cf3636]">*</span> = partial window
@@ -114,7 +121,7 @@ export function Leaderboard({ data }: { data: TokenEconomicsData }) {
           </thead>
           <tbody>
             {rows.map((m, i) => (
-              <Row key={m.slug} model={m} rank={i + 1} median={median} sortKey={sort.key} />
+              <Row key={m.slug} model={m} rank={i + 1} refCost={refCost} sortKey={sort.key} />
             ))}
           </tbody>
         </table>
@@ -126,15 +133,15 @@ export function Leaderboard({ data }: { data: TokenEconomicsData }) {
 function Row({
   model,
   rank,
-  median,
+  refCost,
   sortKey,
 }: {
   model: ModelEconomics;
   rank: number;
-  median: number;
+  refCost: number;
   sortKey: SortKey;
 }) {
-  const cheap = model.blendedCost <= median;
+  const cheap = model.blendedCost <= refCost;
   // Subtle alternating tint band, like the reference leaderboard.
   const band = rank % 2 === 0 ? "bg-[#f4f1ea]" : "bg-[#fbf9f4]";
   const cell = (active: boolean) =>

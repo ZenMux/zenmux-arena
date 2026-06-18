@@ -24,6 +24,8 @@ import { Leaderboard } from "./Leaderboard";
 import { Consumption } from "./Consumption";
 import { ValueMap } from "./ValueMap";
 import { ValueByVendor } from "./ValueByVendor";
+import { PriceVsDemand } from "./PriceVsDemand";
+import { ChartFrame } from "./ChartFrame";
 
 const VALID_VIEWS: readonly View[] = [
   "leaderboard",
@@ -135,11 +137,32 @@ function Shell({
           />
         </div>
 
-        {/* ── Active surface ── */}
-        {view === "leaderboard" && <Leaderboard data={data} />}
-        {view === "consumption" && <Consumption data={data} />}
-        {view === "value" && <ValueMap data={data} />}
-        {view === "vendor-value" && <ValueByVendor data={data} />}
+        {/* ── Active surface ── each chart wrapped so it can export to PNG. ── */}
+        {view === "leaderboard" && (
+          <ChartFrame filename="leaderboard">
+            <Leaderboard data={data} />
+          </ChartFrame>
+        )}
+        {view === "consumption" && (
+          <ChartFrame filename="consumption">
+            <Consumption data={data} />
+          </ChartFrame>
+        )}
+        {view === "value" && (
+          <ChartFrame filename="value-map">
+            <ValueMap data={data} />
+          </ChartFrame>
+        )}
+        {view === "vendor-value" && (
+          <div className="space-y-10">
+            <ChartFrame filename="value-ladder">
+              <ValueByVendor data={data} />
+            </ChartFrame>
+            <ChartFrame filename="price-vs-demand">
+              <PriceVsDemand data={data} />
+            </ChartFrame>
+          </div>
+        )}
 
         {/* ── Footer / methodology ── */}
         <footer className="mt-10 border-t border-[#141414] pt-4 text-[10px] leading-relaxed text-[#6f6a5f]">

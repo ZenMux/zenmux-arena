@@ -1,0 +1,19 @@
+Model,Slug,Orig Input ($/1M),Orig Output ($/1M),Orig Blended ($),Anchor,Discount Factor,New Input ($/1M),New Output ($/1M),New Blended ($)
+"GLM 5.2",z-ai/glm-5.2,1.4,4.4,0.1444,"DeepSeek V4 Pro",0.307271,0.43018,1.351994,0.04437
+"Kimi K2.7 Code",moonshotai/kimi-k2.7-code,0.95,4,0.099,"DeepSeek V4 Pro",0.448182,0.425773,1.792727,0.04437
+"Qwen3.7-Plus",qwen/qwen3.7-plus,0.4,1.6,0.0416,"DeepSeek V4 Flash",0.343269,0.137308,0.549231,0.01428
+"MiniMax M3",minimax/minimax-m3,0.3,1.2,0.0312,"DeepSeek V4 Flash",0.457692,0.137308,0.549231,0.01428
+"Step 3.7 Flash",stepfun/step-3.7-flash,0.2,1.15,0.02115,"DeepSeek V4 Flash",0.675177,0.135035,0.776454,0.01428
+"Qwen3.7-Max",qwen/qwen3.7-max,2.5,7.5,0.2575,"DeepSeek V4 Pro",0.172311,0.430777,1.29233,0.04437
+"Agnes-2.0-Flash",sapiens-ai/agnes-2.0-flash,0.1,0.2,0.0102,"—",1,0.1,0.2,0.0102
+"ERNIE 5.1",baidu/ernie-5.1,0.588,2.646,0.061446,"DeepSeek V4 Pro",0.722097,0.424593,1.91067,0.04437
+"Ring-2.6-1T",inclusionai/ring-2.6-1t,0.3,2.5,0.0325,"DeepSeek V4 Flash",0.439385,0.131815,1.098462,0.01428
+"Ling-2.6-1T",inclusionai/ling-2.6-1t,0.3,2.5,0.0325,"DeepSeek V4 Flash",0.439385,0.131815,1.098462,0.01428
+"Hy3 preview",tencent/hy3-preview,0.172,0.572,0.017772,"DeepSeek V4 Flash",0.803511,0.138204,0.459608,0.01428
+"MiMo-V2.5",xiaomi/mimo-v2.5,0.15,0.29,0.01529,"DeepSeek V4 Flash",0.933944,0.140092,0.270844,0.01428
+"MiMo-V2.5-Pro",xiaomi/mimo-v2.5-pro,0.44,0.88,0.04488,"DeepSeek V4 Pro",0.988636,0.435,0.87,0.04437
+"Ling-2.6-flash",inclusionai/ling-2.6-flash,0.1,0.3,0.0103,"—",1,0.1,0.3,0.0103
+"KAT-Coder-Pro-V2",kuaishou/kat-coder-pro-v2,0.3,1.2,0.0312,"DeepSeek V4 Flash",0.457692,0.137308,0.549231,0.01428
+"Qwen3.6 Flash",qwen/qwen3.6-flash,0.25,1.5,0.0265,"DeepSeek V4 Flash",0.538868,0.134717,0.808302,0.01428
+"Doubao-Seed-2.0-pro",bytedance/doubao-seed-2.0-pro,0.45,2.24,0.04724,"DeepSeek V4 Pro",0.939246,0.422661,2.103912,0.04437
+"Doubao-Seed-2.0-mini",bytedance/doubao-seed-2.0-mini,0.03,0.28,0.00328,"—",1,0.03,0.28,0.00328

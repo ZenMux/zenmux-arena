@@ -10,8 +10,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
+import { GITHUB_MARK_PATH, REPO_URL } from "@research/lib/branding";
 
 export type View = "leaderboard" | "consumption" | "value" | "vendor-value";
+
+/** Inline GitHub mark — lucide-react 1.16 ships no `Github` icon, so we draw it
+ *  from the shared branding path (same source the research badge uses). */
+function GithubMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className={className} fill="currentColor">
+      <path d={GITHUB_MARK_PATH} />
+    </svg>
+  );
+}
 
 const VIEWS: { key: View; label: string }[] = [
   { key: "leaderboard", label: "LEADERBOARD" },
@@ -20,34 +31,56 @@ const VIEWS: { key: View; label: string }[] = [
   { key: "consumption", label: "CONSUMPTION" },
 ];
 
+const TAB_CLASS = (isActive: boolean) =>
+  "cursor-pointer border px-2 py-1 transition-colors " +
+  (isActive
+    ? "border-[#141414] bg-[#141414] text-[#f4f1ea]"
+    : "border-transparent text-[#141414] hover:border-[#141414]");
+
+/**
+ * The view tabs. Two modes:
+ *   · controlled (onViewChange given, on the main page) → instant <button>s that
+ *     flip client state, no navigation.
+ *   · link mode (no onViewChange, e.g. the About page) → <Link>s back to the main
+ *     page with the chosen ?view=, which it reads on load. Nothing is "active".
+ */
 function NavLinks({
   view,
   onViewChange,
+  isAbout = false,
 }: {
-  view: View;
-  onViewChange: (v: View) => void;
+  view?: View;
+  onViewChange?: (v: View) => void;
+  isAbout?: boolean;
 }) {
   return (
     <nav className="flex items-center gap-1 text-[11px] font-bold tracking-[0.12em] sm:gap-2 sm:text-xs">
-      {VIEWS.map((v) => {
-        const isActive = view === v.key;
-        return (
+      {VIEWS.map((v) =>
+        onViewChange ? (
           <button
             key={v.key}
             type="button"
             onClick={() => onViewChange(v.key)}
-            aria-current={isActive ? "page" : undefined}
-            className={
-              "cursor-pointer border px-2 py-1 transition-colors " +
-              (isActive
-                ? "border-[#141414] bg-[#141414] text-[#f4f1ea]"
-                : "border-transparent text-[#141414] hover:border-[#141414]")
-            }
+            aria-current={view === v.key ? "page" : undefined}
+            className={TAB_CLASS(view === v.key)}
           >
             {v.label}
           </button>
-        );
-      })}
+        ) : (
+          <Link
+            key={v.key}
+            href={`/token-economics?view=${v.key}`}
+            className={TAB_CLASS(false)}
+          >
+            {v.label}
+          </Link>
+        ),
+      )}
+      {/* About sits alongside the view tabs (it's a route, not a view, so always
+          a Link). `isAbout` lets the About page itself mark it active. */}
+      <Link href="/token-economics/about" className={TAB_CLASS(isAbout)}>
+        ABOUT
+      </Link>
     </nav>
   );
 }
@@ -55,9 +88,12 @@ function NavLinks({
 export function TokenEconNav({
   view,
   onViewChange,
+  isAbout = false,
 }: {
-  view: View;
-  onViewChange: (v: View) => void;
+  view?: View;
+  onViewChange?: (v: View) => void;
+  /** True on the About page so its tab renders active. */
+  isAbout?: boolean;
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-[#141414] bg-[#f4f1ea]/95 backdrop-blur supports-[backdrop-filter]:bg-[#f4f1ea]/80">
@@ -77,8 +113,24 @@ export function TokenEconNav({
           </span>
         </Link>
 
-        <div className="flex items-center gap-2 sm:gap-4">
-          <NavLinks view={view} onViewChange={onViewChange} />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <NavLinks view={view} onViewChange={onViewChange} isAbout={isAbout} />
+
+          {/* Repo cluster, set off by a thin ink divider. */}
+          <span className="hidden h-5 w-px bg-[#141414]/20 sm:inline-block" aria-hidden />
+
+          {/* Project source. */}
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View source on GitHub"
+            title="GitHub — ZenMux/zenmux-arena"
+            className="inline-flex items-center text-[#141414] transition-opacity hover:opacity-70"
+          >
+            <GithubMark className="size-[18px]" />
+          </a>
+
           <a
             href="https://zenmux.ai/models"
             target="_blank"

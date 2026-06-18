@@ -1,0 +1,138 @@
+"use client";
+
+// A reusable wrapper that makes any chart EXPORTABLE as a PNG. It renders:
+//   · a thin toolbar (NOT captured — it sits outside the capture node) with an
+//     "Export PNG" button, and
+//   · the capture frame: the chart itself (which already carries its own title,
+//     description, and legend) followed by a permanent attribution footer
+//     (author + site URL). Keeping the footer in the DOM makes the export WYSIWYG
+//     and flash-free, and reads as intentional on the page.
+//
+// Capture uses html-to-image (client DOM → PNG). The one wrinkle is horizontal
+// scroll: several charts wrap content in `overflow-x-auto`, which would clip the
+// PNG at the viewport edge. Before capturing we expand every scrollable
+// descendant to `overflow: visible` and shoot at the frame's full scrollWidth,
+// then restore — so the exported image contains the whole chart.
+
+import { useCallback, useRef, useState, type ReactNode } from "react";
+import { toPng } from "html-to-image";
+import { Download, Loader2 } from "lucide-react";
+
+/** Canonical public URL stamped into every exported image. */
+const SITE_URL = "arena.zenmux.ai/token-economics";
+
+/** The author's contact QR, baked into every exported image's footer. Served
+ *  with `access-control-allow-origin: *`, so it embeds cleanly in the canvas
+ *  capture (no taint) — we still set crossOrigin on the <img> to be safe. */
+const AUTHOR_QR =
+  "https://cdn.marmot-cloud.com/storage/zenmux/2026/01/23/fNSKOaq/wechat.png";
+
+export function ChartFrame({
+  filename,
+  children,
+}: {
+  /** Base filename for the download, e.g. "leaderboard" → "token-economics-leaderboard.png". */
+  filename: string;
+  children: ReactNode;
+}) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const onExport = useCallback(async () => {
+    const node = frameRef.current;
+    if (!node || busy) return;
+    setBusy(true);
+
+    // Expand horizontally-scrollable descendants so nothing clips in the capture.
+    const scrollers = Array.from(node.querySelectorAll<HTMLElement>("*")).filter(
+      (el) => {
+        const o = getComputedStyle(el).overflowX;
+        return o === "auto" || o === "scroll";
+      },
+    );
+    const saved = scrollers.map((el) => ({ el, overflowX: el.style.overflowX }));
+    scrollers.forEach((el) => {
+      el.style.overflowX = "visible";
+    });
+
+    try {
+      // Let layout settle after expanding the scrollers.
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const width = node.scrollWidth;
+      const height = node.scrollHeight;
+      const dataUrl = await toPng(node, {
+        pixelRatio: 2, // crisp on retina + good print resolution
+        backgroundColor: "#f4f1ea", // the route's cream paper
+        width,
+        height,
+        cacheBust: true,
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `token-economics-${filename}.png`;
+      a.click();
+    } catch (err) {
+      console.error("Chart export failed:", err);
+    } finally {
+      saved.forEach(({ el, overflowX }) => {
+        el.style.overflowX = overflowX;
+      });
+      setBusy(false);
+    }
+  }, [busy, filename]);
+
+  return (
+    <div>
+      {/* Toolbar — outside the capture frame (so it's never in the PNG). Its
+          horizontal padding matches the frame's, so the button's right edge
+          lines up with the chart content edge below it. */}
+      <div className="mb-2 flex justify-end px-4 sm:px-5">
+        <button
+          type="button"
+          onClick={onExport}
+          disabled={busy}
+          className="inline-flex items-center gap-1.5 border border-[#141414] bg-[#fbf9f4] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-[#141414] hover:text-[#f4f1ea] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {busy ? (
+            <Loader2 className="size-3 animate-spin" />
+          ) : (
+            <Download className="size-3" />
+          )}
+          {busy ? "Exporting…" : "Export PNG"}
+        </button>
+      </div>
+
+      {/* Capture frame — chart + attribution footer. Padded so the exported PNG
+          has a clean margin around the content. */}
+      <div ref={frameRef} className="bg-[#f4f1ea] p-4 sm:p-5">
+        {children}
+
+        {/* Attribution footer — author QR + name + canonical site URL, baked into
+            the export. Author name stays lowercase ("thinkthinking"), so it's set
+            apart from the uppercase metadata line rather than tracking-uppercased. */}
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#141414] pt-2.5">
+          <div className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={AUTHOR_QR}
+              alt="thinkthinking contact QR"
+              crossOrigin="anonymous"
+              className="size-11 shrink-0 border border-[#141414] bg-white object-contain p-0.5"
+            />
+            <div className="leading-tight">
+              <div className="text-[11px] font-bold lowercase text-[#141414]">
+                thinkthinking
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
+                ZenMux Arena · Token Economics
+              </div>
+            </div>
+          </div>
+          <span className="font-mono text-[10px] tabular-nums text-[#6f6a5f]">
+            {SITE_URL}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
