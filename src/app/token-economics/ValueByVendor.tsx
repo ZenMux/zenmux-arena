@@ -211,6 +211,11 @@ function Row({
       <div className="ml-1.5 flex items-center gap-1 whitespace-nowrap">
         <VendorGlyph vendor={m.vendor} alt={m.vendorName} className="size-3.5" />
         <span className="text-[11px] font-bold leading-none">{m.shortName}</span>
+        {/* all-time token total in parens — the model's lifetime consumption,
+            for quick "is this value play actually used?" context. */}
+        <span className="text-[10px] tabular-nums leading-none text-[#6f6a5f]">
+          ({tokens(m.usageTokens)})
+        </span>
         <span className="text-[10px] font-bold tabular-nums leading-none text-[#1a8a4a]">
           {perDollarDay(m.avgDailyPerDollar)}
         </span>

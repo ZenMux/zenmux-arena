@@ -189,6 +189,37 @@ export type SortKey =
   | "contextWindow"
   | "publishTime";
 
+/**
+ * Fold each `…-free` model's all-time usage into its paid base model so a view
+ * shows ONE combined ALL-TIME total per model. ZenMux lists a model's free tier
+ * as a separate `<base>-free` slug, which splits that model's consumption across
+ * two cards; here we re-unite ONLY the token total (`usageTokens`) onto the base
+ * row and drop the free row. Everything else — price, launch velocity, value —
+ * stays the base model's own, since a free tier doesn't change the paid price.
+ *
+ * A `-free` model with no paid base on the listing (e.g. `z-ai/glm-4.7-flash-free`)
+ * has nothing to merge into, so it's kept as its own row, untouched.
+ */
+const FREE_SUFFIX = "-free";
+export function mergeFreeUsage(models: ModelEconomics[]): ModelEconomics[] {
+  const bySlug = new Map(models.map((m) => [m.slug, m]));
+  const out: ModelEconomics[] = [];
+  for (const m of models) {
+    // A free variant whose paid base is also listed: skip it — its usage is
+    // summed onto the base row below.
+    if (m.slug.endsWith(FREE_SUFFIX) && bySlug.has(m.slug.slice(0, -FREE_SUFFIX.length))) {
+      continue;
+    }
+    const free = bySlug.get(`${m.slug}${FREE_SUFFIX}`);
+    if (free && (m.usageTokens != null || free.usageTokens != null)) {
+      out.push({ ...m, usageTokens: (m.usageTokens ?? 0) + (free.usageTokens ?? 0) });
+    } else {
+      out.push(m);
+    }
+  }
+  return out;
+}
+
 export function sortModels(
   models: ModelEconomics[],
   key: SortKey,

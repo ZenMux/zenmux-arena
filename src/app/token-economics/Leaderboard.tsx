@@ -15,6 +15,7 @@ import {
   ctx,
   date,
   sortModels,
+  mergeFreeUsage,
   type SortKey,
 } from "./lib";
 import { VendorGlyph } from "./components";
@@ -47,8 +48,11 @@ export function Leaderboard({ data }: { data: TokenEconomicsData }) {
   });
 
   const median = data.summary.medianBlendedCost;
+  // Fold each `-free` tier's all-time tokens into its paid base row first, so the
+  // ALL-TIME column shows one combined total per model (see mergeFreeUsage), then
+  // sort the merged set.
   const rows = useMemo(
-    () => sortModels(data.models, sort.key, sort.dir),
+    () => sortModels(mergeFreeUsage(data.models), sort.key, sort.dir),
     [data.models, sort],
   );
 

@@ -10,9 +10,12 @@
 //
 // It needs no auth and no cookies (the `ctoken` the browser sends is just a
 // cache-buster), returns EVERY model in one shot, and gives each model its own
-// flat, typed fields — no regex, no cross-card misalignment. We keep only the
-// text models (output_modalities contains "text"), which is exactly the set the
-// page's ?output_modalities=text filter shows (138 at time of writing).
+// flat, typed fields — no regex, no cross-card misalignment. We scope the set to
+// models that speak the Chat Completions protocol via the API's own
+// ?supported_protocol=chat.completions filter — exactly the set the page's
+// matching filter shows (131 at time of writing). This is a SERVER-SIDE filter:
+// the JSON objects carry no protocol field, so it can only be applied through
+// the query param, not re-derived here.
 //
 // Field mapping (API → our ScrapedModel), verified against the live page:
 //   all_tokens          → usageTokens   (the "341.42M tokens" figure on each card)
@@ -28,11 +31,13 @@ import type { ScrapedModel } from "./normalize";
 
 /** The public page — kept as the human-facing `source` for attribution. */
 export const MODELS_URL =
-  "https://zenmux.ai/models?sort=newest&output_modalities=text";
+  "https://zenmux.ai/models?sort=newest&supported_protocol=chat.completions";
 
-/** The JSON API the page calls. `keyword`/`context_length` empty = no filter. */
+/** The JSON API the page calls. `keyword`/`context_length` empty = no filter;
+ *  `supported_protocol=chat.completions` scopes the set to chat-completions
+ *  models server-side (mirrors MODELS_URL's filter). */
 export const API_URL =
-  "https://zenmux.ai/api/frontend/model/listByFilter?context_length=&sort=newest&keyword=";
+  "https://zenmux.ai/api/frontend/model/listByFilter?context_length=&sort=newest&keyword=&supported_protocol=chat.completions";
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
@@ -107,11 +112,6 @@ function num(v: string | number | null | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** A model is "text" if its output modalities include text (matches the page filter). */
-function isTextModel(m: ApiModel): boolean {
-  return (m.output_modalities ?? "").split(",").some((s) => s.trim() === "text");
-}
-
 /** Format an absolute token count the way the listing card does: "341.42M tokens". */
 export function formatUsage(n: number | null): string | null {
   if (n == null || !Number.isFinite(n)) return null;
@@ -126,14 +126,16 @@ export function formatUsage(n: number | null): string | null {
 // ---------------------------------------------------------------------------
 
 /**
- * Map the API's model objects into our raw rows, keeping only text models. Prices
- * default to 0 (the API uses 0 for genuinely-free models) rather than null, so a
- * free model still appears in the leaderboard at $0 instead of being dropped.
+ * Map the API's model objects into our raw rows. The set is already scoped by the
+ * API's `supported_protocol=chat.completions` filter (see API_URL), so we keep
+ * every returned model and don't re-filter by modality here. Prices default to 0
+ * (the API uses 0 for genuinely-free models) rather than null, so a free model
+ * still appears in the leaderboard at $0 instead of being dropped.
  */
 export function parseModels(apiModels: ApiModel[]): ScrapedModel[] {
   const rows: ScrapedModel[] = [];
   for (const m of apiModels) {
-    if (!m.slug || !isTextModel(m)) continue;
+    if (!m.slug) continue;
 
     const usageTokens = typeof m.all_tokens === "number" ? m.all_tokens : null;
     rows.push({
