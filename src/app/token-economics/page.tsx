@@ -3,11 +3,19 @@
 // on the fly (research/token-economics/{scrape,compute} are pure functions, no
 // disk writes — safe on Vercel's read-only/immutable filesystem).
 //
-// ISR: the rendered page is cached and revalidated daily, so a freshly listed
-// model shows up within ~24h WITHOUT a redeploy or a manual `pnpm tokenecon`.
-// A Vercel Cron (see vercel.json) pings this route once a day so the cache
-// refreshes even with zero organic traffic. Daily cadence keeps it within the
-// Hobby-plan cron limit (max once/day) and aligns cron with the ISR window.
+// FRESHNESS MODEL (two fetches, two cache policies — see loadData):
+//   · The model LISTING (incl. all-time `all_tokens`) is a single cheap,
+//     unauthenticated request → fetched LIVE on every page load, never cached.
+//     So ALL-TIME token totals are always current the moment you open/refresh.
+//   · The launch-window USAGE is ~131 authenticated, rate-limited management
+//     calls → kept on the 24h Data Cache. A Vercel Cron (see vercel.json) pings
+//     this route once a day to warm that cache even with zero organic traffic.
+//
+// `revalidate = 0` makes the route render per-request (so the live listing is
+// re-pulled every time) while the docs guarantee a fetch with its OWN positive
+// `revalidate` (the usage call) is "left as is" — i.e. still cached for 24h. Net
+// per-visit cost over the old daily-ISR model: ONE extra listing round-trip, not
+// 131, because the expensive usage fetch is served from the Data Cache.
 //
 // `pnpm tokenecon` still exists for local runs + audit snapshots under
 // results/; it is no longer the source the deployed page reads.
@@ -18,31 +26,44 @@ import { fetchAllUsage, MANAGEMENT_KEY_ENV } from "@research/token-economics/usa
 import { compute } from "@research/token-economics/compute";
 import { TokenEconClient } from "./TokenEconClient";
 
-/** Revalidate the cached render once a day (86400s). */
-export const revalidate = 86400;
+/**
+ * Render per-request (dynamic). This opts the route out of the Full Route Cache
+ * so the live listing fetch below runs on every load; it does NOT force the
+ * usage fetch off the Data Cache — a fetch's own positive `revalidate` survives
+ * a route-level `revalidate = 0` (Next.js 16 caching model).
+ */
+export const revalidate = 0;
+
+/** How long the per-model launch-window usage series stays in the Data Cache.
+ *  Only this expensive, rate-limited fetch is cached (24h); the listing is live.
+ *  The Vercel cron re-warms this window daily. */
+const USAGE_CACHE_SECONDS = 86400;
 
 /**
  * Fetch the live listing + per-model launch-window usage and compute the
- * economics artifact. Throws on a listing fetch/shape failure ON PURPOSE: a
- * thrown render lets Next.js keep serving the last good ISR cache (stale-but-
- * correct) instead of overwriting it with an empty "No data" page.
+ * economics artifact. Throws on a listing fetch/shape failure ON PURPOSE so the
+ * error surfaces (and any error boundary catches it) rather than rendering an
+ * empty "No data" page. Note: with the route now dynamic there is no Full Route
+ * Cache to fall back on, so a listing outage shows an error instead of stale
+ * HTML — the tradeoff for always-live all-time numbers.
  *
  * The launch-window usage comes from the AUTHENTICATED management endpoint
  * (one rate-limited request per model). It needs ZENMUX_MANAGEMENT_KEY in
  * the environment; if that's unset, fetchAllUsage returns an empty map and the
  * page still renders with all-time usage only (avg-daily columns show "—").
- * Both fetches carry this page's `revalidate` so the Data Cache stays in
- * lockstep with the daily ISR window — the ~135 usage calls only re-run once a
- * day (the Vercel cron warms them), not on every visitor.
  */
 async function loadData(): Promise<TokenEconomicsData> {
-  const apiModels = await fetchModelsApi(undefined, { revalidate });
+  // Listing (incl. all-time tokens): LIVE — `revalidate: 0` opts this single
+  // request out of the Data Cache, so every page load re-pulls the latest.
+  const apiModels = await fetchModelsApi(undefined, { revalidate: 0 });
   const rows = parseModels(apiModels);
   const now = new Date();
+  // Usage (131 rate-limited calls): kept on the 24h Data Cache so a per-request
+  // render still makes just ONE live call (the listing above).
   const usage = await fetchAllUsage(
     rows.map((r) => ({ slug: r.slug, publishTime: r.publishTime })),
     process.env[MANAGEMENT_KEY_ENV],
-    { cache: { revalidate }, now },
+    { cache: { revalidate: USAGE_CACHE_SECONDS }, now },
   );
   const { data } = compute(rows, now.toISOString(), usage);
   return data;

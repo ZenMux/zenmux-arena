@@ -1,38 +1,84 @@
 "use client";
 
 // The orchestrating client view for Token Economics. Renders the nof1-style
-// ticker strip + headline stat boxes (always on), then switches between the
-// three surfaces by the ?view= query (kept in step with the top-nav links).
+// ticker strip + headline stat boxes (always on), then switches between the four
+// surfaces by an ACTIVE VIEW held in client state.
 //
-// useSearchParams opts this subtree into client rendering; it's wrapped in a
-// Suspense boundary by the parent layout's nav, and we read it directly here
-// since the whole client view is already dynamic.
+// WHY STATE, NOT SERVER NAVIGATION. The four surfaces share ONE identical `data`
+// payload — switching view only chooses which component to render. The page is
+// now dynamic (revalidate = 0), so a <Link>/router.push to ?view= would pointlessly
+// re-run the server render (re-fetching the live listing) and make the tab "hang"
+// until the round-trip lands. Instead the active view comes from the URL via
+// useSyncExternalStore (SSR-safe: server snapshot is always "leaderboard", so no
+// hydration mismatch), and a click mirrors the new view to the URL with
+// history.replaceState + a manual dispatch — instant switch, NO server hit, while
+// the address bar stays shareable and back/forward keeps working.
 
-import { Suspense } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import type { TokenEconomicsData } from "@research/token-economics/types";
 import { usd, perDay, perDollarDay } from "./lib";
 import { StatBox } from "./components";
+import { TokenEconNav, type View } from "./TokenEconNav";
 import { Leaderboard } from "./Leaderboard";
 import { Consumption } from "./Consumption";
 import { ValueMap } from "./ValueMap";
 import { ValueByVendor } from "./ValueByVendor";
 
-type View = "leaderboard" | "consumption" | "value" | "vendor-value";
+const VALID_VIEWS: readonly View[] = [
+  "leaderboard",
+  "consumption",
+  "value",
+  "vendor-value",
+];
 
-export function TokenEconClient({ data }: { data: TokenEconomicsData }) {
-  return (
-    <Suspense fallback={<Shell data={data} view="leaderboard" />}>
-      <Routed data={data} />
-    </Suspense>
-  );
+/** Custom event the changeView setter fires so useSyncExternalStore re-reads the
+ *  URL after a history.replaceState (which, unlike popstate, emits no event). */
+const VIEW_EVENT = "te:viewchange";
+
+/** Parse the active view from the live URL; unknown/missing → leaderboard. */
+function readView(): View {
+  const v = new URLSearchParams(window.location.search).get("view");
+  return VALID_VIEWS.includes(v as View) ? (v as View) : "leaderboard";
 }
 
-function Routed({ data }: { data: TokenEconomicsData }) {
-  const params = useSearchParams();
-  const view = (params.get("view") ?? "leaderboard") as View;
-  return <Shell data={data} view={view} />;
+/** Subscribe to both our own replaceState event and the browser's back/forward. */
+function subscribeView(onChange: () => void): () => void {
+  window.addEventListener(VIEW_EVENT, onChange);
+  window.addEventListener("popstate", onChange);
+  return () => {
+    window.removeEventListener(VIEW_EVENT, onChange);
+    window.removeEventListener("popstate", onChange);
+  };
+}
+
+export function TokenEconClient({ data }: { data: TokenEconomicsData }) {
+  // useSyncExternalStore is the SSR-safe way to derive state from a browser API:
+  // the server snapshot ("leaderboard") matches the first client paint (no
+  // hydration mismatch), then it re-reads the URL on every view change.
+  const view = useSyncExternalStore(
+    subscribeView,
+    readView,
+    () => "leaderboard" as View,
+  );
+
+  // Switch view instantly + mirror to the URL with NO server round-trip, then
+  // notify the store so the render updates.
+  const changeView = useCallback((next: View) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", next);
+    window.history.replaceState(null, "", url);
+    window.dispatchEvent(new Event(VIEW_EVENT));
+  }, []);
+
+  return (
+    <>
+      <TokenEconNav view={view} onViewChange={changeView} />
+      <main className="flex-1">
+        <Shell data={data} view={view} />
+      </main>
+    </>
+  );
 }
 
 function Shell({

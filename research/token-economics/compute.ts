@@ -24,6 +24,69 @@ function median(xs: number[]): number {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
+const FREE_SUFFIX = "-free";
+
+/**
+ * Explicit free→target merges for cases the generic `-free`→base rule can't
+ * catch (the suffix-stripped base isn't itself a listed slug). Each free slug's
+ * all-time tokens fold into the named target instead.
+ *
+ *   z-ai/glm-4.7-flash-free → z-ai/glm-4.7-flashx
+ *     ("glm-4.7-flash" has no paid listing; FlashX is its paid sibling.)
+ */
+const FREE_MERGE_OVERRIDES: Record<string, string> = {
+  "z-ai/glm-4.7-flash-free": "z-ai/glm-4.7-flashx",
+};
+
+/**
+ * Fold each free-tier model's all-time usage into its paid counterpart so the
+ * WHOLE artifact (every surface + the headline summary) counts a model's
+ * consumption ONCE, on a single row. ZenMux lists a free tier as a separate
+ * `<base>-free` slug, splitting that model's tokens across two cards; here we
+ * re-unite ONLY the token total (`usageTokens`) onto the target row and drop the
+ * free row. Price, launch velocity, and value stay the target's own — a free
+ * tier doesn't change the paid price.
+ *
+ * A free model's target is, in priority order:
+ *   1. an explicit {@link FREE_MERGE_OVERRIDES} mapping, else
+ *   2. its slug with `-free` stripped, IF that paid base is listed.
+ * A free model with neither (e.g. a free-only model) is kept as its own row.
+ *
+ * This is the single source of truth for the merge: compute() runs it before
+ * building the summary + vendor rollups, so no surface re-merges downstream.
+ */
+export function mergeFreeModels(models: ModelEconomics[]): ModelEconomics[] {
+  const bySlug = new Map(models.map((m) => [m.slug, m]));
+
+  // Resolve each free model to a target slug that actually exists, or null.
+  const targetOf = (slug: string): string | null => {
+    if (!slug.endsWith(FREE_SUFFIX)) return null;
+    const override = FREE_MERGE_OVERRIDES[slug];
+    if (override) return bySlug.has(override) ? override : null;
+    const base = slug.slice(0, -FREE_SUFFIX.length);
+    return bySlug.has(base) ? base : null;
+  };
+
+  // Sum each absorbed free model's tokens onto its target, and mark it absorbed.
+  const extraUsage = new Map<string, number>();
+  const absorbed = new Set<string>();
+  for (const m of models) {
+    const target = targetOf(m.slug);
+    if (!target) continue;
+    absorbed.add(m.slug);
+    extraUsage.set(target, (extraUsage.get(target) ?? 0) + (m.usageTokens ?? 0));
+  }
+
+  // Emit every non-absorbed model, adding any folded-in free tokens to targets.
+  const out: ModelEconomics[] = [];
+  for (const m of models) {
+    if (absorbed.has(m.slug)) continue;
+    const extra = extraUsage.get(m.slug);
+    out.push(extra ? { ...m, usageTokens: (m.usageTokens ?? 0) + extra } : m);
+  }
+  return out;
+}
+
 function mean(xs: number[]): number {
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
 }
@@ -193,15 +256,20 @@ export function compute(
     models.push(m);
   }
 
-  const summary = buildSummary(models);
-  const vendors = rollupVendors(models, summary.totalUsage, summary.totalAvgDaily);
+  // Fold free-tier rows into their paid counterparts BEFORE summarizing, so the
+  // headline stats, vendor rollups, and every surface all read one merged set
+  // (no per-surface re-merge — this is the single source of truth).
+  const merged = mergeFreeModels(models);
+
+  const summary = buildSummary(merged);
+  const vendors = rollupVendors(merged, summary.totalUsage, summary.totalAvgDaily);
 
   return {
     data: {
       generatedAt,
       source: MODELS_URL,
       basket: { inputTokens: BASKET.inputTokens, outputTokens: BASKET.outputTokens },
-      models,
+      models: merged,
       vendors,
       summary,
     },

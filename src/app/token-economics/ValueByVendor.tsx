@@ -18,7 +18,7 @@
 
 import { useMemo, useState } from "react";
 import type { ModelEconomics, TokenEconomicsData } from "@research/token-economics/types";
-import { perDay, perDollarDay, tokens, usd, vendorColor } from "./lib";
+import { date, perDay, perDollarDay, tokens, usd, vendorColor } from "./lib";
 import { VendorGlyph } from "./components";
 
 // Bars max out at this % of the track so the tip label always has room to its
@@ -202,7 +202,7 @@ function Row({
       style={{ opacity: dim ? 0.35 : 1 }}
       onMouseEnter={() => setHover(m.slug)}
       onMouseLeave={() => setHover(null)}
-      title={`${m.name}: ${perDollarDay(m.avgDailyPerDollar)} · basket ${usd(m.blendedCost)} · ${perDay(m.avgDailyTokens)}`}
+      title={`${m.name}: ${perDollarDay(m.avgDailyPerDollar)} · basket ${usd(m.blendedCost)} · ${perDay(m.avgDailyTokens)}${m.publishTime ? ` · released ${m.publishTime}` : ""}`}
     >
       <div
         className="h-3 border border-[#141414]"
@@ -219,6 +219,15 @@ function Row({
         <span className="text-[10px] font-bold tabular-nums leading-none text-[#1a8a4a]">
           {perDollarDay(m.avgDailyPerDollar)}
         </span>
+        {/* listing publish date — separated by a thin dot so it reads as
+            metadata, not another metric. Hidden on the narrowest widths so the
+            value (the row's whole point) never gets pushed off-screen. */}
+        {m.publishTime && (
+          <span className="hidden items-center gap-1 text-[10px] tabular-nums leading-none text-[#6f6a5f] sm:inline-flex">
+            <span aria-hidden className="text-[#141414]/30">·</span>
+            {date(m.publishTime)}
+          </span>
+        )}
       </div>
     </div>
   );

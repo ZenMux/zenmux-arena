@@ -1,54 +1,68 @@
 "use client";
 
 // The nof1-style top bar: a thin ink rule under a cream strip, wordmark on the
-// left, uppercase monospace section links on the right with the active one
-// boxed. Tabs are query-driven (?view=) so the page stays a single route and
-// the server component can read the active view too.
+// left, uppercase monospace section tabs on the right with the active one boxed.
+// Tabs are CONTROLLED — the active view + its setter come from TokenEconClient
+// state, so a click switches the surface instantly (no server navigation). The
+// URL is mirrored separately via history.replaceState there, so tabs stay
+// shareable without a round-trip. See TokenEconClient for the rationale.
 
 import Link from "next/link";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import { ArrowUpRight } from "lucide-react";
 
-const VIEWS = [
+export type View = "leaderboard" | "consumption" | "value" | "vendor-value";
+
+const VIEWS: { key: View; label: string }[] = [
   { key: "leaderboard", label: "LEADERBOARD" },
   { key: "vendor-value", label: "VALUE LADDER" },
   { key: "value", label: "VALUE MAP" },
   { key: "consumption", label: "CONSUMPTION" },
-] as const;
+];
 
-function NavLinks() {
-  const params = useSearchParams();
-  const active = params.get("view") ?? "leaderboard";
+function NavLinks({
+  view,
+  onViewChange,
+}: {
+  view: View;
+  onViewChange: (v: View) => void;
+}) {
   return (
     <nav className="flex items-center gap-1 text-[11px] font-bold tracking-[0.12em] sm:gap-2 sm:text-xs">
       {VIEWS.map((v) => {
-        const isActive = active === v.key;
+        const isActive = view === v.key;
         return (
-          <Link
+          <button
             key={v.key}
-            href={`/token-economics?view=${v.key}`}
+            type="button"
+            onClick={() => onViewChange(v.key)}
+            aria-current={isActive ? "page" : undefined}
             className={
-              "border px-2 py-1 transition-colors " +
+              "cursor-pointer border px-2 py-1 transition-colors " +
               (isActive
                 ? "border-[#141414] bg-[#141414] text-[#f4f1ea]"
                 : "border-transparent text-[#141414] hover:border-[#141414]")
             }
           >
             {v.label}
-          </Link>
+          </button>
         );
       })}
     </nav>
   );
 }
 
-export function TokenEconNav() {
+export function TokenEconNav({
+  view,
+  onViewChange,
+}: {
+  view: View;
+  onViewChange: (v: View) => void;
+}) {
   return (
     <header className="sticky top-0 z-30 border-b border-[#141414] bg-[#f4f1ea]/95 backdrop-blur supports-[backdrop-filter]:bg-[#f4f1ea]/80">
       <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6">
-        {/* Wordmark → back to the Arena hub. */}
+        {/* Wordmark → back to the Arena hub (a real route nav — keep as Link). */}
         <Link href="/" className="flex items-center gap-2.5">
           <Image
             src="/maker-logo/ZenMux-Light.png"
@@ -64,9 +78,7 @@ export function TokenEconNav() {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          <Suspense fallback={<div className="h-7" />}>
-            <NavLinks />
-          </Suspense>
+          <NavLinks view={view} onViewChange={onViewChange} />
           <a
             href="https://zenmux.ai/models"
             target="_blank"
