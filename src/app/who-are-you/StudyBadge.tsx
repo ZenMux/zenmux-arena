@@ -4,7 +4,7 @@
 // "by thinkthinking @ [ZenMux logo]" — the brand shows ONCE, as the clickable
 // logo (→ zenmux.ai); "thinkthinking" links to the author. Below it sits the
 // repo line. Pure presentational markup (no hooks) so it works as a server
-// component on both /research and /research/browse.
+// component on both /who-are-you and /who-are-you/browse.
 
 import Image from "next/image";
 import {

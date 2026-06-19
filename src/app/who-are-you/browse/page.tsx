@@ -106,7 +106,7 @@ function RunPicker({ runs, selected }: { runs: RunRef[]; selected: string }) {
         return (
           <Link
             key={r.id}
-            href={`/research/browse?run=${encodeURIComponent(r.id)}`}
+            href={`/who-are-you/browse?run=${encodeURIComponent(r.id)}`}
             className={`shrink-0 rounded-md border px-2 py-0.5 font-mono text-[11px] transition-colors ${
               active
                 ? "border-neutral-900 bg-neutral-900 text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-black"
@@ -144,7 +144,7 @@ function ModelSidebar({
             return (
               <Link
                 key={m.id}
-                href={`/research/browse?run=${encodeURIComponent(run)}&model=${encodeURIComponent(m.id)}`}
+                href={`/who-are-you/browse?run=${encodeURIComponent(run)}&model=${encodeURIComponent(m.id)}`}
                 scroll={false}
                 className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${
                   active

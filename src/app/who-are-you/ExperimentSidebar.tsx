@@ -47,21 +47,21 @@ interface View {
 const VIEWS: View[] = [
   {
     title: "Graph Studio",
-    href: "/research/studio",
+    href: "/who-are-you/studio",
     icon: SlidersHorizontal,
     description: "Interactive graph workbench & image export",
     carriesRun: true,
   },
   {
     title: "Data Explorer",
-    href: "/research/data",
+    href: "/who-are-you/data",
     icon: BarChart3,
     description: "Per-vendor self-ID rates, matrices, and cross-vendor confusions",
     carriesRun: true,
   },
   {
     title: "Raw Answers",
-    href: "/research/browse",
+    href: "/who-are-you/browse",
     icon: ListChecks,
     description: "Every model's answers with extraction labels",
     carriesRun: true,

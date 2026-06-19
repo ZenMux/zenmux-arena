@@ -1,7 +1,7 @@
 // The ZenMux Arena experiment registry — the single source of truth shared by
 // the hub homepage (the cards) and the experiment shell sidebar (the nav). Add
 // a new study here and it surfaces in both places automatically; keep this in
-// step with the routes under src/app/research/.
+// step with the routes under src/app/who-are-you/.
 //
 // Pure data + lucide icon references, no JSX — so it can be imported by both
 // server components (the hub) and client components (the sidebar) without a
@@ -40,7 +40,7 @@ export const EXPERIMENTS: Experiment[] = [
     description:
       "Ask every frontier model the same question — “Who are you?” — across ten languages, N times each, then chart which vendor each answer claims to be. Cross-vendor identity confusion, visualized.",
     status: "live",
-    href: "/research/studio",
+    href: "/who-are-you/studio",
     icon: Fingerprint,
     accent: "text-emerald-600 dark:text-emerald-400",
   },
@@ -57,5 +57,5 @@ export const EXPERIMENTS: Experiment[] = [
   },
 ];
 
-/** The live experiment that owns the /research shell (used by the sidebar). */
+/** The live experiment that owns the /who-are-you shell (used by the sidebar). */
 export const PRIMARY_EXPERIMENT = EXPERIMENTS.find((e) => e.id === "who-are-you")!;

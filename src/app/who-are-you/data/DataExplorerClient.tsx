@@ -33,7 +33,7 @@ export default function DataExplorerClient({
   const [navPending, startNav] = useTransition();
 
   const onRunChange = (id: string) => {
-    startNav(() => router.push(`/research/data?run=${encodeURIComponent(id)}`));
+    startNav(() => router.push(`/who-are-you/data?run=${encodeURIComponent(id)}`));
   };
 
   const s = graph.summary;

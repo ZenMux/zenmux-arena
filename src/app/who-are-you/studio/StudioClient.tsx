@@ -108,7 +108,7 @@ export default function StudioClient({
   );
 
   const onRunChange = (id: string) => {
-    startNav(() => router.push(`/research/studio?run=${encodeURIComponent(id)}`));
+    startNav(() => router.push(`/who-are-you/studio?run=${encodeURIComponent(id)}`));
   };
 
   const doExport = useCallback(
