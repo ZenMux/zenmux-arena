@@ -37,11 +37,13 @@ export function ChartFrame({
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
+  const [exportedAt, setExportedAt] = useState<string | null>(null);
 
   const onExport = useCallback(async () => {
     const node = frameRef.current;
     if (!node || busy) return;
     setBusy(true);
+    setExportedAt(new Date().toISOString());
 
     // Expand horizontally-scrollable descendants so nothing clips in the capture.
     const scrollers = Array.from(node.querySelectorAll<HTMLElement>("*")).filter(
@@ -57,7 +59,9 @@ export function ChartFrame({
 
     try {
       // Let layout settle after expanding the scrollers.
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      await nextFrame();
+      await nextFrame();
+      await waitForImages(node);
       const width = node.scrollWidth;
       const height = node.scrollHeight;
       const dataUrl = await toPng(node, {
@@ -128,11 +132,38 @@ export function ChartFrame({
               </div>
             </div>
           </div>
-          <span className="font-mono text-[10px] tabular-nums text-[#6f6a5f]">
-            {SITE_URL}
-          </span>
+          <div className="text-right font-mono text-[10px] tabular-nums text-[#6f6a5f]">
+            <div>{SITE_URL}</div>
+            <div className="mt-0.5 uppercase tracking-[0.08em]">
+              {exportedAt ? `Exported ${formatUtc(exportedAt)}` : "Export time: UTC"}
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+function formatUtc(iso: string): string {
+  const d = new Date(iso);
+  return `${d.toISOString().slice(0, 19).replace("T", " ")} UTC`;
+}
+
+async function waitForImages(node: HTMLElement): Promise<void> {
+  const images = Array.from(node.querySelectorAll("img"));
+  await Promise.all(
+    images.map(async (img) => {
+      if (img.complete && img.naturalWidth > 0) return;
+      try {
+        await img.decode();
+      } catch {
+        // html-to-image will still capture the rest of the frame if an optional
+        // remote image fails to decode.
+      }
+    }),
   );
 }

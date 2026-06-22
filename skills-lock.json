@@ -23,7 +23,7 @@
       "source": "zenmux/skills",
       "sourceType": "github",
       "skillPath": "skills/morphe/SKILL.md",
-      "computedHash": "211495f263701a0801651086758c0e4390d77dbbb29106f9b83c331736cbba8a"
+      "computedHash": "4c36dbd2fdd4123fe4609a8ef306b11d3e62600e67a6ef60e6191fc3d7dd1c4a"
     },
     "next-best-practices": {
       "source": "vercel-labs/next-skills",

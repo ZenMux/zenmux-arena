@@ -2,27 +2,46 @@
 """
 morphe.py — Morphe deploy helper (auth + presign + upload + checksum + deploy).
 
-Handles the deterministic, error-prone parts of deploying a built Next.js
-standalone bundle to the Morphe service. The Next.js detection / config
-fixing / build steps are handled by Claude per SKILL.md; this script owns the
-API orchestration so it is reliable and consistent.
+Handles the deterministic, error-prone parts of deploying a built web project
+to the Morphe service. Three frameworks are supported, all producing a zip whose
+root is a `server.js` that the runtime starts with `node server.js`:
+  * Next.js — the standalone server (.next/standalone/server.js) plus its traced
+    node_modules; packaging prunes wrong-platform native bindings & repairs pnpm.
+  * Bigfish (@alipay/bigfish) — a static/SPA build (dist/); packaging generates a
+    zero-dependency static server.js wrapper that serves dist/ with SPA fallback.
+  * Vite — two modes. A pure SPA (vite build → dist/, no server) reuses the same
+    zero-dependency static wrapper as Bigfish. A custom-server app (a server.ts/js
+    that serves dist/ AND backend API routes) is esbuild-bundled into a
+    self-contained server.js at the zip root, with the build dir alongside it.
+The detection / config fixing / build steps are handled by Claude per SKILL.md;
+this script owns the API orchestration so it is reliable and consistent.
 
 Subcommands:
   check-auth                 Exit 0 if logged in (accessToken present), else 1.
   login --username U --password P
                              Call /api/user/login, save accessToken to
                              ~/.morphe/auth.json. Exit 0 on success.
+  detect-framework [--project-root DIR]
+                             Print the detected framework (nextjs | bigfish |
+                             vite) or "unknown". Exit 0 if recognized, else 1.
   set-function-name [--name NAME] [--project-root DIR]
                              Resolve & persist function_name in .morphe.json.
                              --name given -> use it; else keep existing; else
                              generate user-xxxxxxxx. Prints the final name.
   package [--project-root DIR] [--out code.zip]
-                             Assemble .next/standalone into a minimal RUNNABLE
-                             zip: copy static/public, repair pnpm partial
-                             packages, prune non-linux-x64-gnu native bindings &
-                             symlink the kept ones to top level, zip with
-                             symlinks preserved (-y). Writes the zip OUTSIDE
-                             standalone so it never nests itself.
+          [--framework auto|nextjs|bigfish|vite] [--static-dir DIR]
+          [--server-entry auto|PATH] [--external NAME ...]
+                             Assemble a minimal RUNNABLE zip for the detected
+                             framework. nextjs: copy static/public, repair pnpm
+                             partial packages, prune non-linux-x64-gnu native
+                             bindings & symlink the kept ones to top level, zip
+                             with symlinks preserved (-y). bigfish: stage a
+                             generated static server.js + the build output dir,
+                             then zip. vite: SPA → same static wrapper as bigfish;
+                             custom-server (--server-entry, auto-probed) →
+                             esbuild-bundle the entry to server.js (vite always
+                             external) + build dir, then zip. Writes the zip
+                             OUTSIDE the source dir so it never nests itself.
   deploy --zip PATH [--project-root DIR] [--keep-zip]
                              presign -> curl PUT upload -> crc64 -> update
                              .morphe.json (checksum + function_name) -> /api/deploy.
@@ -173,6 +192,44 @@ def save_morphe_json(project_root, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
 
 
+# ----------------------------- framework detection ---------------------------
+
+def _load_package_json(project_root):
+    try:
+        return json.loads((project_root / "package.json").read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def detect_framework(project_root):
+    """Return 'nextjs', 'bigfish', 'vite', or None.
+
+    Order matters. Bigfish is checked first: a Bigfish project also has next-like
+    build scripts AND depends on vite-style tooling, but is distinguished by the
+    @alipay/bigfish dependency / config/config.ts. Next.js is checked before Vite
+    (a Next project can list vite as a transitive/dev dep). Vite is the broadest,
+    so it is last.
+    """
+    pkg = _load_package_json(project_root)
+    deps = {}
+    for key in ("dependencies", "devDependencies"):
+        deps.update(pkg.get(key) or {})
+
+    if "@alipay/bigfish" in deps or (project_root / "config" / "config.ts").exists():
+        return "bigfish"
+
+    next_configs = ("next.config.js", "next.config.mjs", "next.config.ts")
+    if "next" in deps or any((project_root / c).exists() for c in next_configs):
+        return "nextjs"
+
+    vite_configs = ("vite.config.js", "vite.config.mjs", "vite.config.ts",
+                    "vite.config.mts", "vite.config.cjs")
+    if "vite" in deps or any((project_root / c).exists() for c in vite_configs):
+        return "vite"
+
+    return None
+
+
 # ----------------------------- subcommands ------------------------------------
 
 def cmd_check_auth(_args):
@@ -198,6 +255,16 @@ def cmd_login(args):
     return 0
 
 
+def cmd_detect_framework(args):
+    project_root = Path(args.project_root).resolve()
+    fw = detect_framework(project_root)
+    if fw:
+        print(fw)
+        return 0
+    print("unknown", file=sys.stderr)
+    return 1
+
+
 def cmd_set_function_name(args):
     project_root = Path(args.project_root).resolve()
     morphe = load_morphe_json(project_root)
@@ -212,7 +279,7 @@ def cmd_set_function_name(args):
 
 
 # ----------------------------- packaging --------------------------------------
-# Assemble .next/standalone into a minimal, RUNNABLE code.zip for FC. This owns
+# Assemble .next/standalone into a minimal, RUNNABLE code.zip. This owns
 # the error-prone mechanics that otherwise cause runtime 500s or a bloated zip:
 #
 #   1. Self-nesting: zipping INSIDE .next/standalone captures a previous code.zip
@@ -226,15 +293,15 @@ def cmd_set_function_name(args):
 #   4. Native bindings: resvg/sharp resolve their binary with a bare
 #      `require("<pkg>-linux-x64-gnu")` satisfied by walking UP to top-level
 #      node_modules. A macOS build only links the DARWIN binding there, so the
-#      linux one is missing on FC → "Cannot find module ...-linux-x64-gnu" (and
+#      linux one is missing at runtime → "Cannot find module ...-linux-x64-gnu" (and
 #      SVG works while PNG 500s). We symlink the needed linux bindings to the top
 #      level. We also DELETE every non-(linux,x64,glibc) binding so the zip ships
-#      only what FC loads.
-#   5. Symlinks: pnpm's layout is ~all symlinks into .pnpm. FC preserves symlinks,
+#      only what the runtime loads.
+#   5. Symlinks: pnpm's layout is ~all symlinks into .pnpm. The runtime preserves symlinks,
 #      so we zip with `-y` (store links, don't follow) — this alone roughly halves
 #      the zip by not triplicating every file the symlinks point at.
 
-# FC target triple. Everything else is dead weight and is pruned.
+# Runtime target triple. Everything else is dead weight and is pruned.
 TARGET_OS, TARGET_CPU, TARGET_LIBC = "linux", "x64", "glibc"
 
 
@@ -317,7 +384,7 @@ def _repair_partial_packages(standalone):
 
 
 def _prune_and_place_bindings(standalone):
-    """Delete native bindings that don't match the FC target, and ensure the
+    """Delete native bindings that don't match the runtime target, and ensure the
     matching linux-x64-gnu bindings exist at top-level node_modules (as symlinks
     into .pnpm) so the runtime walk-up resolves them."""
     nm = standalone / "node_modules"
@@ -379,10 +446,271 @@ def _dir_size(path):
     return total
 
 
+# --- Bigfish (static / SPA) packaging ----------------------------------------
+# Bigfish `site` builds emit a static bundle (default ./dist): index.html + hashed
+# JS/CSS. The runtime still starts the function with `node server.js`, so we generate a
+# zero-dependency static server (Node built-ins only — nothing to install) that
+# serves the build dir and falls back to index.html for client-side routes. The
+# zip root is server.js with the build dir alongside it.
+
+# Build-output dir candidates, in priority order, when --static-dir is "auto".
+_BIGFISH_BUILD_DIRS = ("dist", "build", "out")
+
+_STATIC_SERVER_JS = '''\
+// Auto-generated by morphe.py for the Bigfish (static/SPA) build. The runtime starts the
+// function with `node server.js`; this serves ./{build_dir} with SPA fallback so
+// client-side routes (e.g. /about) resolve to index.html. Node built-ins only.
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+
+const PORT = Number(process.env.PORT) || 3000;
+const ROOT = path.join(__dirname, "{build_dir}");
+const INDEX = path.join(ROOT, "index.html");
+
+const MIME = {{
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".map": "application/json; charset=utf-8",
+}};
+
+function serveFile(res, filePath) {{
+  const type = MIME[path.extname(filePath).toLowerCase()] || "application/octet-stream";
+  const stream = fs.createReadStream(filePath);
+  stream.on("open", () => {{
+    res.writeHead(200, {{ "Content-Type": type }});
+    stream.pipe(res);
+  }});
+  stream.on("error", () => {{
+    res.writeHead(500);
+    res.end("Internal Server Error");
+  }});
+}}
+
+const server = http.createServer((req, res) => {{
+  const pathname = decodeURIComponent(req.url.split("?")[0]);
+  const rel = path.normalize(pathname).replace(/^(\\.\\.[/\\\\])+/, "");
+  const target = path.join(ROOT, rel);
+
+  if (target.startsWith(ROOT) && fs.existsSync(target) && fs.statSync(target).isFile()) {{
+    return serveFile(res, target);
+  }}
+  // SPA fallback: let the client router handle the route.
+  return serveFile(res, INDEX);
+}});
+
+server.listen(PORT, () => {{
+  console.log(`static server listening on :${{PORT}}, root=${{ROOT}}`);
+}});
+'''
+
+
+def _resolve_build_dir(project_root, static_dir):
+    """Resolve the Bigfish build output dir. Explicit --static-dir wins; 'auto'
+    probes dist/build/out for one containing index.html."""
+    if static_dir and static_dir != "auto":
+        cand = project_root / static_dir
+        return cand if cand.is_dir() else None
+    for name in _BIGFISH_BUILD_DIRS:
+        cand = project_root / name
+        if (cand / "index.html").is_file():
+            return cand
+    return None
+
+
+def cmd_package_static(args, project_root, zip_path, framework_label="bigfish"):
+    """Assemble a zero-dependency static-server zip (Bigfish or Vite SPA).
+
+    Generates a Node-built-ins-only server.js that serves the build dir with SPA
+    fallback to index.html, stages it alongside the build dir, and zips so
+    server.js is at the zip root. framework_label only changes the printed line.
+    """
+    build_dir = _resolve_build_dir(project_root, args.static_dir)
+    if build_dir is None:
+        print("error: no static build dir found (looked for index.html in "
+              f"{', '.join(_BIGFISH_BUILD_DIRS)}). Run the build first "
+              "(e.g. `npm run build`), or pass --static-dir.", file=sys.stderr)
+        return 1
+    build_name = build_dir.name
+
+    # Stage server.js + the build dir in a clean temp dir, then zip from there so
+    # server.js lands at the zip root with the build dir alongside it.
+    stage = project_root / ".morphe-build"
+    if stage.exists():
+        shutil.rmtree(stage)
+    stage.mkdir()
+    try:
+        (stage / "server.js").write_text(_STATIC_SERVER_JS.format(build_dir=build_name))
+        shutil.copytree(build_dir, stage / build_name, symlinks=True)
+
+        if zip_path.exists():
+            zip_path.unlink()
+        print(f"zipping static bundle (server.js + {build_name}/)...", file=sys.stderr)
+        proc = subprocess.run(
+            ["zip", "-ryq", str(zip_path), "server.js", build_name],
+            cwd=str(stage), capture_output=True, text=True,
+        )
+        if proc.returncode != 0:
+            print(f"zip failed: {proc.stderr}", file=sys.stderr)
+            return 1
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+
+    size_mb = zip_path.stat().st_size / (1024 * 1024)
+    print(f"packaged: {zip_path} ({size_mb:.1f}M, framework={framework_label})")
+    return 0
+
+
+# --- Vite packaging ----------------------------------------------------------
+# Vite has two flavors. A pure SPA (`vite build` → dist/, no server) reuses the
+# zero-dependency static wrapper above. A custom-server app ships its own
+# server entry (server.ts/js, e.g. Express) that serves the build dir AND
+# backend API routes; the runtime starts it with `node server.js`, so we esbuild-bundle
+# that entry into a self-contained server.js at the zip root, with the build dir
+# alongside. `vite` is externalized by default: custom-server apps import it only
+# in a dev-middleware branch (never in production), and a top-level vite import
+# otherwise drags in native .node addons (esbuild/lightningcss/fsevents) that
+# esbuild cannot bundle.
+
+# Probed in order when --server-entry is "auto"; first existing file wins.
+_VITE_SERVER_ENTRIES = (
+    "server.ts", "server.js", "server.mjs", "server.cjs",
+    "src/server.ts", "src/server.js", "src/server.mjs",
+)
+
+
+def _resolve_server_entry(project_root, server_entry):
+    """Resolve the Vite custom-server entry. Explicit --server-entry wins (a
+    missing explicit path returns None → SPA fallback); 'auto' probes the known
+    entry names. Returns a Path or None (None ⇒ SPA / static mode)."""
+    if server_entry and server_entry != "auto":
+        cand = (project_root / server_entry)
+        return cand if cand.is_file() else None
+    for name in _VITE_SERVER_ENTRIES:
+        cand = project_root / name
+        if cand.is_file():
+            return cand
+    return None
+
+
+def _find_esbuild(project_root):
+    """Prefer the project's local esbuild binary (a devDep in typical Vite
+    projects); fall back to `npx --yes esbuild`."""
+    local = project_root / "node_modules" / ".bin" / "esbuild"
+    if local.is_file():
+        return [str(local)]
+    return ["npx", "--yes", "esbuild"]
+
+
+def _bundle_server(project_root, entry, out_file, externals):
+    """esbuild-bundle a server entry into a self-contained CJS file at out_file.
+    Returns True on success. Native .node addons cannot be inlined by esbuild;
+    a server that needs one at runtime should add it via --external and ship it
+    in node_modules (documented edge case)."""
+    cmd = _find_esbuild(project_root) + [
+        str(entry),
+        "--bundle",
+        "--platform=node",
+        "--format=cjs",
+        f"--outfile={out_file}",
+    ]
+    for name in externals:
+        cmd.append(f"--external:{name}")
+    print(f"bundling server entry with esbuild: {entry.name} "
+          f"(external: {', '.join(externals) or 'none'})...", file=sys.stderr)
+    proc = subprocess.run(cmd, cwd=str(project_root), capture_output=True, text=True)
+    if proc.stderr.strip():
+        print(proc.stderr.strip(), file=sys.stderr)
+    if proc.returncode != 0:
+        print("error: esbuild failed to bundle the server entry. If it imports "
+              "`vite` or a native .node addon at the top level, make that import "
+              "dev-only (lazy `await import`) or pass it via --external.",
+              file=sys.stderr)
+        return False
+    return True
+
+
+def cmd_package_vite(args, project_root, zip_path):
+    entry = _resolve_server_entry(project_root, args.server_entry)
+    if entry is None:
+        # No server entry → pure SPA. Reuse the static wrapper (like Bigfish).
+        return cmd_package_static(args, project_root, zip_path, "vite")
+
+    # Custom-server mode: bundle the server entry, ship it with the build dir.
+    build_dir = _resolve_build_dir(project_root, args.static_dir)
+    if build_dir is None:
+        print("error: no build dir found (looked for index.html in "
+              f"{', '.join(_BIGFISH_BUILD_DIRS)}). Run the frontend build first "
+              "(e.g. `npm run build`), or pass --static-dir.", file=sys.stderr)
+        return 1
+    build_name = build_dir.name
+
+    externals = ["vite"] + list(args.external or [])
+
+    stage = project_root / ".morphe-build"
+    if stage.exists():
+        shutil.rmtree(stage)
+    stage.mkdir()
+    try:
+        if not _bundle_server(project_root, entry, stage / "server.js", externals):
+            return 1
+        shutil.copytree(build_dir, stage / build_name, symlinks=True)
+
+        if zip_path.exists():
+            zip_path.unlink()
+        print(f"zipping server bundle (server.js + {build_name}/)...", file=sys.stderr)
+        proc = subprocess.run(
+            ["zip", "-ryq", str(zip_path), "server.js", build_name],
+            cwd=str(stage), capture_output=True, text=True,
+        )
+        if proc.returncode != 0:
+            print(f"zip failed: {proc.stderr}", file=sys.stderr)
+            return 1
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+
+    size_mb = zip_path.stat().st_size / (1024 * 1024)
+    print(f"packaged: {zip_path} ({size_mb:.1f}M, framework=vite, mode=server, "
+          f"entry={entry.name})")
+    print("note: the bundled server must listen on process.env.PORT || 3000, bind "
+          "0.0.0.0, and read its static dir from process.cwd(). Set runtime "
+          "secrets in the function env, not in the zip.", file=sys.stderr)
+    return 0
+
+
 def cmd_package(args):
     project_root = Path(args.project_root).resolve()
-    standalone = project_root / ".next" / "standalone"
     zip_path = (project_root / args.out).resolve()
+
+    framework = args.framework
+    if framework == "auto":
+        framework = detect_framework(project_root)
+        if framework is None:
+            print("error: could not detect framework (not Next.js or Bigfish). "
+                  "Pass --framework explicitly.", file=sys.stderr)
+            return 1
+
+    if framework == "bigfish":
+        return cmd_package_static(args, project_root, zip_path, "bigfish")
+
+    if framework == "vite":
+        return cmd_package_vite(args, project_root, zip_path)
+
+    # ----- Next.js standalone packaging -----
+    standalone = project_root / ".next" / "standalone"
 
     if not standalone.is_dir():
         print(f"error: {standalone} not found — run the build first "
@@ -415,7 +743,7 @@ def cmd_package(args):
     _repair_partial_packages(standalone)
 
     # Zip from INSIDE standalone (so server.js is at the zip root) but write the
-    # archive OUTSIDE it. `-y` stores symlinks instead of following them: FC
+    # archive OUTSIDE it. `-y` stores symlinks instead of following them: the runtime
     # preserves them, and pnpm's layout is mostly symlinks into .pnpm, so this
     # roughly halves the zip by not duplicating every linked file.
     print("zipping (symlinks preserved)...", file=sys.stderr)
@@ -509,6 +837,9 @@ def main():
     p_login.add_argument("--username", required=True)
     p_login.add_argument("--password", required=True)
 
+    p_detect = sub.add_parser("detect-framework")
+    p_detect.add_argument("--project-root", default=".")
+
     p_sfn = sub.add_parser("set-function-name")
     p_sfn.add_argument("--name", default="",
                        help="Function name to use; omit to keep existing or generate")
@@ -516,9 +847,23 @@ def main():
 
     p_package = sub.add_parser("package")
     p_package.add_argument("--project-root", default=".",
-                           help="Project root holding .next/standalone (default: cwd)")
+                           help="Project root holding the build output (default: cwd)")
     p_package.add_argument("--out", default="code.zip",
                            help="Output zip path, relative to project root (default: code.zip)")
+    p_package.add_argument("--framework", default="auto",
+                           choices=["auto", "nextjs", "bigfish", "vite"],
+                           help="Framework to package for (default: auto-detect)")
+    p_package.add_argument("--static-dir", default="auto",
+                           help="Bigfish/Vite build output dir; 'auto' probes "
+                                "dist/build/out (default: auto)")
+    p_package.add_argument("--server-entry", default="auto",
+                           help="Vite custom-server entry to esbuild-bundle; 'auto' "
+                                "probes server.{ts,js,mjs,cjs} (and src/); a path "
+                                "forces custom-server mode, a missing path falls back "
+                                "to SPA/static (default: auto)")
+    p_package.add_argument("--external", action="append", default=None,
+                           help="Extra esbuild external for the Vite custom-server "
+                                "bundle (repeatable; 'vite' is always external)")
 
     p_deploy = sub.add_parser("deploy")
     p_deploy.add_argument("--zip", required=True, help="Path to code.zip")
@@ -532,6 +877,7 @@ def main():
     handlers = {
         "check-auth": cmd_check_auth,
         "login": cmd_login,
+        "detect-framework": cmd_detect_framework,
         "set-function-name": cmd_set_function_name,
         "package": cmd_package,
         "deploy": cmd_deploy,

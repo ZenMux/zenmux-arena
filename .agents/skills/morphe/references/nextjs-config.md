@@ -1,6 +1,6 @@
 # Next.js config & install for Morphe (linux-x64-gnu)
 
-Morphe runs the standalone server on Aliyun FC (`custom.debian11`, linux x64,
+Morphe runs the standalone server on a `custom.debian11` runtime (linux x64,
 glibc). The bundle is built on the developer's machine (often macOS/arm64). Two
 things must hold before building; a third is optional.
 

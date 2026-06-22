@@ -2,8 +2,8 @@
 
 // Surface 1 — the PRICE LEADERBOARD. A dense, sortable nof1-style table ranking
 // every model by the standardized basket cost (100K input + 1K output). Cheap is
-// green, dear is red (vs DeepSeek V4 Pro). Click a header to re-sort; the basket-cost
-// column drives the default ranking.
+// green, dear is red (vs DeepSeek V4 Pro). Click a header to re-sort; VALUE
+// drives the default ranking.
 
 import { useMemo, useState } from "react";
 import type { ModelEconomics, TokenEconomicsData } from "@research/token-economics/types";
@@ -39,10 +39,9 @@ const COLUMNS: Column[] = [
 ];
 
 export function Leaderboard({ data }: { data: TokenEconomicsData }) {
-  // Default ranking: newest release first (publishTime descending). Nulls sink
-  // to the bottom via sortModels' empty-string mapping.
+  // Default ranking: value first (launch-window daily tokens per dollar).
   const [sort, setSort] = useState<{ key: SortKey; dir: "asc" | "desc" }>({
-    key: "publishTime",
+    key: "avgDailyPerDollar",
     dir: "desc",
   });
 
@@ -75,7 +74,7 @@ export function Leaderboard({ data }: { data: TokenEconomicsData }) {
             Price Leaderboard
           </h2>
           <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
-            {rows.length} models · newest releases first · basket ={" "}
+            {rows.length} models · value first · basket ={" "}
             <b className="text-[#141414]">100K input + 1K output</b> tokens ·
             green = cheaper than <b className="text-[#141414]">{refLabel}</b> (
             {usd(refCost)}), red = dearer ·{" "}

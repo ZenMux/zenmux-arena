@@ -1,10 +1,10 @@
 "use client";
 
-// The orchestrating client view for Token Economics. Renders the nof1-style
-// ticker strip + headline stat boxes (always on), then switches between the four
-// surfaces by an ACTIVE VIEW held in client state.
+// The orchestrating client view for Token Economics. It switches between the
+// five surfaces by an ACTIVE VIEW held in client state; Live gets its own
+// chart-first layout while the other views keep the headline economics shell.
 //
-// WHY STATE, NOT SERVER NAVIGATION. The four surfaces share ONE identical `data`
+// WHY STATE, NOT SERVER NAVIGATION. The price surfaces share ONE identical `data`
 // payload — switching view only chooses which component to render. The page is
 // now dynamic (revalidate = 0), so a <Link>/router.push to ?view= would pointlessly
 // re-run the server render (re-fetching the live listing) and make the tab "hang"
@@ -21,6 +21,7 @@ import { usd, perDay, perDollarDay } from "./lib";
 import { StatBox } from "./components";
 import { TokenEconNav, type View } from "./TokenEconNav";
 import { Leaderboard } from "./Leaderboard";
+import { LiveLeaderboard } from "./LiveLeaderboard";
 import { Consumption } from "./Consumption";
 import { ValueMap } from "./ValueMap";
 import { ValueByVendor } from "./ValueByVendor";
@@ -28,6 +29,7 @@ import { PriceVsDemand } from "./PriceVsDemand";
 import { ChartFrame } from "./ChartFrame";
 
 const VALID_VIEWS: readonly View[] = [
+  "live",
   "leaderboard",
   "consumption",
   "value",
@@ -38,10 +40,10 @@ const VALID_VIEWS: readonly View[] = [
  *  URL after a history.replaceState (which, unlike popstate, emits no event). */
 const VIEW_EVENT = "te:viewchange";
 
-/** Parse the active view from the live URL; unknown/missing → leaderboard. */
+/** Parse the active view from the live URL; unknown/missing → live. */
 function readView(): View {
   const v = new URLSearchParams(window.location.search).get("view");
-  return VALID_VIEWS.includes(v as View) ? (v as View) : "leaderboard";
+  return VALID_VIEWS.includes(v as View) ? (v as View) : "live";
 }
 
 /** Subscribe to both our own replaceState event and the browser's back/forward. */
@@ -61,7 +63,7 @@ export function TokenEconClient({ data }: { data: TokenEconomicsData }) {
   const view = useSyncExternalStore(
     subscribeView,
     readView,
-    () => "leaderboard" as View,
+    () => "live" as View,
   );
 
   // Switch view instantly + mirror to the URL with NO server round-trip, then
@@ -90,6 +92,18 @@ function Shell({
   data: TokenEconomicsData;
   view: View;
 }) {
+  if (view === "live") {
+    return (
+      <div className="mx-auto max-w-none px-3 py-3 sm:px-4 lg:px-5">
+        <ChartFrame filename="live-leaderboard">
+          <div className="min-w-0">
+            <LiveLeaderboard />
+          </div>
+        </ChartFrame>
+      </div>
+    );
+  }
+
   const s = data.summary;
 
   return (
@@ -106,7 +120,8 @@ function Shell({
             <b className="text-[#141414]">how much it&apos;s actually used</b>.
             Prices are scraped live from the model listing; consumption is the
             observed token volume. The question: where does the compute — and the
-            money — really flow?
+            money — really flow? The Live view adds minute-to-day token tapes for
+            the newly discounted DeepSeek anchor cohorts.
           </p>
         </div>
 

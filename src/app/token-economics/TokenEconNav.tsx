@@ -12,7 +12,7 @@ import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 import { GITHUB_MARK_PATH, REPO_URL } from "@research/lib/branding";
 
-export type View = "leaderboard" | "consumption" | "value" | "vendor-value";
+export type View = "live" | "leaderboard" | "consumption" | "value" | "vendor-value";
 
 /** Inline GitHub mark — lucide-react 1.16 ships no `Github` icon, so we draw it
  *  from the shared branding path (same source the research badge uses). */
@@ -25,6 +25,7 @@ function GithubMark({ className }: { className?: string }) {
 }
 
 const VIEWS: { key: View; label: string }[] = [
+  { key: "live", label: "LIVE" },
   { key: "leaderboard", label: "LEADERBOARD" },
   { key: "vendor-value", label: "VALUE LADDER" },
   { key: "value", label: "VALUE MAP" },

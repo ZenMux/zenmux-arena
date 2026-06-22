@@ -40,7 +40,7 @@ Response 200:
 
 ## POST /api/deploy  (auth required)
 
-Deploys the uploaded OSS object to Aliyun FC 3.0. Existing function → update,
+Deploys the uploaded OSS object to the Morphe runtime. Existing function → update,
 otherwise create + HTTP trigger + reserved instance.
 
 Request (only `functionName` + `ossObjectName` required):
@@ -75,4 +75,4 @@ project's `.morphe.json` under `checksum`.
 ```
 
 `function_name` is generated once (`user-` + 8 lowercase alphanumerics) and
-reused on every redeploy so the same FC function is updated, not duplicated.
+reused on every redeploy so the same function is updated, not duplicated.
