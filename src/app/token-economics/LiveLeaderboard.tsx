@@ -7,9 +7,10 @@ import {
   useState,
   type PointerEvent,
 } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, RefreshCw } from "lucide-react";
 import {
   DEFAULT_LIVE_RANGE,
+  LIVE_DEEPSEEK_ANCHOR_PRICES,
   LIVE_RANGE_OPTIONS,
   type LiveAnchorSeries,
   type LiveMetricKey,
@@ -59,6 +60,7 @@ function modelDash(index: number): string {
 }
 
 function compact(n: number): string {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(n >= 10e9 ? 1 : 2)}B`;
   if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
   if (n >= 1e3) return `${(n / 1e3).toFixed(1)}K`;
   return String(Math.round(n));
@@ -69,6 +71,20 @@ function compactUsd(n: number): string {
   if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
   if (n >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
   return usd(n);
+}
+
+function preciseUsd(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  return `$${n.toFixed(6).replace(/\.?0+$/, "")}`;
+}
+
+function precisePerM(n: number): string {
+  return `${preciseUsd(n)}/M`;
+}
+
+function discount(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  return `x${n.toFixed(3).replace(/\.?0+$/, "")}`;
 }
 
 function formatAxisValue(n: number, axis: LiveYAxisKey): string {
@@ -223,7 +239,7 @@ async function fetchLivePayload(
 
 export function LiveLeaderboard() {
   const [range, setRange] = useState<LiveRangeKey>(DEFAULT_LIVE_RANGE);
-  const [metric, setMetric] = useState<LiveMetricKey>("live");
+  const [metric, setMetric] = useState<LiveMetricKey>("cumulative");
   const [axis, setAxis] = useState<LiveYAxisKey>("tokens");
   const [data, setData] = useState<LiveTokenEconomicsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -268,6 +284,35 @@ export function LiveLeaderboard() {
 
   return (
     <section className="space-y-7">
+      <div className="grid gap-3 border border-[#141414] bg-[#fbf9f4] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <div className="min-w-0">
+          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#6f6a5f]">
+            DeepSeek-normalized pricing experiment
+          </p>
+          <h1 className="mt-1 text-xl font-bold uppercase leading-tight tracking-[0.06em] text-[#141414] sm:text-2xl">
+            What if every model were priced like DeepSeek?
+          </h1>
+          <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-[#6f6a5f]">
+            Each cohort scales model input and output prices by one discount
+            factor, then compares the standardized 100K-in + 1K-out basket
+            before and after the reset.
+          </p>
+        </div>
+        <div className="grid min-w-0 grid-cols-1 gap-2 text-[10px] font-bold sm:min-w-[260px] sm:grid-cols-2">
+          {Object.entries(LIVE_DEEPSEEK_ANCHOR_PRICES).map(([label, price]) => (
+            <div key={label} className="border border-[#141414] bg-[#f4f1ea] px-2.5 py-2">
+              <div className="uppercase tracking-[0.12em] text-[#6f6a5f]">{label}</div>
+              <div className="mt-1 tabular-nums text-[#141414]">
+                IN {precisePerM(price.input)}
+              </div>
+              <div className="tabular-nums text-[#141414]">
+                OUT {precisePerM(price.output)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="flex flex-wrap items-center gap-2">
           <SegmentedControl
@@ -478,15 +523,137 @@ function AnchorBoard({
         </div>
       </div>
 
-      <TimeSeriesChart
-        anchor={anchor}
-        visible={visible}
-        bucketSeconds={bucketSeconds}
-        metric={metric}
-        axis={axis}
-      />
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <TimeSeriesChart
+          anchor={anchor}
+          visible={visible}
+          bucketSeconds={bucketSeconds}
+          metric={metric}
+          axis={axis}
+        />
+        <PriceAdjustmentPanel anchor={anchor} />
+      </div>
       <SeriesToggles models={anchor.models} hidden={hidden} onToggle={toggle} />
     </section>
+  );
+}
+
+function PriceAdjustmentPanel({ anchor }: { anchor: LiveAnchorSeries }) {
+  const anchorPrice = LIVE_DEEPSEEK_ANCHOR_PRICES[anchor.label];
+  const ledgerModels = [...anchor.models].sort((a, b) => {
+    const ad = a.slug.startsWith("deepseek/") ? 0 : 1;
+    const bd = b.slug.startsWith("deepseek/") ? 0 : 1;
+    return ad - bd;
+  });
+  const targetBasket =
+    ledgerModels.find((m) => !m.slug.startsWith("deepseek/"))?.newBlended ??
+    ledgerModels[0]?.newBlended ??
+    0;
+
+  return (
+    <aside className="self-start border border-[#141414] bg-[#f4f1ea] px-3 py-2.5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#141414]">
+            Price Reset Ledger
+          </h3>
+          <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[#6f6a5f]">
+            Target basket {preciseUsd(targetBasket)}
+          </p>
+        </div>
+        {anchorPrice && (
+          <div className="shrink-0 text-right text-[9px] font-bold uppercase tracking-[0.08em] text-[#6f6a5f]">
+            <div>Anchor</div>
+            <div className="mt-0.5 tabular-nums text-[#141414]">
+              {precisePerM(anchorPrice.input)} in
+            </div>
+            <div className="tabular-nums text-[#141414]">
+              {precisePerM(anchorPrice.output)} out
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-2 grid gap-1.5">
+        {ledgerModels.map((m) => (
+          <PriceLedgerRow key={m.slug} model={m} anchorPrice={anchorPrice} />
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function PriceLedgerRow({
+  model,
+  anchorPrice,
+}: {
+  model: LiveModelSeries;
+  anchorPrice?: { input: number; output: number };
+}) {
+  const isDeepSeekAnchor = model.slug.startsWith("deepseek/");
+  const beforeInput = isDeepSeekAnchor && anchorPrice ? anchorPrice.input : model.origInput;
+  const afterInput = isDeepSeekAnchor && anchorPrice ? anchorPrice.input : model.newInput;
+  const beforeOutput = isDeepSeekAnchor && anchorPrice ? anchorPrice.output : model.origOutput;
+  const afterOutput = isDeepSeekAnchor && anchorPrice ? anchorPrice.output : model.newOutput;
+
+  return (
+    <div
+      className="grid gap-1 border border-[#141414]/35 bg-[#fbf9f4] px-2 py-1.5 text-[9px]"
+      title={`${model.model}: input ${precisePerM(beforeInput)} -> ${precisePerM(afterInput)}, output ${precisePerM(beforeOutput)} -> ${precisePerM(afterOutput)}, basket ${preciseUsd(model.origBlended)} -> ${preciseUsd(model.newBlended)}`}
+    >
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="flex size-4 shrink-0 items-center justify-center border border-[#141414]/35 bg-white p-0.5">
+            <VendorGlyph vendor={model.vendor} alt={model.vendorName} className="size-full" />
+          </span>
+          <span className="truncate text-[10px] font-bold text-[#141414]">{model.model}</span>
+        </span>
+        <span className="shrink-0 font-bold tabular-nums text-[#1a8a4a]">
+          {isDeepSeekAnchor ? "ANCHOR" : discount(model.discountFactor)}
+        </span>
+      </div>
+      <PriceMove label="Input" before={precisePerM(beforeInput)} after={precisePerM(afterInput)} />
+      <PriceMove label="Output" before={precisePerM(beforeOutput)} after={precisePerM(afterOutput)} />
+      <div className="flex min-w-0 items-end justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <PriceMove
+            label="Basket"
+            before={preciseUsd(model.origBlended)}
+            after={preciseUsd(model.newBlended)}
+          />
+        </div>
+        <a
+          href={`https://zenmux.ai/${model.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Try ${model.model} on ZenMux`}
+          className="inline-flex min-h-6 shrink-0 items-center gap-0.5 whitespace-nowrap border border-[#141414]/70 bg-transparent px-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-[#141414] transition-colors hover:border-[#141414] hover:bg-[#141414] hover:text-[#f4f1ea] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]"
+        >
+          Try it now
+          <ArrowUpRight className="size-2.5" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function PriceMove({
+  label,
+  before,
+  after,
+}: {
+  label: string;
+  before: string;
+  after: string;
+}) {
+  return (
+    <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-baseline gap-2">
+      <span className="font-bold uppercase tracking-[0.08em] text-[#6f6a5f]">{label}</span>
+      <span className="min-w-0 whitespace-nowrap font-bold tabular-nums text-[#141414]">
+        {before} <span className="text-[#6f6a5f]">-&gt;</span>{" "}
+        <span className="text-[#1a8a4a]">{after}</span>
+      </span>
+    </div>
   );
 }
 
@@ -642,6 +809,10 @@ function TimeSeriesChart({
 
   return (
     <div className="bg-[#fbf9f4]">
+      <div className="mb-1 flex items-center justify-between gap-2 px-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#6f6a5f]">
+        <span>{axis === "cost" ? "Y Axis · Billed Cost" : "Y Axis · Tokens"}</span>
+        <span>{metric === "live" ? "Latest Bucket" : "Cumulative Total"}</span>
+      </div>
       <div className="overflow-x-auto">
         <svg
           role="img"
@@ -735,16 +906,6 @@ function TimeSeriesChart({
               </g>
             );
           })}
-
-          <text
-            x={18}
-            y={CHART.top + CHART.plotH / 2}
-            transform={`rotate(-90 18 ${CHART.top + CHART.plotH / 2})`}
-            textAnchor="middle"
-            className="fill-[#6f6a5f] text-[10px] font-bold uppercase tracking-[0.12em]"
-          >
-            {axis === "cost" ? "Cost" : "Tokens"}
-          </text>
 
           {plotted.map(({ m, values }) => {
             const index = indexBySlug.get(m.slug) ?? 0;

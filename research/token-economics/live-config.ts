@@ -19,6 +19,11 @@ export interface LiveModelPrice {
   newBlended: number;
 }
 
+export const LIVE_DEEPSEEK_ANCHOR_PRICES = {
+  "DeepSeek V4 Pro": { input: 0.45, output: 0.87 },
+  "DeepSeek V4 Flash": { input: 0.14, output: 0.28 },
+} as const satisfies Record<Exclude<LiveAnchorLabel, "—">, { input: number; output: number }>;
+
 export const LIVE_MODEL_PRICES = [
   {
     model: "DeepSeek V4 Pro",

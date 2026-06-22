@@ -58,7 +58,7 @@ function subscribeView(onChange: () => void): () => void {
 
 export function TokenEconClient({ data }: { data: TokenEconomicsData }) {
   // useSyncExternalStore is the SSR-safe way to derive state from a browser API:
-  // the server snapshot ("leaderboard") matches the first client paint (no
+  // the server snapshot ("live") matches the first client paint (no
   // hydration mismatch), then it re-reads the URL on every view change.
   const view = useSyncExternalStore(
     subscribeView,

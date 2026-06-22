@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import StudioPage, { metadata } from "./studio/page";
 
-export default function WhoAreYouPage() {
-  redirect("/who-are-you/studio");
-}
+export const dynamic = "force-dynamic";
+export { metadata };
+export default StudioPage;

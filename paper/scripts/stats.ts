@@ -95,7 +95,7 @@ function main() {
     const meta = recByGid.get(e.sourceGenerationId);
     if (!meta) continue;
     const { modelId, vendor, lang, variant } = meta;
-    let claimed: string = e.claimedVendor;
+    const claimed: string = e.claimedVendor;
     // `other` (named non-canonical brand) counts as a cross-vendor claim.
     const effective = claimed === vendor ? "self" : claimed;
     const bucket: Bucket =
