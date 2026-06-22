@@ -121,6 +121,7 @@ export default function StudioClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             run: selectedRun,
+            graph,
             lang,
             scale,
             format,
@@ -153,7 +154,7 @@ export default function StudioClient({
         setExporting(null);
       }
     },
-    [selectedRun, lang, scale, cfg, hidden, focused, curves, showEdgeLabels],
+    [selectedRun, graph, lang, scale, cfg, hidden, focused, curves, showEdgeLabels],
   );
 
   const dirty = JSON.stringify(cfg) !== JSON.stringify(DEFAULT_RENDER);
@@ -528,10 +529,6 @@ export default function StudioClient({
       </div>
     </div>
   );
-}
-
-function pct(x: number, d = 1): string {
-  return `${(x * 100).toFixed(d)}%`;
 }
 
 /* ── small layout helpers ─────────────────────────────────────────────── */

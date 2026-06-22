@@ -2,8 +2,6 @@
 // and the aliases used to map free-text model/company names back to a canonical vendor.
 
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { VendorId, VendorMeta } from "./types";
 
 export const VENDORS: Record<VendorId, VendorMeta> = {
@@ -289,10 +287,7 @@ export function vendorFromText(
 // Logo data URIs (for embedding into the static SVG)
 // ---------------------------------------------------------------------------
 
-// Resolve relative to THIS FILE (research/lib/vendors.ts) so the NFT tracer
-// can statically determine which directory to include, instead of tracing the
-// whole project from process.cwd().
-const LOGO_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../public/maker-logo");
+const LOGO_DIR = `${process.cwd()}/public/maker-logo`;
 const dataUriCache = new Map<string, string>();
 
 /** Read a logo PNG and return a `data:image/png;base64,...` URI. Cached per process. */
@@ -307,7 +302,7 @@ export function logoFileDataUri(filename: string): string | null {
   const cached = dataUriCache.get(filename);
   if (cached) return cached;
   try {
-    const buf = fs.readFileSync(path.join(LOGO_DIR, filename));
+    const buf = fs.readFileSync(`${LOGO_DIR}/${filename}`);
     const uri = `data:image/png;base64,${buf.toString("base64")}`;
     dataUriCache.set(filename, uri);
     return uri;

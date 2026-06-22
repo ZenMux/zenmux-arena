@@ -7,17 +7,14 @@
 // Run:  npx tsx paper/scripts/fig_lang_heatmap.ts
 
 import fs from "node:fs";
-import path from "node:path";
 import {
   EXTRACTIONS_PATH,
-  FIG_DIR,
   esc,
   heatColor,
   L,
   LANG,
   LANG_EN,
   loadGraph,
-  modelVendors,
   r2,
   RECORDS_PATH,
   svgRoot,
@@ -28,14 +25,9 @@ import {
 
 const PSEUDO = new Set(["self", "unknown", "refused"]);
 
-function variantSkip() {
-  return false;
-}
-
 function main() {
   const g = loadGraph();
   const names = vendorNames(g);
-  const gtVendor = modelVendors(g);
   const langOrder = g.languages.map((l) => l.code);
   // Column header per language: native name (简体中文 / 日本語 / Русский …) in the
   // Chinese build, English name (Chinese (Simpl.) / Japanese / Russian …) in the

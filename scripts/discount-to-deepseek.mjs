@@ -81,22 +81,16 @@ for (const [label, slug] of TARGETS) {
   const outP = num(m.pricing_completion);
   const cost = blended(inP, outP);
 
-  let target, factor, anchorIn, anchorOut, anchorName;
+  let factor, anchorName;
   if (cost <= FLASH.blended) {
     // already cheaper than V4 Flash → leave untouched
-    target = "(none — already ≤ Flash)";
     anchorName = "—";
     factor = 1;
-    anchorIn = inP;
-    anchorOut = outP;
   } else {
     const usePro = cost >= PRO.blended;
     const A = usePro ? PRO : FLASH;
     anchorName = usePro ? "DeepSeek V4 Pro" : "DeepSeek V4 Flash";
-    target = anchorName;
     factor = A.blended / cost;
-    anchorIn = A.in;
-    anchorOut = A.out;
   }
 
   out.push({

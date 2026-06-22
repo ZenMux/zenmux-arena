@@ -3,9 +3,10 @@ import { VENDORS } from "@research/lib/vendors";
 import type { VendorId } from "@research/lib/types";
 import { vendorForSlug } from "./normalize";
 import {
+  DEFAULT_LIVE_BUCKET_SECONDS,
+  DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS,
   DEFAULT_LIVE_START_ISO,
   LIVE_BOARD_ANCHORS,
-  LIVE_DATA_LAG_SECONDS,
   LIVE_MODEL_PRICES,
   liveAnchorId,
   liveRangeOption,
@@ -17,6 +18,8 @@ import {
 const TABLE = "valid_usage";
 const QUERY_TIMEOUT_US = 30_000_000;
 export const LIVE_START_ENV = "TOKEN_ECON_LIVE_START_ISO";
+export const LIVE_BUCKET_SECONDS_ENV = "TOKEN_ECON_LIVE_BUCKET_SECONDS";
+export const LIVE_REFRESH_INTERVAL_SECONDS_ENV = "TOKEN_ECON_LIVE_REFRESH_INTERVAL_SECONDS";
 
 const DB_ENV = {
   host: "TOKEN_ECON_LIVE_DB_HOST",
@@ -103,6 +106,29 @@ function liveStartDate(): Date {
   return date;
 }
 
+function liveSecondsEnv(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+  const seconds = Number(raw);
+  if (!Number.isSafeInteger(seconds) || seconds <= 0) {
+    throw new LiveConfigError(
+      `${name} must be a positive integer number of seconds; got ${JSON.stringify(raw)}.`,
+    );
+  }
+  return seconds;
+}
+
+function liveBucketSeconds(): number {
+  return liveSecondsEnv(LIVE_BUCKET_SECONDS_ENV, DEFAULT_LIVE_BUCKET_SECONDS);
+}
+
+function liveRefreshIntervalSeconds(): number {
+  return liveSecondsEnv(
+    LIVE_REFRESH_INTERVAL_SECONDS_ENV,
+    DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS,
+  );
+}
+
 function addSeconds(d: Date, seconds: number): Date {
   return new Date(d.getTime() + seconds * 1000);
 }
@@ -133,14 +159,6 @@ function bucketExpression(bucketSeconds: number): string {
   );
 }
 
-function chooseBucketSeconds(from: Date, to: Date): number {
-  const hours = Math.max(0, (to.getTime() - from.getTime()) / 3_600_000);
-  if (hours <= 12) return 60;
-  if (hours <= 72) return 300;
-  if (hours <= 24 * 21) return 3600;
-  return 86400;
-}
-
 function bucketLabel(bucketSeconds: number): string {
   if (bucketSeconds === 60) return "1-min";
   if (bucketSeconds === 300) return "5-min";
@@ -151,7 +169,7 @@ function bucketLabel(bucketSeconds: number): string {
 
 function buildBuckets(from: Date, to: Date, bucketSeconds: number): string[] {
   const out: string[] = [];
-  for (let cur = from; cur <= to; cur = addSeconds(cur, bucketSeconds)) {
+  for (let cur = from; cur < to; cur = addSeconds(cur, bucketSeconds)) {
     out.push(cur.toISOString());
   }
   return out;
@@ -220,17 +238,18 @@ export async function fetchLiveTokenEconomics(
   requestedRange: string | null | undefined,
   now = new Date(),
 ): Promise<LiveTokenEconomicsPayload> {
-  const dataAsOf = new Date(now.getTime() - LIVE_DATA_LAG_SECONDS * 1000);
+  const bucketSeconds = liveBucketSeconds();
+  const refreshIntervalSeconds = liveRefreshIntervalSeconds();
+  const refreshBoundary = floorToBucket(now, refreshIntervalSeconds);
+  const dataAsOf = floorToBucket(refreshBoundary, bucketSeconds);
   const range = liveRangeOption(requestedRange);
   const start = liveStartDate();
   const rangeFrom =
     range.key === "all"
       ? start
       : maxDate(start, new Date(dataAsOf.getTime() - (range.hours ?? 72) * 3_600_000));
-  const bucketSeconds = chooseBucketSeconds(rangeFrom, dataAsOf);
-  const toBucket = floorToBucket(dataAsOf, bucketSeconds);
   const fromBucket = floorToBucket(rangeFrom, bucketSeconds);
-  const buckets = buildBuckets(fromBucket, toBucket, bucketSeconds);
+  const buckets = buildBuckets(fromBucket, dataAsOf, bucketSeconds);
 
   const slugs = LIVE_MODEL_PRICES.map((m) => m.slug);
   const rowMap = new Map<string, Map<string, LiveUsagePoint>>();
@@ -297,7 +316,8 @@ export async function fetchLiveTokenEconomics(
 
   return {
     generatedAt: now.toISOString(),
-    dataLagSeconds: LIVE_DATA_LAG_SECONDS,
+    dataLagSeconds: Math.max(0, Math.floor((now.getTime() - dataAsOf.getTime()) / 1000)),
+    refreshIntervalSeconds,
     range: range.key,
     bucket: bucketLabel(bucketSeconds),
     bucketSeconds,

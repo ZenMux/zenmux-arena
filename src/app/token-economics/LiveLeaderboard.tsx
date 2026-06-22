@@ -10,6 +10,7 @@ import {
 import { AlertTriangle, ArrowUpRight, RefreshCw } from "lucide-react";
 import {
   DEFAULT_LIVE_RANGE,
+  DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS,
   LIVE_DEEPSEEK_ANCHOR_PRICES,
   LIVE_RANGE_OPTIONS,
   type LiveAnchorSeries,
@@ -40,6 +41,7 @@ const LIVE_COLORS = [
 ] as const;
 
 const LINE_DASHES = ["", "7 4", "2 4", "10 4 2 4", "1 5"] as const;
+const REFRESH_SETTLE_MS = 750;
 
 const METRIC_OPTIONS = [
   { key: "live", label: "LIVE", title: "Real-time token usage per bucket" },
@@ -127,6 +129,51 @@ function formatTick(iso: string, bucketSeconds: number): string {
   }).format(d);
 }
 
+function addBucketSecondsIso(iso: string, bucketSeconds: number): string {
+  return new Date(new Date(iso).getTime() + bucketSeconds * 1000).toISOString();
+}
+
+function formatBucketEndTick(iso: string, bucketSeconds: number): string {
+  return formatTick(addBucketSecondsIso(iso, bucketSeconds), bucketSeconds);
+}
+
+function formatBucketInterval(iso: string, bucketSeconds: number): string {
+  return `[${formatTick(iso, bucketSeconds)}, ${formatBucketEndTick(iso, bucketSeconds)})`;
+}
+
+function formatDateTimeTick(iso: string): string {
+  const parts = new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  }).formatToParts(new Date(iso));
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("month")} ${value("day")} ${value("hour")}:${value("minute")}`;
+}
+
+function formatRangeTick(iso: string, bucketSeconds: number, includeDate: boolean): string {
+  return includeDate ? formatDateTimeTick(iso) : formatTick(iso, bucketSeconds);
+}
+
+function formatChartHoverInterval(
+  points: LiveUsagePoint[],
+  index: number,
+  bucketSeconds: number,
+  metric: LiveMetricKey,
+): string {
+  const point = points[index];
+  if (!point) return "";
+  if (metric === "live") return formatBucketInterval(point.t, bucketSeconds);
+  const start = points[0]?.t ?? point.t;
+  const end = addBucketSecondsIso(point.t, bucketSeconds);
+  const includeDate = start.slice(0, 10) !== end.slice(0, 10);
+  return `[${formatRangeTick(start, bucketSeconds, includeDate)}, ${formatRangeTick(end, bucketSeconds, includeDate)})`;
+}
+
 function formatStamp(iso: string): string {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -139,9 +186,15 @@ function formatStamp(iso: string): string {
   }).format(new Date(iso));
 }
 
-function formatLag(seconds: number): string {
+function formatDuration(seconds: number): string {
   if (seconds % 60 === 0) return `${seconds / 60}m`;
   return `${seconds}s`;
+}
+
+function nextAlignedRefreshDelayMs(intervalSeconds: number): number {
+  const intervalMs = Math.max(1, intervalSeconds) * 1000;
+  const untilBoundary = intervalMs - (Date.now() % intervalMs);
+  return untilBoundary + REFRESH_SETTLE_MS;
 }
 
 function tickIndices(length: number, desired = 6): number[] {
@@ -213,6 +266,10 @@ interface ChartBox {
   plotH: number;
 }
 
+interface HoverTarget {
+  index: number;
+}
+
 const CHART: ChartBox = {
   left: 74,
   right: 194,
@@ -258,27 +315,46 @@ export function LiveLeaderboard() {
   useEffect(() => {
     const controller = new AbortController();
     let live = true;
+    let timeoutId: number | null = null;
+    let refreshIntervalSeconds = DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS;
+
+    const clearTimer = () => {
+      if (timeoutId == null) return;
+      window.clearTimeout(timeoutId);
+      timeoutId = null;
+    };
+
+    const scheduleNext = () => {
+      if (!live) return;
+      clearTimer();
+      timeoutId = window.setTimeout(() => {
+        void run();
+      }, nextAlignedRefreshDelayMs(refreshIntervalSeconds));
+    };
+
     async function run(signal?: AbortSignal) {
+      clearTimer();
       try {
         const json = await fetchLivePayload(range, signal);
         if (!live) return;
+        refreshIntervalSeconds =
+          json.refreshIntervalSeconds || DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS;
         setData(json);
         setError(null);
         setLoading(false);
+        scheduleNext();
       } catch (err) {
         if (!live || signal?.aborted) return;
         setError(err instanceof Error ? err.message : "Live usage failed");
         setLoading(false);
+        scheduleNext();
       }
     }
     void run(controller.signal);
-    const id = window.setInterval(() => {
-      void run();
-    }, 60_000);
     return () => {
       live = false;
       controller.abort();
-      window.clearInterval(id);
+      clearTimer();
     };
   }, [range]);
 
@@ -333,9 +409,10 @@ export function LiveLeaderboard() {
           {data && (
             <div className="hidden text-right text-[10px] font-bold tracking-[0.02em] text-[#6f6a5f] lg:block">
               <span className="text-[#141414]">{data.bucket}</span> buckets ·{" "}
-              <span className="text-[#141414]">{formatTick(data.from, data.bucketSeconds)}</span>{" "}
+              <span className="text-[#141414]">{formatDuration(data.refreshIntervalSeconds)}</span>{" "}
+              refresh · <span className="text-[#141414]">{formatTick(data.from, data.bucketSeconds)}</span>{" "}
               → <span className="text-[#141414]">{formatStamp(data.to)}</span> UTC ·{" "}
-              <span className="text-[#141414]">{formatLag(data.dataLagSeconds)}</span> lag · refreshed{" "}
+              refreshed{" "}
               <span className="text-[#141414]">{formatStamp(data.generatedAt)}</span> UTC
             </div>
           )}
@@ -730,7 +807,7 @@ function TimeSeriesChart({
   metric: LiveMetricKey;
   axis: LiveYAxisKey;
 }) {
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [hover, setHover] = useState<HoverTarget | null>(null);
   const points = anchor.models[0]?.points ?? [];
   const plotted = useMemo(
     () => visible.map((m) => ({ m, values: valuesForModel(m, metric, axis) })),
@@ -789,9 +866,11 @@ function TimeSeriesChart({
     const rect = event.currentTarget.getBoundingClientRect();
     const svgX = ((event.clientX - rect.left) / rect.width) * CHART.width;
     const ratio = clamp((svgX - CHART.left) / CHART.plotW, 0, 1);
-    setHoverIndex(Math.round(ratio * (points.length - 1)));
+    const index = Math.round(ratio * (points.length - 1));
+    setHover({ index });
   };
 
+  const hoverIndex = hover?.index ?? null;
   const hoverRows =
     hoverIndex == null
       ? []
@@ -802,10 +881,29 @@ function TimeSeriesChart({
             index: indexBySlug.get(s.m.slug) ?? 0,
           }))
           .sort((a, b) => b.value - a.value);
+  const hoveredPoints =
+    hoverIndex == null
+      ? []
+      : plotted.map((series) => {
+          const modelIndex = indexBySlug.get(series.m.slug) ?? 0;
+          return {
+            slug: series.m.slug,
+            x: xForIndex(hoverIndex),
+            y: yForValue(series.values[hoverIndex] ?? 0),
+            color: modelColor(modelIndex),
+          };
+        });
+  const hoverInterval =
+    hoverIndex == null
+      ? ""
+      : formatChartHoverInterval(points, hoverIndex, bucketSeconds, metric);
+  const tooltipW = hoverInterval.length > 44 ? 360 : 264;
   const hoverX = hoverIndex == null ? 0 : xForIndex(hoverIndex);
   const tooltipX =
-    hoverX > CHART.left + CHART.plotW * 0.62 ? hoverX - 278 : hoverX + 14;
+    hoverX > CHART.left + CHART.plotW * 0.62 ? hoverX - tooltipW - 14 : hoverX + 14;
   const tooltipH = 30 + hoverRows.length * 16;
+  const hoverMetricLabel = metric === "live" ? "LIVE" : "TOTAL";
+  const hoverAxisLabel = axis === "cost" ? "COST" : "TOKENS";
 
   return (
     <div className="bg-[#fbf9f4]">
@@ -820,7 +918,7 @@ function TimeSeriesChart({
           viewBox={`0 0 ${CHART.width} ${CHART.height}`}
           className="w-full min-w-[1080px] cursor-crosshair bg-[#fbf9f4]"
           onPointerMove={onPointerMove}
-          onPointerLeave={() => setHoverIndex(null)}
+          onPointerLeave={() => setHover(null)}
         >
           <style>
             {`
@@ -901,7 +999,7 @@ function TimeSeriesChart({
                   textAnchor="middle"
                   className="fill-[#6f6a5f] text-[10px] font-bold tabular-nums"
                 >
-                  {points[idx] ? formatTick(points[idx].t, bucketSeconds) : ""}
+                  {points[idx] ? formatBucketEndTick(points[idx].t, bucketSeconds) : ""}
                 </text>
               </g>
             );
@@ -1027,10 +1125,30 @@ function TimeSeriesChart({
                 strokeWidth="1.25"
                 strokeDasharray="4 3"
               />
+              {hoveredPoints.map((point) => (
+                <g key={`${point.slug}-hover-point`}>
+                  <circle
+                    cx={point.x}
+                    cy={point.y}
+                    r="8"
+                    fill="#fbf9f4"
+                    stroke="#141414"
+                    strokeWidth="2"
+                  />
+                  <circle
+                    cx={point.x}
+                    cy={point.y}
+                    r="4"
+                    fill={point.color}
+                    stroke="#fbf9f4"
+                    strokeWidth="1"
+                  />
+                </g>
+              ))}
               <rect
                 x={tooltipX}
                 y={CHART.top + 10}
-                width="264"
+                width={tooltipW}
                 height={tooltipH}
                 fill="#fbf9f4"
                 stroke="#141414"
@@ -1041,10 +1159,13 @@ function TimeSeriesChart({
                 y={CHART.top + 29}
                 className="fill-[#141414] text-[10px] font-bold uppercase tracking-[0.08em]"
               >
-                {formatTick(points[hoverIndex].t, bucketSeconds)} UTC · {metric === "live" ? "LIVE" : "TOTAL"} · {axis === "cost" ? "COST" : "TOKENS"}
+                {hoverInterval} UTC · {hoverMetricLabel} · {hoverAxisLabel}
               </text>
               {hoverRows.map((row, i) => (
-                <g key={row.model.slug} transform={`translate(${tooltipX + 10} ${CHART.top + 49 + i * 16})`}>
+                <g
+                  key={row.model.slug}
+                  transform={`translate(${tooltipX + 10} ${CHART.top + 49 + i * 16})`}
+                >
                   <rect
                     x="0"
                     y="-8"
@@ -1064,7 +1185,7 @@ function TimeSeriesChart({
                       : row.model.model}
                   </text>
                   <text
-                    x="244"
+                    x={tooltipW - 20}
                     y="0"
                     textAnchor="end"
                     className="fill-[#141414] text-[9px] font-bold tabular-nums"

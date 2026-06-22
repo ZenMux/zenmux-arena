@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -128,9 +129,11 @@ export function emphasizeRate(rate: number, isInverted = false): string {
 function VendorLogo({ src, alt }: { src: string | null; alt: string }) {
   if (!src) return null;
   return (
-    <img
+    <Image
       src={src}
       alt={alt}
+      width={28}
+      height={28}
       // The wordmarks in /public/maker-logo/ are white-on-transparent (designed
       // for the dark studio graph canvas). On the data page's light cards we
       // invert them so they read as dark on light, and undo the invert in dark
@@ -150,7 +153,6 @@ function VendorLogo({ src, alt }: { src: string | null; alt: string }) {
 // ---------------------------------------------------------------------------
 
 function VendorCard({
-  vendorId,
   vendorName,
   logoPath,
   models,
@@ -159,7 +161,6 @@ function VendorCard({
   vendorNames,
   vendorLogos,
 }: {
-  vendorId: VendorId;
   vendorName: string;
   logoPath: string | null;
   models: ModelSpec[];
@@ -298,9 +299,11 @@ function VendorCard({
                           title={`${c.vendorName}: ${pct(c.rate)}`}
                         >
                           {c.logoPath && (
-                            <img
+                            <Image
                               src={c.logoPath}
                               alt=""
+                              width={16}
+                              height={16}
                               // Same invert dance as <VendorLogo> — white
                               // wordmarks need flipping on the light card.
                               // No ring/border; the chip's own rounded-full
@@ -339,7 +342,7 @@ function VendorCard({
 // ---------------------------------------------------------------------------
 
 export default function VendorOverview({ graph }: { graph: GraphData }) {
-  const { byVendor, vendorNames, vendorLogos, selfRates, sortedVendors } = useMemo(() => {
+  const { vendorNames, vendorLogos, selfRates, sortedVendors } = useMemo(() => {
     const vendorNames = new Map<VendorId, string>();
     const vendorLogos = new Map<VendorId, string | null>();
     for (const v of graph.vendors) {
@@ -361,7 +364,7 @@ export default function VendorOverview({ graph }: { graph: GraphData }) {
 
     const selfRates = buildSelfRateMap(graph.cells);
 
-    return { byVendor, vendorNames, vendorLogos, selfRates, sortedVendors };
+    return { vendorNames, vendorLogos, selfRates, sortedVendors };
   }, [graph]);
 
   if (sortedVendors.length === 0) {
@@ -379,7 +382,6 @@ export default function VendorOverview({ graph }: { graph: GraphData }) {
         return (
           <VendorCard
             key={vendorId}
-            vendorId={vendorId}
             vendorName={vName}
             logoPath={logoPath}
             models={models}

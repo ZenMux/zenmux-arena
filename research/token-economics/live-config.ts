@@ -281,7 +281,8 @@ export const LIVE_RANGE_OPTIONS = [
 
 export const DEFAULT_LIVE_RANGE: LiveRangeKey = "all";
 export const DEFAULT_LIVE_START_ISO = "2026-06-22T00:00:00.000Z";
-export const LIVE_DATA_LAG_SECONDS = 180;
+export const DEFAULT_LIVE_BUCKET_SECONDS = 300;
+export const DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS = 300;
 
 export function liveAnchorId(anchor: LiveAnchorLabel): LiveAnchorId {
   if (anchor === "DeepSeek V4 Pro") return "deepseek-v4-pro";
@@ -331,6 +332,7 @@ export interface LiveAnchorSeries {
 export interface LiveTokenEconomicsPayload {
   generatedAt: string;
   dataLagSeconds: number;
+  refreshIntervalSeconds: number;
   range: LiveRangeKey;
   bucket: string;
   bucketSeconds: number;

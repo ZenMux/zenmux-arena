@@ -6,14 +6,11 @@
 // studio's RenderConfig drives both the live preview and this route, the export
 // is WYSIWYG with what the user sees.
 //
-// This is a Route Handler (not a Server Action) because it consumes an external
-// artifact (a results/ folder) and produces a binary file download — see
-// next-best-practices/route-handlers.md.
+// This is a Route Handler (not a Server Action) because it produces a binary
+// file download — see next-best-practices/route-handlers.md.
 
 import { Resvg } from "@resvg/resvg-js";
 import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   DEFAULT_RENDER,
   type EdgeCurves,
@@ -25,18 +22,15 @@ import type { GraphData, VendorId } from "@research/lib/types";
 
 export const runtime = "nodejs";
 
-// Resolve relative to THIS FILE (src/app/api/export/route.ts) so the NFT tracer
-// can statically determine which directories to include, instead of tracing the
-// whole project from process.cwd().
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = path.resolve(__dirname, "../../../..");
-const RESULTS_DIR = path.join(PROJECT_ROOT, "results");
-const FONT_PATH = path.join(PROJECT_ROOT, "research", "assets", "NotoSansSC-Regular.otf");
+// Keep filesystem reads statically scoped to known project subfolders so the
+// server-file tracer does not treat the whole repository as export input.
+const FONT_PATH = `${process.cwd()}/research/assets/NotoSansSC-Regular.otf`;
 // `<study>/<stamp>` — both segments are conservative slugs (no dots/slashes).
 const RUN_RE = /^[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
 
 interface ExportBody {
   run: string; // "<study>/<stamp>"
+  graph?: GraphData; // current graph payload, already loaded by the Studio page
   lang?: string; // "" / undefined = aggregate
   scale?: number; // PNG pixel multiplier (1–4)
   format?: "png" | "svg";
@@ -64,16 +58,6 @@ function sanitizeCurves(raw: unknown): EdgeCurves {
   return out;
 }
 
-/** Resolve + validate a run id to its aggregate.json path, refusing traversal. */
-function resolveAggregate(run: string): string | null {
-  if (!RUN_RE.test(run)) return null;
-  const dir = path.resolve(RESULTS_DIR, run);
-  // Must stay inside results/ (defense-in-depth on top of the regex).
-  if (dir !== RESULTS_DIR && !dir.startsWith(RESULTS_DIR + path.sep)) return null;
-  const file = path.join(dir, "aggregate.json");
-  return fs.existsSync(file) ? file : null;
-}
-
 export async function POST(request: Request) {
   let body: ExportBody;
   try {
@@ -83,18 +67,14 @@ export async function POST(request: Request) {
   }
 
   const run = String(body.run ?? "");
-  const aggregatePath = resolveAggregate(run);
-  if (!aggregatePath) {
-    return Response.json({ error: `Run "${run}" not found.` }, { status: 404 });
+  if (!RUN_RE.test(run)) {
+    return Response.json({ error: `Invalid run id "${run}".` }, { status: 400 });
+  }
+  if (!body.graph || typeof body.graph !== "object") {
+    return Response.json({ error: "Missing graph payload." }, { status: 400 });
   }
 
-  let graph: GraphData;
-  try {
-    graph = JSON.parse(fs.readFileSync(aggregatePath, "utf8")) as GraphData;
-  } catch {
-    return Response.json({ error: "Could not read aggregate.json." }, { status: 500 });
-  }
-
+  const graph = body.graph;
   const config: RenderConfig = { ...DEFAULT_RENDER, ...body.config };
   const langCode = body.lang || undefined;
   const format = body.format === "svg" ? "svg" : "png";
