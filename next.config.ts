@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
   // the whole static asset tree in the traced bundle so deployed public URLs
   // resolve the same way they do in local dev.
   outputFileTracingIncludes: {
-    "/*": ["./public/**/*"],
+    "/*": ["./public/**/*", "./config/token-economics-live-models.json"],
   },
   // @resvg/resvg-js loads a platform-native .node binary at runtime; it must not
   // be bundled by Turbopack/webpack. Keep it external so the export route can

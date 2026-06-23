@@ -12,7 +12,6 @@ import { AlertTriangle, ArrowUpRight, RefreshCw } from "lucide-react";
 import {
   DEFAULT_LIVE_RANGE,
   DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS,
-  LIVE_DEEPSEEK_ANCHOR_PRICES,
   LIVE_RANGE_OPTIONS,
   type LiveAnchorSeries,
   type LiveMetricKey,
@@ -365,10 +364,10 @@ export function LiveLeaderboard() {
       <div className="grid gap-3 border border-[#141414] bg-[#fbf9f4] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#6f6a5f]">
-            DeepSeek-normalized pricing experiment
+            Anchor-normalized pricing experiment
           </p>
           <h1 className="mt-1 text-xl font-bold uppercase leading-tight tracking-[0.06em] text-[#141414] sm:text-2xl">
-            What if every model were priced like DeepSeek?
+            What if each cohort matched its anchor price?
           </h1>
           <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-[#6f6a5f]">
             Each cohort scales model input and output prices by one discount
@@ -376,15 +375,15 @@ export function LiveLeaderboard() {
             before and after the reset.
           </p>
         </div>
-        <div className="grid min-w-0 grid-cols-1 gap-2 text-[10px] font-bold sm:min-w-[260px] sm:grid-cols-2">
-          {Object.entries(LIVE_DEEPSEEK_ANCHOR_PRICES).map(([label, price]) => (
-            <div key={label} className="border border-[#141414] bg-[#f4f1ea] px-2.5 py-2">
-              <div className="uppercase tracking-[0.12em] text-[#6f6a5f]">{label}</div>
+        <div className="grid min-w-0 grid-cols-1 gap-2 text-[10px] font-bold sm:min-w-[260px] sm:grid-cols-2 lg:grid-cols-3">
+          {(data?.anchors ?? []).map((anchor) => (
+            <div key={anchor.id} className="border border-[#141414] bg-[#f4f1ea] px-2.5 py-2">
+              <div className="uppercase tracking-[0.12em] text-[#6f6a5f]">{anchor.label}</div>
               <div className="mt-1 tabular-nums text-[#141414]">
-                IN {precisePerM(price.input)}
+                IN {precisePerM(anchor.price.input)}
               </div>
               <div className="tabular-nums text-[#141414]">
-                OUT {precisePerM(price.output)}
+                OUT {precisePerM(anchor.price.output)}
               </div>
             </div>
           ))}
@@ -627,16 +626,13 @@ function PriceAdjustmentPanel({
   anchor: LiveAnchorSeries;
   chartHeight: number | null;
 }) {
-  const anchorPrice = LIVE_DEEPSEEK_ANCHOR_PRICES[anchor.label];
+  const anchorPrice = anchor.price;
   const ledgerModels = [...anchor.models].sort((a, b) => {
-    const ad = a.slug.startsWith("deepseek/") ? 0 : 1;
-    const bd = b.slug.startsWith("deepseek/") ? 0 : 1;
-    return ad - bd;
+    const ad = a.isAnchor ? 0 : 1;
+    const bd = b.isAnchor ? 0 : 1;
+    return ad - bd || a.model.localeCompare(b.model);
   });
-  const targetBasket =
-    ledgerModels.find((m) => !m.slug.startsWith("deepseek/"))?.newBlended ??
-    ledgerModels[0]?.newBlended ??
-    0;
+  const targetBasket = anchor.targetBlended;
 
   return (
     <aside
@@ -652,17 +648,15 @@ function PriceAdjustmentPanel({
             Target basket {preciseUsd(targetBasket)}
           </p>
         </div>
-        {anchorPrice && (
-          <div className="shrink-0 text-right text-[9px] font-bold uppercase tracking-[0.08em] text-[#6f6a5f]">
-            <div>Anchor</div>
-            <div className="mt-0.5 tabular-nums text-[#141414]">
-              {precisePerM(anchorPrice.input)} in
-            </div>
-            <div className="tabular-nums text-[#141414]">
-              {precisePerM(anchorPrice.output)} out
-            </div>
+        <div className="shrink-0 text-right text-[9px] font-bold uppercase tracking-[0.08em] text-[#6f6a5f]">
+          <div>Anchor</div>
+          <div className="mt-0.5 tabular-nums text-[#141414]">
+            {precisePerM(anchorPrice.input)} in
           </div>
-        )}
+          <div className="tabular-nums text-[#141414]">
+            {precisePerM(anchorPrice.output)} out
+          </div>
+        </div>
       </div>
 
       <div className={`mt-2 min-h-0 flex-1 overflow-y-auto pr-1 ${PANEL_SCROLLBAR}`}>
@@ -681,13 +675,12 @@ function PriceLedgerRow({
   anchorPrice,
 }: {
   model: LiveModelSeries;
-  anchorPrice?: { input: number; output: number };
+  anchorPrice: { input: number; output: number };
 }) {
-  const isDeepSeekAnchor = model.slug.startsWith("deepseek/");
-  const beforeInput = isDeepSeekAnchor && anchorPrice ? anchorPrice.input : model.origInput;
-  const afterInput = isDeepSeekAnchor && anchorPrice ? anchorPrice.input : model.newInput;
-  const beforeOutput = isDeepSeekAnchor && anchorPrice ? anchorPrice.output : model.origOutput;
-  const afterOutput = isDeepSeekAnchor && anchorPrice ? anchorPrice.output : model.newOutput;
+  const beforeInput = model.isAnchor ? anchorPrice.input : model.origInput;
+  const afterInput = model.isAnchor ? anchorPrice.input : model.newInput;
+  const beforeOutput = model.isAnchor ? anchorPrice.output : model.origOutput;
+  const afterOutput = model.isAnchor ? anchorPrice.output : model.newOutput;
 
   return (
     <div
@@ -702,7 +695,7 @@ function PriceLedgerRow({
           <span className="truncate text-[10px] font-bold text-[#141414]">{model.model}</span>
         </span>
         <span className="shrink-0 font-bold tabular-nums text-[#1a8a4a]">
-          {isDeepSeekAnchor ? "ANCHOR" : discount(model.discountFactor)}
+          {model.isAnchor ? "ANCHOR" : discount(model.discountFactor)}
         </span>
       </div>
       <PriceMove label="Input" before={precisePerM(beforeInput)} after={precisePerM(afterInput)} />

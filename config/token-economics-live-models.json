@@ -1,0 +1,160 @@
+{
+  "anchors": [
+    {
+      "id": "deepseek-v4-pro",
+      "label": "DeepSeek V4 Pro",
+      "slug": "deepseek/deepseek-v4-pro",
+      "inputPrice": 0.45,
+      "outputPrice": 0.87
+    },
+    {
+      "id": "deepseek-v4-flash",
+      "label": "DeepSeek V4 Flash",
+      "slug": "deepseek/deepseek-v4-flash",
+      "inputPrice": 0.14,
+      "outputPrice": 0.28
+    }
+  ],
+  "models": [
+    {
+      "model": "DeepSeek V4 Pro",
+      "slug": "deepseek/deepseek-v4-pro",
+      "inputPrice": 0.435,
+      "outputPrice": 0.87,
+      "anchor": "deepseek-v4-pro"
+    },
+    {
+      "model": "DeepSeek V4 Flash",
+      "slug": "deepseek/deepseek-v4-flash",
+      "inputPrice": 0.14,
+      "outputPrice": 0.28,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "GLM 5.2",
+      "slug": "z-ai/glm-5.2",
+      "inputPrice": 1.4,
+      "outputPrice": 4.4,
+      "anchor": "deepseek-v4-pro"
+    },
+    {
+      "model": "Kimi K2.7 Code",
+      "slug": "moonshotai/kimi-k2.7-code",
+      "inputPrice": 0.95,
+      "outputPrice": 4,
+      "anchor": "deepseek-v4-pro"
+    },
+    {
+      "model": "Qwen3.7-Plus",
+      "slug": "qwen/qwen3.7-plus",
+      "inputPrice": 0.4,
+      "outputPrice": 1.6,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "MiniMax M3",
+      "slug": "minimax/minimax-m3",
+      "inputPrice": 0.3,
+      "outputPrice": 1.2,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "Step 3.7 Flash",
+      "slug": "stepfun/step-3.7-flash",
+      "inputPrice": 0.2,
+      "outputPrice": 1.15,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "Qwen3.7-Max",
+      "slug": "qwen/qwen3.7-max",
+      "inputPrice": 2.5,
+      "outputPrice": 7.5,
+      "anchor": "deepseek-v4-pro"
+    },
+    {
+      "model": "Agnes-2.0-Flash",
+      "slug": "sapiens-ai/agnes-2.0-flash",
+      "inputPrice": 0.1,
+      "outputPrice": 0.2,
+      "anchor": null
+    },
+    {
+      "model": "ERNIE 5.1",
+      "slug": "baidu/ernie-5.1",
+      "inputPrice": 0.588,
+      "outputPrice": 2.646,
+      "anchor": "deepseek-v4-pro"
+    },
+    {
+      "model": "Ring-2.6-1T",
+      "slug": "inclusionai/ring-2.6-1t",
+      "inputPrice": 0.3,
+      "outputPrice": 2.5,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "Ling-2.6-1T",
+      "slug": "inclusionai/ling-2.6-1t",
+      "inputPrice": 0.3,
+      "outputPrice": 2.5,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "Hy3 preview",
+      "slug": "tencent/hy3-preview",
+      "inputPrice": 0.172,
+      "outputPrice": 0.572,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "MiMo-V2.5",
+      "slug": "xiaomi/mimo-v2.5",
+      "inputPrice": 0.15,
+      "outputPrice": 0.29,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "MiMo-V2.5-Pro",
+      "slug": "xiaomi/mimo-v2.5-pro",
+      "inputPrice": 0.44,
+      "outputPrice": 0.88,
+      "anchor": "deepseek-v4-pro"
+    },
+    {
+      "model": "Ling-2.6-flash",
+      "slug": "inclusionai/ling-2.6-flash",
+      "inputPrice": 0.1,
+      "outputPrice": 0.3,
+      "anchor": null
+    },
+    {
+      "model": "KAT-Coder-Pro-V2",
+      "slug": "kuaishou/kat-coder-pro-v2",
+      "inputPrice": 0.3,
+      "outputPrice": 1.2,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "Qwen3.6 Flash",
+      "slug": "qwen/qwen3.6-flash",
+      "inputPrice": 0.25,
+      "outputPrice": 1.5,
+      "anchor": "deepseek-v4-flash"
+    },
+    {
+      "model": "Doubao-Seed-2.0-pro",
+      "slug": "bytedance/doubao-seed-2.0-pro",
+      "inputPrice": 0.45,
+      "outputPrice": 2.24,
+      "anchor": "deepseek-v4-pro"
+    },
+    {
+      "model": "Doubao-Seed-2.0-mini",
+      "slug": "bytedance/doubao-seed-2.0-mini",
+      "inputPrice": 0.03,
+      "outputPrice": 0.28,
+      "anchor": null
+    }
+  ]
+}

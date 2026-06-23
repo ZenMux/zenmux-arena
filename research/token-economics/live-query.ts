@@ -6,14 +6,16 @@ import {
   DEFAULT_LIVE_BUCKET_SECONDS,
   DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS,
   DEFAULT_LIVE_START_ISO,
-  LIVE_BOARD_ANCHORS,
-  LIVE_MODEL_PRICES,
-  liveAnchorId,
+  LiveConfigError,
+  UNANCHORED_ANCHOR_ID,
   liveRangeOption,
   type LiveModelSeries,
   type LiveTokenEconomicsPayload,
   type LiveUsagePoint,
 } from "./live-config";
+import { loadLiveModelConfig } from "./live-models";
+
+export { LiveConfigError } from "./live-config";
 
 const TABLE = "valid_usage";
 const QUERY_TIMEOUT_US = 30_000_000;
@@ -33,13 +35,6 @@ export class LiveDbConfigError extends Error {
   constructor(readonly missing: string[]) {
     super(`Missing live usage database env: ${missing.join(", ")}`);
     this.name = "LiveDbConfigError";
-  }
-}
-
-export class LiveConfigError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "LiveConfigError";
   }
 }
 
@@ -238,6 +233,7 @@ export async function fetchLiveTokenEconomics(
   requestedRange: string | null | undefined,
   now = new Date(),
 ): Promise<LiveTokenEconomicsPayload> {
+  const liveConfig = await loadLiveModelConfig();
   const bucketSeconds = liveBucketSeconds();
   const refreshIntervalSeconds = liveRefreshIntervalSeconds();
   const refreshBoundary = floorToBucket(now, refreshIntervalSeconds);
@@ -251,7 +247,7 @@ export async function fetchLiveTokenEconomics(
   const fromBucket = floorToBucket(rangeFrom, bucketSeconds);
   const buckets = buildBuckets(fromBucket, dataAsOf, bucketSeconds);
 
-  const slugs = LIVE_MODEL_PRICES.map((m) => m.slug);
+  const slugs = liveConfig.models.map((m) => m.slug);
   const rowMap = new Map<string, Map<string, LiveUsagePoint>>();
   for (const row of await queryUsageRows({
     slugs,
@@ -273,7 +269,7 @@ export async function fetchLiveTokenEconomics(
     rowMap.set(row.model_slug, byTime);
   }
 
-  const models: LiveModelSeries[] = LIVE_MODEL_PRICES.map((price) => {
+  const models: LiveModelSeries[] = liveConfig.models.map((price) => {
     const byTime = rowMap.get(price.slug) ?? new Map<string, LiveUsagePoint>();
     const points = buckets.map((t) => byTime.get(t) ?? emptyPoint(t));
     const totalTokens = points.reduce((sum, p) => sum + p.tokens, 0);
@@ -284,7 +280,6 @@ export async function fetchLiveTokenEconomics(
     const { vendor, vendorName } = modelMeta(price.slug);
     return {
       ...price,
-      anchorId: liveAnchorId(price.anchor),
       vendor,
       vendorName,
       totalTokens,
@@ -298,13 +293,15 @@ export async function fetchLiveTokenEconomics(
     };
   });
 
-  const anchors = LIVE_BOARD_ANCHORS.map((anchor) => {
+  const anchors = liveConfig.anchors.map((anchor) => {
     const anchorModels = models
       .filter((m) => m.anchorId === anchor.id)
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model));
     return {
       id: anchor.id,
       label: anchor.label,
+      price: anchor.price,
+      targetBlended: anchor.targetBlended,
       totalTokens: anchorModels.reduce((sum, m) => sum + m.totalTokens, 0),
       totalCost: anchorModels.reduce((sum, m) => sum + m.totalCost, 0),
       totalRequests: anchorModels.reduce((sum, m) => sum + m.totalRequests, 0),
@@ -325,7 +322,7 @@ export async function fetchLiveTokenEconomics(
     to: dataAsOf.toISOString(),
     anchors,
     unanchored: models
-      .filter((m) => m.anchorId === "unanchored")
+      .filter((m) => m.anchorId === UNANCHORED_ANCHOR_ID)
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
   };
 }

@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
-import { PRIMARY_TOOL } from "@/lib/tools";
+import DiscountToDeepSeekPage, { metadata } from "./discount-to-deepseek/page";
 
-export default function ToolsIndexPage() {
-  redirect(PRIMARY_TOOL.href);
-}
+export const dynamic = "force-dynamic";
+export { metadata };
+export default DiscountToDeepSeekPage;

@@ -47,3 +47,6 @@ results/vibe-writing
 .playwright-mcp
 
 code.zip
+
+.morphe.json
+.morphe.*
