@@ -366,14 +366,10 @@ export function LiveLeaderboard() {
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#6f6a5f]">
             Anchor-normalized pricing experiment
           </p>
-          <h1 className="mt-1 text-xl font-bold uppercase leading-tight tracking-[0.06em] text-[#141414] sm:text-2xl">
-            What if each cohort matched its anchor price?
+          <h1 className="mt-1 max-w-4xl text-xl font-bold uppercase leading-tight tracking-[0.06em] text-[#141414] sm:text-2xl">
+            Welcome to the DeepSeek Kill-Line Challenge: what happens when these
+            models are priced like DeepSeek?
           </h1>
-          <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-[#6f6a5f]">
-            Each cohort scales model input and output prices by one discount
-            factor, then compares the standardized 100K-in + 1K-out basket
-            before and after the reset.
-          </p>
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-2 text-[10px] font-bold sm:min-w-[260px] sm:grid-cols-2 lg:grid-cols-3">
           {(data?.anchors ?? []).map((anchor) => (

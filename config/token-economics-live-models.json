@@ -143,18 +143,25 @@
       "anchor": "deepseek-v4-flash"
     },
     {
-      "model": "Doubao-Seed-2.0-pro",
-      "slug": "bytedance/doubao-seed-2.0-pro",
-      "inputPrice": 0.45,
-      "outputPrice": 2.24,
+      "model": "Doubao-Seed-2.1-pro",
+      "slug": "bytedance/doubao-seed-2.1-pro",
+      "inputPrice": 0.8848,
+      "outputPrice": 4.424,
       "anchor": "deepseek-v4-pro"
     },
     {
-      "model": "Doubao-Seed-2.0-mini",
-      "slug": "bytedance/doubao-seed-2.0-mini",
-      "inputPrice": 0.03,
-      "outputPrice": 0.28,
-      "anchor": null
+      "model": "Doubao-Seed-2.1-turbo",
+      "slug": "bytedance/doubao-seed-2.1-turbo",
+      "inputPrice": 0.4424,
+      "outputPrice": 2.212,
+      "anchor": "deepseek-v4-pro"
+    },
+    {
+      "model": "Doubao-Seed-Evolving",
+      "slug": "bytedance/doubao-seed-evolving",
+      "inputPrice": 0.8848,
+      "outputPrice": 4.424,
+      "anchor": "deepseek-v4-pro"
     }
   ]
 }
