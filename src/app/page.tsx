@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { EXPERIMENTS, PRIMARY_EXPERIMENT, type Experiment } from "@/lib/experiments";
+import { TOOLS, type ArenaTool } from "@/lib/tools";
 import type { GraphData } from "@research/lib/types";
 import { RandomArenaButton } from "./RandomArenaButton";
 
@@ -121,7 +122,7 @@ export default function Home() {
       <section className="relative mt-20 w-full max-w-5xl">
         <div className="mb-5 flex items-end justify-between gap-4 px-1">
           <div>
-            <h2 className="text-sm font-semibold tracking-tight text-foreground">
+            <h2 className="text-sm font-semibold text-foreground">
               Experiments
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -143,6 +144,26 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Tools ─────────────────────────────────────────────────────────── */}
+      <section className="relative mt-12 w-full max-w-5xl">
+        <div className="mb-5 flex items-end justify-between gap-4 px-1">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              Tools
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Pricing calculators and research utilities.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {TOOLS.map((tool) => (
+            <ToolCard key={tool.id} tool={tool} />
+          ))}
+        </div>
+      </section>
+
       <footer className="relative mt-20 text-xs text-muted-foreground">
         Built by{" "}
         <strong className="font-medium text-foreground/80">thinkthinking</strong>{" "}
@@ -155,6 +176,46 @@ export default function Home() {
         </a>
       </footer>
     </main>
+  );
+}
+
+function ToolCard({ tool }: { tool: ArenaTool }) {
+  const Icon = tool.icon;
+
+  return (
+    <Card className="group relative gap-0 overflow-hidden transition-all hover:border-foreground/20 hover:shadow-md focus-within:border-foreground/20 focus-within:shadow-md">
+      <CardHeader className="gap-0">
+        <div className="flex items-center justify-between">
+          <span
+            aria-hidden
+            className={cn(
+              "flex size-11 items-center justify-center rounded-xl border border-border bg-muted/40",
+              tool.accent,
+            )}
+          >
+            <Icon className="size-5" />
+          </span>
+          <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        </div>
+        <CardTitle className="mt-4 text-base">{tool.title}</CardTitle>
+        <CardDescription className="mt-1 text-pretty">
+          {tool.tagline}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="mt-4">
+        <p className="text-pretty text-sm leading-relaxed text-muted-foreground">
+          {tool.description}
+        </p>
+      </CardContent>
+
+      <Link
+        href={tool.href}
+        className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <span className="sr-only">Open {tool.title}</span>
+      </Link>
+    </Card>
   );
 }
 

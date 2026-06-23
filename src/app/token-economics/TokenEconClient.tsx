@@ -50,7 +50,12 @@ function readView(): View {
 function subscribeView(onChange: () => void): () => void {
   window.addEventListener(VIEW_EVENT, onChange);
   window.addEventListener("popstate", onChange);
+  // The server snapshot is intentionally "live" to keep hydration stable. Nudge
+  // the store once after mount so deep links like ?view=value become active
+  // without waiting for a later popstate or tab click.
+  const syncId = window.setTimeout(onChange, 0);
   return () => {
+    window.clearTimeout(syncId);
     window.removeEventListener(VIEW_EVENT, onChange);
     window.removeEventListener("popstate", onChange);
   };

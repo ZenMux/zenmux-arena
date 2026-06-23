@@ -52,6 +52,14 @@ export function ExperimentHeader() {
           </BreadcrumbList>
         </Breadcrumb>
       </div>
+      <div className="ml-auto px-4">
+        <Link
+          href="/tools/discount-to-deepseek"
+          className="rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground"
+        >
+          Tools
+        </Link>
+      </div>
     </header>
   );
 }

@@ -90,7 +90,7 @@ export function ChartFrame({
       {/* Toolbar — outside the capture frame (so it's never in the PNG). Its
           horizontal padding matches the frame's, so the button's right edge
           lines up with the chart content edge below it. */}
-      <div className="mb-2 flex justify-end px-4 sm:px-5">
+      <div className="mb-2 flex justify-end px-6">
         <button
           type="button"
           onClick={onExport}
@@ -108,7 +108,7 @@ export function ChartFrame({
 
       {/* Capture frame — chart + attribution footer. Padded so the exported PNG
           has a clean margin around the content. */}
-      <div ref={frameRef} className="bg-[#f4f1ea] p-4 sm:p-5">
+      <div ref={frameRef} className="bg-[#f4f1ea] p-6">
         {children}
 
         {/* Attribution footer — author QR + name + canonical site URL, baked into

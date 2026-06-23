@@ -169,6 +169,10 @@ export const BOX = "border border-[#141414] rounded-none";
 /** A header/label cell tint band. */
 export const BAND = "bg-[#ece8dd]";
 
+/** Visible, no-radius scrollbar for compact side panels. */
+export const PANEL_SCROLLBAR =
+  "overscroll-contain [scrollbar-color:#141414_#ece8dd] [scrollbar-gutter:stable] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:border [&::-webkit-scrollbar-thumb]:border-[#ece8dd] [&::-webkit-scrollbar-thumb]:bg-[#141414] [&::-webkit-scrollbar-track]:bg-[#ece8dd]";
+
 /** Green for cheap/good, red for expensive/bad — the status numeral color. */
 export function costClass(cost: number, median: number): string {
   return cost <= median ? "text-[#1a8a4a]" : "text-[#cf3636]";

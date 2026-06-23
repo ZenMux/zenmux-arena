@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  type CSSProperties,
   type PointerEvent,
 } from "react";
 import { AlertTriangle, ArrowUpRight, RefreshCw } from "lucide-react";
@@ -21,9 +22,10 @@ import {
   type LiveUsagePoint,
   type LiveYAxisKey,
 } from "@research/token-economics/live-config";
-import { logoPath, tokens, usd } from "./lib";
+import { logoPath, tokens, usd, PANEL_SCROLLBAR } from "./lib";
 import { VendorGlyph } from "./components";
 import { LiveSkeletonBoard, LiveSkeletonStyles } from "./LiveSkeletonChart";
+import { useElementHeight } from "./useElementHeight";
 
 const LIVE_COLORS = [
   "#4f6ef7",
@@ -561,6 +563,7 @@ function AnchorBoard({
   axis: LiveYAxisKey;
 }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [chartRef, chartHeight] = useElementHeight<HTMLDivElement>();
   const visible = anchor.models.filter((m) => !hidden.has(m.slug));
   const leader = [...anchor.models].sort(
     (a, b) => metricValue(b, metric, axis) - metricValue(a, metric, axis),
@@ -600,22 +603,30 @@ function AnchorBoard({
         </div>
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <TimeSeriesChart
-          anchor={anchor}
-          visible={visible}
-          bucketSeconds={bucketSeconds}
-          metric={metric}
-          axis={axis}
-        />
-        <PriceAdjustmentPanel anchor={anchor} />
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+        <div ref={chartRef} className="min-w-0 self-start">
+          <TimeSeriesChart
+            anchor={anchor}
+            visible={visible}
+            bucketSeconds={bucketSeconds}
+            metric={metric}
+            axis={axis}
+          />
+        </div>
+        <PriceAdjustmentPanel anchor={anchor} chartHeight={chartHeight} />
       </div>
       <SeriesToggles models={anchor.models} hidden={hidden} onToggle={toggle} />
     </section>
   );
 }
 
-function PriceAdjustmentPanel({ anchor }: { anchor: LiveAnchorSeries }) {
+function PriceAdjustmentPanel({
+  anchor,
+  chartHeight,
+}: {
+  anchor: LiveAnchorSeries;
+  chartHeight: number | null;
+}) {
   const anchorPrice = LIVE_DEEPSEEK_ANCHOR_PRICES[anchor.label];
   const ledgerModels = [...anchor.models].sort((a, b) => {
     const ad = a.slug.startsWith("deepseek/") ? 0 : 1;
@@ -628,8 +639,11 @@ function PriceAdjustmentPanel({ anchor }: { anchor: LiveAnchorSeries }) {
     0;
 
   return (
-    <aside className="self-start border border-[#141414] bg-[#f4f1ea] px-3 py-2.5">
-      <div className="flex items-start justify-between gap-3">
+    <aside
+      className="box-border flex min-h-0 flex-col overflow-hidden border border-[#141414] bg-[#f4f1ea] px-3 py-2.5 xl:h-[var(--chart-panel-height)] xl:max-h-[var(--chart-panel-height)]"
+      style={chartHeight ? ({ "--chart-panel-height": `${chartHeight}px` } as CSSProperties) : undefined}
+    >
+      <div className="flex shrink-0 items-start justify-between gap-3">
         <div>
           <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#141414]">
             Price Reset Ledger
@@ -651,10 +665,12 @@ function PriceAdjustmentPanel({ anchor }: { anchor: LiveAnchorSeries }) {
         )}
       </div>
 
-      <div className="mt-2 grid gap-1.5">
-        {ledgerModels.map((m) => (
-          <PriceLedgerRow key={m.slug} model={m} anchorPrice={anchorPrice} />
-        ))}
+      <div className={`mt-2 min-h-0 flex-1 overflow-y-auto pr-1 ${PANEL_SCROLLBAR}`}>
+        <div className="grid gap-1.5">
+          {ledgerModels.map((m) => (
+            <PriceLedgerRow key={m.slug} model={m} anchorPrice={anchorPrice} />
+          ))}
+        </div>
       </div>
     </aside>
   );

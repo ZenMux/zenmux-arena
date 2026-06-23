@@ -82,6 +82,9 @@ function NavLinks({
       <Link href="/token-economics/about" className={TAB_CLASS(isAbout)}>
         ABOUT
       </Link>
+      <Link href="/tools/discount-to-deepseek" className={TAB_CLASS(false)}>
+        TOOLS
+      </Link>
     </nav>
   );
 }
