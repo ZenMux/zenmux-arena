@@ -834,6 +834,7 @@ function TimeSeriesChart({
   const endLabels = useMemo(() => {
     const minY = CHART.top + 14;
     const maxLabelY = CHART.top + CHART.plotH - 14;
+    const labelH = 22;
     const rows = plotted
       .map((s) => ({
         slug: s.m.slug,
@@ -846,17 +847,36 @@ function TimeSeriesChart({
       ...row,
       labelY: clamp(row.y, minY, maxLabelY),
     }));
-    for (let i = 1; i < placed.length; i++) {
-      placed[i].labelY = Math.max(placed[i].labelY, placed[i - 1].labelY + 22);
-    }
-    const overflow = (placed[placed.length - 1]?.labelY ?? maxLabelY) - maxLabelY;
-    if (overflow > 0) {
-      for (const row of placed) row.labelY -= overflow;
-      for (let i = placed.length - 2; i >= 0; i--) {
-        placed[i].labelY = Math.min(placed[i].labelY, placed[i + 1].labelY - 22);
+    // Anti-collision: enforce minimum labelH spacing, biasing labels toward
+    // their natural data-point Y. We iterate forward + backward passes until
+    // stable (≤ a few iterations) so that clamping at the top/bottom edges
+    // never collapses multiple labels onto the same Y (the previous per-row
+    // clamp caused adjacent labels to overlap when there was overflow).
+    const maxIter = 8;
+    for (let iter = 0; iter < maxIter; iter++) {
+      let changed = false;
+      // Forward: top-anchor first, push followers down.
+      if (placed.length > 0) {
+        const clamped = clamp(placed[0].labelY, minY, maxLabelY);
+        if (clamped !== placed[0].labelY) { placed[0].labelY = clamped; changed = true; }
+        for (let i = 1; i < placed.length; i++) {
+          const target = Math.max(placed[i].labelY, placed[i - 1].labelY + labelH);
+          if (target !== placed[i].labelY) { placed[i].labelY = target; changed = true; }
+        }
       }
+      // Backward: bottom-anchor last, push predecessors up.
+      const last = placed.length - 1;
+      if (last >= 0) {
+        const clamped = clamp(placed[last].labelY, minY, maxLabelY);
+        if (clamped !== placed[last].labelY) { placed[last].labelY = clamped; changed = true; }
+        for (let i = last - 1; i >= 0; i--) {
+          const target = Math.min(placed[i].labelY, placed[i + 1].labelY - labelH);
+          if (target !== placed[i].labelY) { placed[i].labelY = target; changed = true; }
+        }
+      }
+      if (!changed) break;
     }
-    return placed.map((row) => ({ ...row, labelY: clamp(row.labelY, minY, maxLabelY) }));
+    return placed;
   }, [plotted, lastIndex, yForValue]);
 
   const summary = useMemo(() => {
