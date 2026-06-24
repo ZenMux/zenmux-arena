@@ -114,6 +114,12 @@
       "sourceType": "github",
       "skillPath": "skills/zenmux-usage/SKILL.md",
       "computedHash": "66b3ec9462f71148ca354f24737c537019f4fec9280dc2ec2c63289bb696dc50"
+    },
+    "morphe-plus": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": "skills/morphe-plus/SKILL.md",
+      "computedHash": "cf1fd92bebabf182bec3a3890e3ba658f2e00087ad7ad578ad6648820c0e0cde"
     }
   }
 }
