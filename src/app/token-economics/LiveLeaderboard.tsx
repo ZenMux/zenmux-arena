@@ -43,6 +43,7 @@ const LIVE_COLORS = [
 
 const LINE_DASHES = ["", "7 4", "2 4", "10 4 2 4", "1 5"] as const;
 const REFRESH_SETTLE_MS = 750;
+const ERROR_BACKOFF_MS = 10_000; // Backoff 10s on error to avoid hammering server
 
 const METRIC_OPTIONS = [
   { key: "live", label: "LIVE", title: "Real-time token usage per bucket" },
@@ -348,7 +349,10 @@ export function LiveLeaderboard() {
         if (!live || signal?.aborted) return;
         setError(err instanceof Error ? err.message : "Live usage failed");
         setLoading(false);
-        scheduleNext();
+        // Use longer backoff on errors to avoid overwhelming a recovering server
+        timeoutId = window.setTimeout(() => {
+          void run();
+        }, ERROR_BACKOFF_MS);
       }
     }
     void run(controller.signal);

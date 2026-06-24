@@ -18,10 +18,16 @@ import { loadLiveModelConfig } from "./live-models";
 export { LiveConfigError } from "./live-config";
 
 const TABLE = "valid_usage";
-const QUERY_TIMEOUT_US = 30_000_000;
 export const LIVE_START_ENV = "TOKEN_ECON_LIVE_START_ISO";
 export const LIVE_BUCKET_SECONDS_ENV = "TOKEN_ECON_LIVE_BUCKET_SECONDS";
 export const LIVE_REFRESH_INTERVAL_SECONDS_ENV = "TOKEN_ECON_LIVE_REFRESH_INTERVAL_SECONDS";
+const CACHE_TTL_MS_ENV = "TOKEN_ECON_LIVE_CACHE_TTL_MS";
+const DEFAULT_CACHE_TTL_MS = 10_000; // 10s default cache for live data
+const QUERY_TIMEOUT_ENV = "TOKEN_ECON_LIVE_QUERY_TIMEOUT_MS";
+const DEFAULT_QUERY_TIMEOUT_MS = 60_000;
+
+// Simple in-memory cache to avoid hitting DB on duplicate concurrent/stale requests
+const responseCache = new Map<string, { data: LiveTokenEconomicsPayload; expiresAt: number }>();
 
 const DB_ENV = {
   host: "TOKEN_ECON_LIVE_DB_HOST",
@@ -30,6 +36,40 @@ const DB_ENV = {
   password: "TOKEN_ECON_LIVE_DB_PASSWORD",
   database: "TOKEN_ECON_LIVE_DB_DATABASE",
 } as const;
+
+const POOL_ENV = {
+  connectionLimit: "TOKEN_ECON_LIVE_DB_POOL_SIZE",
+  queueLimit: "TOKEN_ECON_LIVE_DB_QUEUE_LIMIT",
+  maxIdle: "TOKEN_ECON_LIVE_DB_MAX_IDLE",
+  idleTimeoutMs: "TOKEN_ECON_LIVE_DB_IDLE_TIMEOUT_MS",
+} as const;
+
+const DEFAULT_POOL_CONFIG = {
+  connectionLimit: 8,
+  queueLimit: 32,
+  maxIdle: 4,
+  idleTimeoutMs: 60_000,
+} as const;
+
+function readPoolConfig() {
+  const readInt = (name: keyof typeof POOL_ENV, fallback: number): number => {
+    const raw = process.env[POOL_ENV[name]]?.trim();
+    if (!raw) return fallback;
+    const n = Number(raw);
+    if (!Number.isSafeInteger(n) || n <= 0) {
+      console.warn(`[token-economics/live] Invalid ${POOL_ENV[name]}=${JSON.stringify(raw)}, using default ${fallback}`);
+      return fallback;
+    }
+    return n;
+  };
+
+  return {
+    connectionLimit: readInt("connectionLimit", DEFAULT_POOL_CONFIG.connectionLimit),
+    queueLimit: readInt("queueLimit", DEFAULT_POOL_CONFIG.queueLimit),
+    maxIdle: readInt("maxIdle", DEFAULT_POOL_CONFIG.maxIdle),
+    idleTimeoutMs: readInt("idleTimeoutMs", DEFAULT_POOL_CONFIG.idleTimeoutMs),
+  };
+}
 
 export class LiveDbConfigError extends Error {
   constructor(readonly missing: string[]) {
@@ -66,18 +106,24 @@ function dbConfig() {
 function getPool(): Pool {
   if (pool) return pool;
   const cfg = dbConfig();
+  const poolCfg = readPoolConfig();
   pool = mysql.createPool({
     ...cfg,
     waitForConnections: true,
-    connectionLimit: 4,
-    queueLimit: 8,
+    connectionLimit: poolCfg.connectionLimit,
+    queueLimit: poolCfg.queueLimit,
     connectTimeout: 10_000,
+    // Connection keepalive + idle timeout to avoid stale connections killed by DB
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 30_000,
+    idleTimeout: poolCfg.idleTimeoutMs, // Reap idle connections after configured timeout
+    maxIdle: poolCfg.maxIdle, // Soft cap on idle connections
     timezone: "Z",
     dateStrings: true,
     supportBigNumbers: true,
     decimalNumbers: true,
-    enableKeepAlive: true,
   });
+  console.log(`[token-economics/live] DB pool initialized: max=${poolCfg.connectionLimit}, queue=${poolCfg.queueLimit}, maxIdle=${poolCfg.maxIdle}`);
   return pool;
 }
 
@@ -111,6 +157,17 @@ function liveSecondsEnv(name: string, fallback: number): number {
     );
   }
   return seconds;
+}
+
+function liveMsEnv(name: string, fallback: number): number {
+  const raw = process.env[name]?.trim();
+  if (!raw) return fallback;
+  const ms = Number(raw);
+  if (!Number.isSafeInteger(ms) || ms <= 0) {
+    console.warn(`[token-economics/live] Invalid ${name}=${JSON.stringify(raw)}, using default ${fallback}ms`);
+    return fallback;
+  }
+  return ms;
 }
 
 function liveBucketSeconds(): number {
@@ -187,6 +244,7 @@ async function queryUsageRows(params: {
   from: Date;
   to: Date;
   bucketSeconds: number;
+  timeoutUs: number;
 }): Promise<LiveUsageRow[]> {
   const placeholders = params.slugs.map(() => "?").join(",");
   const bucket = bucketExpression(params.bucketSeconds);
@@ -209,19 +267,37 @@ async function queryUsageRows(params: {
     ORDER BY bucket ASC, model_slug ASC
   `;
 
-  const conn = await getPool().getConnection();
-  try {
-    await conn.query("SET SESSION time_zone = '+00:00'");
-    await conn.query(`SET SESSION ob_query_timeout = ${QUERY_TIMEOUT_US}`).catch(() => {});
-    const [rows] = await conn.query<LiveUsageRow[]>(sql, [
-      ...params.slugs,
-      sqlDate(params.from),
-      sqlDate(params.to),
-    ]);
-    return rows;
-  } finally {
-    conn.release();
+  let retries = 2;
+  while (retries > 0) {
+    const conn = await getPool().getConnection();
+    try {
+      await conn.ping().catch(async () => {
+        // Connection is dead, try to reconnect
+        await conn.destroy();
+        throw new Error("dead connection");
+      });
+      await conn.query("SET SESSION time_zone = '+00:00'");
+      await conn.query(`SET SESSION ob_query_timeout = ${params.timeoutUs}`).catch(() => {});
+      const [rows] = await conn.query<LiveUsageRow[]>({
+        sql,
+        values: [
+          ...params.slugs,
+          sqlDate(params.from),
+          sqlDate(params.to),
+        ],
+        timeout: params.timeoutUs / 1000, // Driver-level timeout in ms
+      });
+      conn.release();
+      return rows;
+    } catch (err) {
+      conn.destroy(); // Don't reuse broken connections
+      retries--;
+      if (retries <= 0) throw err;
+      // Brief backoff before retry
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
   }
+  throw new Error("Failed after retries");
 }
 
 function modelMeta(slug: string): { vendor: VendorId; vendorName: string } {
@@ -233,12 +309,27 @@ export async function fetchLiveTokenEconomics(
   requestedRange: string | null | undefined,
   now = new Date(),
 ): Promise<LiveTokenEconomicsPayload> {
+  const range = liveRangeOption(requestedRange);
+  const cacheKey = range.key;
+  const cacheTtlMs = liveMsEnv(CACHE_TTL_MS_ENV, DEFAULT_CACHE_TTL_MS);
+  const queryTimeoutMs = liveMsEnv(QUERY_TIMEOUT_ENV, DEFAULT_QUERY_TIMEOUT_MS);
+  const queryTimeoutUs = queryTimeoutMs * 1000;
+
+  // Check cache first
+  const cached = responseCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    // Update generatedAt to avoid stale timestamps without re-querying
+    return {
+      ...cached.data,
+      generatedAt: now.toISOString(),
+    };
+  }
+
   const liveConfig = await loadLiveModelConfig();
   const bucketSeconds = liveBucketSeconds();
   const refreshIntervalSeconds = liveRefreshIntervalSeconds();
   const refreshBoundary = floorToBucket(now, refreshIntervalSeconds);
   const dataAsOf = floorToBucket(refreshBoundary, bucketSeconds);
-  const range = liveRangeOption(requestedRange);
   const start = liveStartDate();
   const rangeFrom =
     range.key === "all"
@@ -254,6 +345,7 @@ export async function fetchLiveTokenEconomics(
     from: fromBucket,
     to: dataAsOf,
     bucketSeconds,
+    timeoutUs: queryTimeoutUs,
   })) {
     const t = bucketIso(row.bucket);
     const byTime = rowMap.get(row.model_slug) ?? new Map<string, LiveUsagePoint>();
@@ -311,7 +403,7 @@ export async function fetchLiveTokenEconomics(
     };
   });
 
-  return {
+  const result: LiveTokenEconomicsPayload = {
     generatedAt: now.toISOString(),
     dataLagSeconds: Math.max(0, Math.floor((now.getTime() - dataAsOf.getTime()) / 1000)),
     refreshIntervalSeconds,
@@ -325,4 +417,12 @@ export async function fetchLiveTokenEconomics(
       .filter((m) => m.anchorId === UNANCHORED_ANCHOR_ID)
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
   };
+
+  // Store in cache
+  responseCache.set(cacheKey, {
+    data: result,
+    expiresAt: Date.now() + cacheTtlMs,
+  });
+
+  return result;
 }
