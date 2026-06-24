@@ -21,6 +21,7 @@ async function precomputeRange(range: LiveRangeKey, index: number, total: number
   if (existing) {
     process.stdout.write(`\r${prefix} ${formatPercent(0)} Found existing cache (up to ${existing.to.slice(0, 16).replace("T", " ")}), attempting incremental update...`);
     const data = await incrementallyUpdateCache(range, existing, undefined, {
+      persist: true,
       onProgress: (prog) => {
         process.stdout.write(`\r${prefix} ${formatPercent(prog.percent)} ${prog.message}`);
       },
@@ -45,8 +46,7 @@ async function precomputeRange(range: LiveRangeKey, index: number, total: number
 
   // No existing cache or incremental failed: do full fetch
   const data = await fetchLiveTokenEconomics(range, undefined, {
-    forceRefresh: true,
-    preferJsonCache: false,
+    persist: true,
     onProgress: (prog) => {
       process.stdout.write(`\r${prefix} ${formatPercent(prog.percent)} ${prog.message}`);
     },

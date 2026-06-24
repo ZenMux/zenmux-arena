@@ -1,5 +1,4 @@
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
 import { VENDORS } from "@research/lib/vendors";
@@ -26,73 +25,86 @@ export const LIVE_START_ENV = "TOKEN_ECON_LIVE_START_ISO";
 export const LIVE_BUCKET_SECONDS_ENV = "TOKEN_ECON_LIVE_BUCKET_SECONDS";
 export const LIVE_REFRESH_INTERVAL_SECONDS_ENV = "TOKEN_ECON_LIVE_REFRESH_INTERVAL_SECONDS";
 const CACHE_TTL_MS_ENV = "TOKEN_ECON_LIVE_CACHE_TTL_MS";
-const DEFAULT_CACHE_TTL_MS = 10_000; // 10s in-memory cache for hot requests
-const JSON_CACHE_TTL_MS = 5 * 60 * 1000; // 5min on-disk JSON cache, matches precompute interval
+const DEFAULT_CACHE_TTL_MS = 10_000; // 10s in-memory hot cache; serves bursts without re-querying
 const QUERY_TIMEOUT_ENV = "TOKEN_ECON_LIVE_QUERY_TIMEOUT_MS";
 const DEFAULT_QUERY_TIMEOUT_MS = 60_000;
 
-// Simple in-memory cache to avoid hitting DB on duplicate concurrent/stale requests
+// L1 in-memory cache: the freshest fully-merged payload per range, with a short
+// TTL. Serves concurrent bursts so we don't run the incremental DB query more
+// than once per ~10s on a hot instance.
 const responseCache = new Map<string, { data: LiveTokenEconomicsPayload; expiresAt: number }>();
 
-// Resolve writable cache directory with fallback logic:
-// 1. Use TOKEN_ECON_LIVE_CACHE_DIR env var if explicitly set
-// 2. Try project local .cache dir first (persists across restarts if app dir is writable)
-// 3. Fall back to OS temp dir if project dir is read-only (works in serverless/container environments)
-let _cacheDir: string | null = null;
-async function getCacheDir(): Promise<string> {
-  if (_cacheDir) return _cacheDir;
+// In-flight de-dup (single-flight): if a merge for a range is already running,
+// concurrent callers await the same promise instead of each firing their own
+// incremental DB query.
+const inFlight = new Map<string, Promise<LiveTokenEconomicsPayload>>();
 
-  // Explicit env var takes priority
-  if (process.env.TOKEN_ECON_LIVE_CACHE_DIR) {
-    const dir = process.env.TOKEN_ECON_LIVE_CACHE_DIR;
-    await fs.mkdir(dir, { recursive: true });
-    _cacheDir = dir;
-    return _cacheDir;
-  }
+// Cache directory resolution. READ and WRITE are deliberately split so the two
+// deployment roles never interfere:
+//
+//   - Runtime (production API route): READ-ONLY. The server runs on a read-only
+//     serverless filesystem and must never query the DB or write to disk. It
+//     reads the *.json files that were pre-aggregated and packaged into the
+//     deploy artifact under `<cwd>/.cache/token-economics/live/`. Resolving the
+//     read dir does NO writability probe — a read-only FS can still read the
+//     packaged cache, and the old "write a .write-test file first" probe was the
+//     bug that silently redirected reads to an empty temp dir.
+//
+//   - Precompute (build/deploy machine, writable): the only writer. It runs the
+//     incremental DB query and persists fresh JSON, which then gets packaged.
+//
+// TOKEN_ECON_LIVE_CACHE_DIR overrides the directory for both roles when set.
+const CACHE_DIR_ENV = "TOKEN_ECON_LIVE_CACHE_DIR";
 
-  // Try project local .cache first
-  const localCache = path.join(process.cwd(), ".cache", "token-economics", "live");
-  try {
-    await fs.mkdir(localCache, { recursive: true });
-    // Test write permission
-    const testFile = path.join(localCache, ".write-test");
-    await fs.writeFile(testFile, "ok");
-    await fs.unlink(testFile);
-    _cacheDir = localCache;
-    console.log(`[token-economics/live] Using local cache dir: ${localCache}`);
-    return _cacheDir;
-  } catch (err) {
-    // Local dir not writable, fall back to OS temp directory (always writable)
-    const tmpCache = path.join(os.tmpdir(), "zenmux-token-econ-live");
-    await fs.mkdir(tmpCache, { recursive: true });
-    console.warn(`[token-economics/live] Local .cache dir not writable (${(err as Error).message}), falling back to temp dir: ${tmpCache}`);
-    _cacheDir = tmpCache;
-    return _cacheDir;
-  }
+function cacheDir(): string {
+  return (
+    process.env[CACHE_DIR_ENV]?.trim() ||
+    path.join(process.cwd(), ".cache", "token-economics", "live")
+  );
 }
 
-async function cachePath(range: LiveRangeKey): Promise<string> {
-  const dir = await getCacheDir();
-  return path.join(dir, `${range}.json`);
+function cachePath(range: LiveRangeKey): string {
+  return path.join(cacheDir(), `${range}.json`);
 }
 
+/**
+ * Read a pre-aggregated payload from the packaged JSON cache. Pure read: never
+ * touches the DB, never writes, never throws — returns null if the file is
+ * missing or unparseable. Safe to call on a read-only filesystem.
+ */
 export async function readJsonCache(range: LiveRangeKey): Promise<LiveTokenEconomicsPayload | null> {
   try {
-    const content = await fs.readFile(await cachePath(range), "utf-8");
+    const content = await fs.readFile(cachePath(range), "utf-8");
     return JSON.parse(content) as LiveTokenEconomicsPayload;
   } catch {
     return null;
   }
 }
 
+// Monotonic per-process counter for unique tmp filenames. Date.now()/Math.random()
+// are intentionally avoided (some harnesses forbid them); a counter is enough to
+// keep concurrent writers in the same process from sharing a tmp file.
+let _tmpSeq = 0;
+
+/**
+ * Persist a payload to the on-disk JSON cache via atomic write (write tmp →
+ * rename). Used ONLY by the precompute script on a writable filesystem; the
+ * runtime never calls this. The tmp filename carries pid + a per-process
+ * counter so two concurrent writers can never clobber each other's half-written
+ * file before the rename.
+ */
 export async function writeJsonCache(range: LiveRangeKey, data: LiveTokenEconomicsPayload): Promise<void> {
+  const dir = cacheDir();
+  const cacheFile = path.join(dir, `${range}.json`);
+  const tmpPath = path.join(dir, `${range}.${process.pid}.${_tmpSeq++}.tmp`);
+  await fs.mkdir(dir, { recursive: true });
   try {
-    const cacheFile = await cachePath(range);
-    const tmpPath = `${cacheFile}.tmp`;
     await fs.writeFile(tmpPath, JSON.stringify(data), "utf-8");
-    await fs.rename(tmpPath, cacheFile); // Atomic write to avoid partial reads
+    await fs.rename(tmpPath, cacheFile); // Atomic swap; readers never see a partial file
   } catch (err) {
-    console.warn(`[token-economics/live] Failed to write cache: ${(err as Error).message}`);
+    // Clean up the tmp file on failure so a read-only/full disk doesn't leave litter
+    await fs.unlink(tmpPath).catch(() => {});
+    throw err;
   }
 }
 
@@ -416,62 +428,27 @@ export interface FetchProgress {
   percent?: number; // 0-100
 }
 
+/**
+ * Full re-aggregation of an entire range straight from the DB. This does NO
+ * cache orchestration — callers decide caching. It is the cold-path fallback
+ * behind {@link getLiveTokenEconomics} (when no baseline exists for incremental
+ * merge) and the full-fetch path of the precompute script.
+ *
+ * `persist` defaults to false so the runtime can never accidentally write to
+ * its read-only filesystem; only the precompute script (writable build machine)
+ * passes `persist: true`.
+ */
 export async function fetchLiveTokenEconomics(
   requestedRange: string | null | undefined,
   now = new Date(),
   options: {
-    preferJsonCache?: boolean;
-    forceRefresh?: boolean;
+    persist?: boolean;
     onProgress?: (progress: FetchProgress) => void;
   } = {},
 ): Promise<LiveTokenEconomicsPayload> {
   const onProgress = options.onProgress || (() => {});
-  onProgress({ stage: "check-cache", message: "Checking caches..." });
   const range = liveRangeOption(requestedRange);
-  const cacheKey = range.key;
-  const inMemoryTtl = liveMsEnv(CACHE_TTL_MS_ENV, DEFAULT_CACHE_TTL_MS);
   const queryTimeoutMs = liveMsEnv(QUERY_TIMEOUT_ENV, DEFAULT_QUERY_TIMEOUT_MS);
-
-  // Level 1: In-memory cache (fastest, for concurrent requests)
-  if (!options.forceRefresh) {
-    const cached = responseCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiresAt) {
-      return { ...cached.data, generatedAt: now.toISOString() };
-    }
-  }
-
-  // Level 2: On-disk JSON cache (pre-aggregated by build/precompute/background job)
-  if (!options.forceRefresh) {
-    const jsonCached = await readJsonCache(range.key);
-    if (jsonCached) {
-      // Check if JSON cache is fresh enough
-      const cacheAge = now.getTime() - new Date(jsonCached.generatedAt).getTime();
-      const isFresh = cacheAge < JSON_CACHE_TTL_MS;
-
-      // Populate in-memory cache
-      responseCache.set(cacheKey, {
-        data: jsonCached,
-        expiresAt: Date.now() + inMemoryTtl,
-      });
-
-      // If cache is fresh, return immediately; if stale, trigger background refresh but return stale data first
-      if (isFresh || options.preferJsonCache) {
-        return { ...jsonCached, generatedAt: now.toISOString(), stale: !isFresh };
-      }
-
-      // Stale cache: return stale data immediately, refresh in background (stale-while-revalidate)
-      console.log(`[token-economics/live] JSON cache for ${range.key} is ${Math.round(cacheAge/1000)}s old, refreshing in background`);
-      fetchLiveTokenEconomics(requestedRange, now, { ...options, forceRefresh: true }).catch((err) => {
-        console.warn(`[token-economics/live] Background refresh for ${range.key} failed:`, err instanceof Error ? err.message : err);
-      });
-      return { ...jsonCached, generatedAt: now.toISOString(), stale: true };
-    }
-  }
-
-  // Level 3: If client prefers JSON cache only, fail fast instead of hitting DB
-  if (options.preferJsonCache) {
-    throw new Error(`No pre-aggregated data available for range=${range.key} yet. Run precompute script first.`);
-  }
 
   onProgress({ stage: "load-config", message: "Loading model config...", percent: 10 });
   const liveConfig = await loadLiveModelConfig();
@@ -583,23 +560,11 @@ export async function fetchLiveTokenEconomics(
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
   };
 
-  // Store in memory cache
-  responseCache.set(cacheKey, {
-    data: result,
-    expiresAt: Date.now() + inMemoryTtl,
-  });
-
-  // Persist to on-disk JSON cache for future use (writes are atomic)
-  if (options.onProgress) {
-    // Precompute mode: wait for write to complete before returning
+  // Only the precompute script (writable FS) persists. The runtime never writes.
+  if (options.persist) {
     onProgress({ stage: "write-cache", message: "Writing cache to disk...", percent: 95 });
     await writeJsonCache(range.key, result);
     onProgress({ stage: "write-cache", message: "Done!", percent: 100 });
-  } else {
-    // Runtime API mode: fire-and-forget, don't block response
-    writeJsonCache(range.key, result).catch((err) => {
-      console.warn(`[token-economics/live] Failed to write JSON cache for ${range.key}:`, err instanceof Error ? err.message : err);
-    });
   }
 
   return result;
@@ -618,7 +583,7 @@ export async function incrementallyUpdateCache(
   requestedRange: string | null | undefined,
   existing: LiveTokenEconomicsPayload,
   now = new Date(),
-  options: { onProgress?: (progress: FetchProgress) => void } = {},
+  options: { persist?: boolean; onProgress?: (progress: FetchProgress) => void } = {},
 ): Promise<LiveTokenEconomicsPayload | null> {
   const onProgress = options.onProgress || (() => {});
   const range = liveRangeOption(requestedRange);
@@ -798,9 +763,86 @@ export async function incrementallyUpdateCache(
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
   };
 
-  onProgress({ stage: "write-cache", message: "Writing updated cache to disk...", percent: 95 });
-  await writeJsonCache(range.key, result);
-  onProgress({ stage: "write-cache", message: "Incremental update complete!", percent: 100 });
+  // Only the precompute script (writable FS) persists; the runtime merges in
+  // memory and returns without ever touching the read-only disk.
+  if (options.persist) {
+    onProgress({ stage: "write-cache", message: "Writing updated cache to disk...", percent: 95 });
+    await writeJsonCache(range.key, result);
+    onProgress({ stage: "write-cache", message: "Incremental update complete!", percent: 100 });
+  }
 
   return result;
+}
+
+/**
+ * Runtime entry point for the live leaderboard API. Designed for a read-only
+ * serverless filesystem that CAN reach the DB:
+ *
+ *   1. L1 in-memory cache (≤10s) — serves concurrent bursts with zero DB load.
+ *   2. Single-flight — one merge per range at a time; concurrent callers share it.
+ *   3. Baseline + incremental — read the packaged `.cache/<range>.json` as the
+ *      historical baseline and query the DB ONLY for the `baseline.to → now`
+ *      window (plus a small overlap for late data), merging in memory. The bulk
+ *      of the series (all older buckets) is reused, never re-queried.
+ *   4. Fallbacks — if no baseline exists, do one full fetch; if the incremental
+ *      DB query fails but we have a baseline, serve the (stale) baseline so the
+ *      page never hard-fails on a transient DB blip.
+ *
+ * Never writes to disk (`persist` is never set), so it is safe on read-only FS.
+ */
+export async function getLiveTokenEconomics(
+  requestedRange: string | null | undefined,
+  now = new Date(),
+): Promise<LiveTokenEconomicsPayload> {
+  const range = liveRangeOption(requestedRange);
+  const cacheKey = range.key;
+  const inMemoryTtl = liveMsEnv(CACHE_TTL_MS_ENV, DEFAULT_CACHE_TTL_MS);
+
+  // 1. L1 in-memory cache.
+  const cached = responseCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return { ...cached.data, generatedAt: now.toISOString() };
+  }
+
+  // 2. Single-flight: join an in-progress merge for this range if one exists.
+  const existing = inFlight.get(cacheKey);
+  if (existing) {
+    const data = await existing;
+    return { ...data, generatedAt: now.toISOString() };
+  }
+
+  const work = (async (): Promise<LiveTokenEconomicsPayload> => {
+    // 3. Use the packaged JSON cache as the historical baseline.
+    const baseline = await readJsonCache(range.key);
+
+    if (baseline) {
+      try {
+        // Incrementally fetch only the new tail (baseline.to → now). Returns null
+        // when an incremental update isn't valid (e.g. bucket size changed) — then
+        // fall through to a full fetch.
+        const merged = await incrementallyUpdateCache(requestedRange, baseline, now);
+        if (merged) return merged;
+      } catch (err) {
+        // DB blip during the incremental query: serve the stale baseline rather
+        // than hard-failing the live page.
+        console.warn(
+          `[token-economics/live] Incremental update for ${range.key} failed, serving stale baseline:`,
+          err instanceof Error ? err.message : err,
+        );
+        return { ...baseline, stale: true };
+      }
+    }
+
+    // 4. No baseline (or incompatible): one full fetch from the DB.
+    return fetchLiveTokenEconomics(requestedRange, now);
+  })();
+
+  inFlight.set(cacheKey, work);
+  try {
+    const result = await work;
+    responseCache.set(cacheKey, { data: result, expiresAt: Date.now() + inMemoryTtl });
+    return result;
+  } finally {
+    inFlight.delete(cacheKey);
+  }
 }
