@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
 import { VENDORS } from "@research/lib/vendors";
 import type { VendorId } from "@research/lib/types";
@@ -9,6 +12,7 @@ import {
   LiveConfigError,
   UNANCHORED_ANCHOR_ID,
   liveRangeOption,
+  type LiveRangeKey,
   type LiveModelSeries,
   type LiveTokenEconomicsPayload,
   type LiveUsagePoint,
@@ -22,12 +26,75 @@ export const LIVE_START_ENV = "TOKEN_ECON_LIVE_START_ISO";
 export const LIVE_BUCKET_SECONDS_ENV = "TOKEN_ECON_LIVE_BUCKET_SECONDS";
 export const LIVE_REFRESH_INTERVAL_SECONDS_ENV = "TOKEN_ECON_LIVE_REFRESH_INTERVAL_SECONDS";
 const CACHE_TTL_MS_ENV = "TOKEN_ECON_LIVE_CACHE_TTL_MS";
-const DEFAULT_CACHE_TTL_MS = 10_000; // 10s default cache for live data
+const DEFAULT_CACHE_TTL_MS = 10_000; // 10s in-memory cache for hot requests
+const JSON_CACHE_TTL_MS = 5 * 60 * 1000; // 5min on-disk JSON cache, matches precompute interval
 const QUERY_TIMEOUT_ENV = "TOKEN_ECON_LIVE_QUERY_TIMEOUT_MS";
 const DEFAULT_QUERY_TIMEOUT_MS = 60_000;
 
 // Simple in-memory cache to avoid hitting DB on duplicate concurrent/stale requests
 const responseCache = new Map<string, { data: LiveTokenEconomicsPayload; expiresAt: number }>();
+
+// Resolve writable cache directory with fallback logic:
+// 1. Use TOKEN_ECON_LIVE_CACHE_DIR env var if explicitly set
+// 2. Try project local .cache dir first (persists across restarts if app dir is writable)
+// 3. Fall back to OS temp dir if project dir is read-only (works in serverless/container environments)
+let _cacheDir: string | null = null;
+async function getCacheDir(): Promise<string> {
+  if (_cacheDir) return _cacheDir;
+
+  // Explicit env var takes priority
+  if (process.env.TOKEN_ECON_LIVE_CACHE_DIR) {
+    const dir = process.env.TOKEN_ECON_LIVE_CACHE_DIR;
+    await fs.mkdir(dir, { recursive: true });
+    _cacheDir = dir;
+    return _cacheDir;
+  }
+
+  // Try project local .cache first
+  const localCache = path.join(process.cwd(), ".cache", "token-economics", "live");
+  try {
+    await fs.mkdir(localCache, { recursive: true });
+    // Test write permission
+    const testFile = path.join(localCache, ".write-test");
+    await fs.writeFile(testFile, "ok");
+    await fs.unlink(testFile);
+    _cacheDir = localCache;
+    console.log(`[token-economics/live] Using local cache dir: ${localCache}`);
+    return _cacheDir;
+  } catch (err) {
+    // Local dir not writable, fall back to OS temp directory (always writable)
+    const tmpCache = path.join(os.tmpdir(), "zenmux-token-econ-live");
+    await fs.mkdir(tmpCache, { recursive: true });
+    console.warn(`[token-economics/live] Local .cache dir not writable (${(err as Error).message}), falling back to temp dir: ${tmpCache}`);
+    _cacheDir = tmpCache;
+    return _cacheDir;
+  }
+}
+
+async function cachePath(range: LiveRangeKey): Promise<string> {
+  const dir = await getCacheDir();
+  return path.join(dir, `${range}.json`);
+}
+
+export async function readJsonCache(range: LiveRangeKey): Promise<LiveTokenEconomicsPayload | null> {
+  try {
+    const content = await fs.readFile(await cachePath(range), "utf-8");
+    return JSON.parse(content) as LiveTokenEconomicsPayload;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeJsonCache(range: LiveRangeKey, data: LiveTokenEconomicsPayload): Promise<void> {
+  try {
+    const cacheFile = await cachePath(range);
+    const tmpPath = `${cacheFile}.tmp`;
+    await fs.writeFile(tmpPath, JSON.stringify(data), "utf-8");
+    await fs.rename(tmpPath, cacheFile); // Atomic write to avoid partial reads
+  } catch (err) {
+    console.warn(`[token-economics/live] Failed to write cache: ${(err as Error).message}`);
+  }
+}
 
 const DB_ENV = {
   host: "TOKEN_ECON_LIVE_DB_HOST",
@@ -127,6 +194,17 @@ function getPool(): Pool {
   return pool;
 }
 
+/**
+ * Close the database connection pool. Call this in CLI scripts when done
+ * to allow the Node.js process to exit cleanly.
+ */
+export async function closeDbPool(): Promise<void> {
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
+}
+
 function floorToBucket(d: Date, bucketSeconds: number): Date {
   const bucketMs = bucketSeconds * 1000;
   return new Date(Math.floor(d.getTime() / bucketMs) * bucketMs);
@@ -200,10 +278,30 @@ function toNumber(v: number | string | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+const SECONDS_PER_HOUR = 3600;
+const SECONDS_PER_DAY = 86400;
+
+// Adaptive bucket sizing to keep query performance reasonable across time ranges:
+// - ≤ 3 days: 5-minute buckets (fine granularity for recent data)
+// - ≤ 14 days: 1-hour buckets (reduces point count by 12x)
+// - > 14 days: 1-day buckets (reduces point count by 288x vs 5min)
+function selectBucketSeconds(rangeDurationHours: number, configuredBucket: number): number {
+  if (rangeDurationHours <= 72) return configuredBucket; // Keep fine granularity for default 72h view
+  if (rangeDurationHours <= 14 * 24) return SECONDS_PER_HOUR;
+  return SECONDS_PER_DAY;
+}
+
+function adaptiveQueryTimeout(rangeDurationHours: number, defaultTimeoutMs: number): number {
+  // Give longer queries more time to complete
+  if (rangeDurationHours > 14 * 24) return 5 * 60 * 1000; // 5 minutes for monthly+ views
+  if (rangeDurationHours > 72) return 2 * 60 * 1000; // 2 minutes for multi-day views
+  return defaultTimeoutMs;
+}
+
 function bucketExpression(bucketSeconds: number): string {
   if (bucketSeconds === 60) return "DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:00')";
-  if (bucketSeconds === 3600) return "DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')";
-  if (bucketSeconds === 86400) return "DATE_FORMAT(created_at, '%Y-%m-%d 00:00:00')";
+  if (bucketSeconds === SECONDS_PER_HOUR) return "DATE_FORMAT(created_at, '%Y-%m-%d %H:00:00')";
+  if (bucketSeconds === SECONDS_PER_DAY) return "DATE_FORMAT(created_at, '%Y-%m-%d 00:00:00')";
   return (
     "DATE_FORMAT(FROM_UNIXTIME(" +
     `FLOOR(UNIX_TIMESTAMP(created_at) / ${bucketSeconds}) * ${bucketSeconds}` +
@@ -214,8 +312,8 @@ function bucketExpression(bucketSeconds: number): string {
 function bucketLabel(bucketSeconds: number): string {
   if (bucketSeconds === 60) return "1-min";
   if (bucketSeconds === 300) return "5-min";
-  if (bucketSeconds === 3600) return "1-hour";
-  if (bucketSeconds === 86400) return "1-day";
+  if (bucketSeconds === SECONDS_PER_HOUR) return "1-hour";
+  if (bucketSeconds === SECONDS_PER_DAY) return "1-day";
   return `${bucketSeconds}-sec`;
 }
 
@@ -305,48 +403,115 @@ function modelMeta(slug: string): { vendor: VendorId; vendorName: string } {
   return { vendor, vendorName: VENDORS[vendor]?.name ?? vendor };
 }
 
+type FetchProgressStage =
+  | "check-cache"
+  | "load-config"
+  | "query-db"
+  | "aggregate"
+  | "write-cache";
+
+export interface FetchProgress {
+  stage: FetchProgressStage;
+  message: string;
+  percent?: number; // 0-100
+}
+
 export async function fetchLiveTokenEconomics(
   requestedRange: string | null | undefined,
   now = new Date(),
+  options: {
+    preferJsonCache?: boolean;
+    forceRefresh?: boolean;
+    onProgress?: (progress: FetchProgress) => void;
+  } = {},
 ): Promise<LiveTokenEconomicsPayload> {
+  const onProgress = options.onProgress || (() => {});
+  onProgress({ stage: "check-cache", message: "Checking caches..." });
   const range = liveRangeOption(requestedRange);
   const cacheKey = range.key;
-  const cacheTtlMs = liveMsEnv(CACHE_TTL_MS_ENV, DEFAULT_CACHE_TTL_MS);
+  const inMemoryTtl = liveMsEnv(CACHE_TTL_MS_ENV, DEFAULT_CACHE_TTL_MS);
   const queryTimeoutMs = liveMsEnv(QUERY_TIMEOUT_ENV, DEFAULT_QUERY_TIMEOUT_MS);
-  const queryTimeoutUs = queryTimeoutMs * 1000;
 
-  // Check cache first
-  const cached = responseCache.get(cacheKey);
-  if (cached && Date.now() < cached.expiresAt) {
-    // Update generatedAt to avoid stale timestamps without re-querying
-    return {
-      ...cached.data,
-      generatedAt: now.toISOString(),
-    };
+  // Level 1: In-memory cache (fastest, for concurrent requests)
+  if (!options.forceRefresh) {
+    const cached = responseCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return { ...cached.data, generatedAt: now.toISOString() };
+    }
   }
 
+  // Level 2: On-disk JSON cache (pre-aggregated by build/precompute/background job)
+  if (!options.forceRefresh) {
+    const jsonCached = await readJsonCache(range.key);
+    if (jsonCached) {
+      // Check if JSON cache is fresh enough
+      const cacheAge = now.getTime() - new Date(jsonCached.generatedAt).getTime();
+      const isFresh = cacheAge < JSON_CACHE_TTL_MS;
+
+      // Populate in-memory cache
+      responseCache.set(cacheKey, {
+        data: jsonCached,
+        expiresAt: Date.now() + inMemoryTtl,
+      });
+
+      // If cache is fresh, return immediately; if stale, trigger background refresh but return stale data first
+      if (isFresh || options.preferJsonCache) {
+        return { ...jsonCached, generatedAt: now.toISOString(), stale: !isFresh };
+      }
+
+      // Stale cache: return stale data immediately, refresh in background (stale-while-revalidate)
+      console.log(`[token-economics/live] JSON cache for ${range.key} is ${Math.round(cacheAge/1000)}s old, refreshing in background`);
+      fetchLiveTokenEconomics(requestedRange, now, { ...options, forceRefresh: true }).catch((err) => {
+        console.warn(`[token-economics/live] Background refresh for ${range.key} failed:`, err instanceof Error ? err.message : err);
+      });
+      return { ...jsonCached, generatedAt: now.toISOString(), stale: true };
+    }
+  }
+
+  // Level 3: If client prefers JSON cache only, fail fast instead of hitting DB
+  if (options.preferJsonCache) {
+    throw new Error(`No pre-aggregated data available for range=${range.key} yet. Run precompute script first.`);
+  }
+
+  onProgress({ stage: "load-config", message: "Loading model config...", percent: 10 });
   const liveConfig = await loadLiveModelConfig();
-  const bucketSeconds = liveBucketSeconds();
+  const configuredBucketSeconds = liveBucketSeconds();
   const refreshIntervalSeconds = liveRefreshIntervalSeconds();
   const refreshBoundary = floorToBucket(now, refreshIntervalSeconds);
-  const dataAsOf = floorToBucket(refreshBoundary, bucketSeconds);
+  const dataAsOf = floorToBucket(refreshBoundary, configuredBucketSeconds);
   const start = liveStartDate();
   const rangeFrom =
     range.key === "all"
       ? start
       : maxDate(start, new Date(dataAsOf.getTime() - (range.hours ?? 72) * 3_600_000));
+
+  // Calculate range duration in hours to select appropriate bucket size, cache TTL, and timeout
+  const rangeDurationHours = (dataAsOf.getTime() - rangeFrom.getTime()) / (1000 * 3600);
+  const bucketSeconds = selectBucketSeconds(rangeDurationHours, configuredBucketSeconds);
+  const effectiveTimeoutMs = adaptiveQueryTimeout(rangeDurationHours, queryTimeoutMs);
+  const effectiveTimeoutUs = effectiveTimeoutMs * 1000;
+
   const fromBucket = floorToBucket(rangeFrom, bucketSeconds);
-  const buckets = buildBuckets(fromBucket, dataAsOf, bucketSeconds);
+  const toBucket = floorToBucket(dataAsOf, bucketSeconds);
+  const buckets = buildBuckets(fromBucket, toBucket, bucketSeconds);
 
   const slugs = liveConfig.models.map((m) => m.slug);
-  const rowMap = new Map<string, Map<string, LiveUsagePoint>>();
-  for (const row of await queryUsageRows({
+  onProgress({
+    stage: "query-db",
+    message: `Querying database (${bucketLabel(bucketSeconds)} buckets, ${fromBucket.toISOString().slice(0,10)} → ${toBucket.toISOString().slice(0,10)})...`,
+    percent: 30,
+  });
+  const rows = await queryUsageRows({
     slugs,
     from: fromBucket,
-    to: dataAsOf,
+    to: toBucket,
     bucketSeconds,
-    timeoutUs: queryTimeoutUs,
-  })) {
+    timeoutUs: effectiveTimeoutUs,
+  });
+
+  onProgress({ stage: "aggregate", message: `Aggregating ${rows.length} rows across ${slugs.length} models...`, percent: 70 });
+  const rowMap = new Map<string, Map<string, LiveUsagePoint>>();
+  for (const row of rows) {
     const t = bucketIso(row.bucket);
     const byTime = rowMap.get(row.model_slug) ?? new Map<string, LiveUsagePoint>();
     byTime.set(t, {
@@ -418,11 +583,224 @@ export async function fetchLiveTokenEconomics(
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
   };
 
-  // Store in cache
+  // Store in memory cache
   responseCache.set(cacheKey, {
     data: result,
-    expiresAt: Date.now() + cacheTtlMs,
+    expiresAt: Date.now() + inMemoryTtl,
   });
+
+  // Persist to on-disk JSON cache for future use (writes are atomic)
+  if (options.onProgress) {
+    // Precompute mode: wait for write to complete before returning
+    onProgress({ stage: "write-cache", message: "Writing cache to disk...", percent: 95 });
+    await writeJsonCache(range.key, result);
+    onProgress({ stage: "write-cache", message: "Done!", percent: 100 });
+  } else {
+    // Runtime API mode: fire-and-forget, don't block response
+    writeJsonCache(range.key, result).catch((err) => {
+      console.warn(`[token-economics/live] Failed to write JSON cache for ${range.key}:`, err instanceof Error ? err.message : err);
+    });
+  }
+
+  return result;
+}
+
+// Overlap window for incremental updates: re-fetch this much recent history
+// to account for late-arriving data/backfills in the DB (e.g. delayed records)
+const INCREMENTAL_OVERLAP_BUCKETS = 12; // 12 buckets = 1 hour for 5min, 12 hours for 1h, 12 days for 1d
+
+/**
+ * Incrementally update an existing cached payload, only fetching new data since last cache.
+ * Returns null if incremental update is not possible (missing cache, incompatible bucket/range)
+ * and a full fetch should be performed instead.
+ */
+export async function incrementallyUpdateCache(
+  requestedRange: string | null | undefined,
+  existing: LiveTokenEconomicsPayload,
+  now = new Date(),
+  options: { onProgress?: (progress: FetchProgress) => void } = {},
+): Promise<LiveTokenEconomicsPayload | null> {
+  const onProgress = options.onProgress || (() => {});
+  const range = liveRangeOption(requestedRange);
+
+  // Validate existing cache is compatible
+  const liveConfig = await loadLiveModelConfig();
+  const configuredBucketSeconds = liveBucketSeconds();
+  const refreshIntervalSeconds = liveRefreshIntervalSeconds();
+  const refreshBoundary = floorToBucket(now, refreshIntervalSeconds);
+  const dataAsOf = floorToBucket(refreshBoundary, existing.bucketSeconds);
+  const start = liveStartDate();
+  const rangeFrom =
+    range.key === "all"
+      ? start
+      : maxDate(start, new Date(dataAsOf.getTime() - (range.hours ?? 72) * 3_600_000));
+
+  const rangeDurationHours = (dataAsOf.getTime() - rangeFrom.getTime()) / (1000 * 3600);
+  const expectedBucketSeconds = selectBucketSeconds(rangeDurationHours, configuredBucketSeconds);
+
+  // If bucket size changed (e.g. range expanded to multi-day), need full refetch
+  if (existing.bucketSeconds !== expectedBucketSeconds) {
+    onProgress({ stage: "check-cache", message: "Bucket size changed, performing full fetch", percent: 0 });
+    return null;
+  }
+
+  const fromBucket = floorToBucket(rangeFrom, existing.bucketSeconds);
+  const toBucket = floorToBucket(dataAsOf, existing.bucketSeconds);
+
+  // Parse last point time from existing cache
+  const lastPointTime = new Date(existing.to);
+  if (Number.isNaN(lastPointTime.getTime())) {
+    return null; // Invalid cache, full refetch
+  }
+
+  // If last cached point is already at/past target, nothing to do
+  if (lastPointTime >= toBucket) {
+    onProgress({ stage: "check-cache", message: "Cache already up to date", percent: 100 });
+    return { ...existing, generatedAt: now.toISOString() };
+  }
+
+  // Calculate incremental fetch window: include overlap to fix late data
+  const overlapMs = INCREMENTAL_OVERLAP_BUCKETS * existing.bucketSeconds * 1000;
+  const incrementalFrom = new Date(Math.max(fromBucket.getTime(), lastPointTime.getTime() - overlapMs));
+  const incrementalTo = toBucket;
+
+  // If incremental window is too large, fall back to full fetch
+  const fullWindowMs = toBucket.getTime() - fromBucket.getTime();
+  const incrementalWindowMs = incrementalTo.getTime() - incrementalFrom.getTime();
+  if (incrementalWindowMs > fullWindowMs * 0.5) {
+    onProgress({ stage: "check-cache", message: "Incremental window too large, performing full fetch", percent: 0 });
+    return null;
+  }
+
+  onProgress({
+    stage: "query-db",
+    message: `Incremental fetch: ${incrementalFrom.toISOString().slice(0, 16).replace("T", " ")} → ${incrementalTo.toISOString().slice(0, 16).replace("T", " ")} (${Math.round(incrementalWindowMs / (existing.bucketSeconds * 1000))} new buckets)`,
+    percent: 30,
+  });
+
+  const effectiveTimeoutMs = adaptiveQueryTimeout(rangeDurationHours, liveMsEnv(QUERY_TIMEOUT_ENV, DEFAULT_QUERY_TIMEOUT_MS));
+  const slugs = liveConfig.models.map((m) => m.slug);
+
+  // Fetch only new/overlap rows
+  const rows = await queryUsageRows({
+    slugs,
+    from: incrementalFrom,
+    to: incrementalTo,
+    bucketSeconds: existing.bucketSeconds,
+    timeoutUs: effectiveTimeoutMs * 1000,
+  });
+
+  onProgress({ stage: "aggregate", message: `Merging ${rows.length} new rows into existing cache...`, percent: 70 });
+
+  // Build point map for all models (existing + new)
+  const pointMap = new Map<string, Map<string, LiveUsagePoint>>();
+
+  // First, add existing points
+  for (const anchor of existing.anchors) {
+    for (const model of anchor.models) {
+      const modelMap = new Map<string, LiveUsagePoint>();
+      for (const p of model.points) {
+        // Only keep points that are not in the overlap window (we'll replace those with fresh data)
+        if (new Date(p.t) < incrementalFrom) {
+          modelMap.set(p.t, p);
+        }
+      }
+      pointMap.set(model.slug, modelMap);
+    }
+  }
+  // Add unanchored models
+  for (const model of existing.unanchored) {
+    if (!pointMap.has(model.slug)) {
+      const modelMap = new Map<string, LiveUsagePoint>();
+      for (const p of model.points) {
+        if (new Date(p.t) < incrementalFrom) {
+          modelMap.set(p.t, p);
+        }
+      }
+      pointMap.set(model.slug, modelMap);
+    }
+  }
+
+  // Add new/updated points from fresh query
+  for (const row of rows) {
+    const t = bucketIso(row.bucket);
+    const byTime = pointMap.get(row.model_slug) ?? new Map<string, LiveUsagePoint>();
+    byTime.set(t, {
+      t,
+      tokens: toNumber(row.tokens),
+      cost: toNumber(row.cost),
+      requests: toNumber(row.requests),
+      promptTokens: toNumber(row.prompt_tokens),
+      completionTokens: toNumber(row.completion_tokens),
+      reasoningTokens: toNumber(row.reasoning_tokens),
+    });
+    pointMap.set(row.model_slug, byTime);
+  }
+
+  // Build full bucket list (full range from fromBucket → toBucket)
+  const fullBuckets = buildBuckets(fromBucket, toBucket, existing.bucketSeconds);
+
+  // Reconstruct models with merged points, recalculate aggregates
+  const models: LiveModelSeries[] = liveConfig.models.map((price) => {
+    const byTime = pointMap.get(price.slug) ?? new Map<string, LiveUsagePoint>();
+    const points = fullBuckets.map((t) => byTime.get(t) ?? emptyPoint(t));
+    const totalTokens = points.reduce((sum, p) => sum + p.tokens, 0);
+    const totalCost = points.reduce((sum, p) => sum + p.cost, 0);
+    const totalRequests = points.reduce((sum, p) => sum + p.requests, 0);
+    const peakTokens = Math.max(0, ...points.map((p) => p.tokens));
+    const peakCost = Math.max(0, ...points.map((p) => p.cost));
+    const { vendor, vendorName } = modelMeta(price.slug);
+    return {
+      ...price,
+      vendor,
+      vendorName,
+      totalTokens,
+      totalCost,
+      totalRequests,
+      latestTokens: points[points.length - 1]?.tokens ?? 0,
+      latestCost: points[points.length - 1]?.cost ?? 0,
+      peakTokens,
+      peakCost,
+      points,
+    };
+  });
+
+  const anchors = liveConfig.anchors.map((anchor) => {
+    const anchorModels = models
+      .filter((m) => m.anchorId === anchor.id)
+      .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model));
+    return {
+      id: anchor.id,
+      label: anchor.label,
+      price: anchor.price,
+      targetBlended: anchor.targetBlended,
+      totalTokens: anchorModels.reduce((sum, m) => sum + m.totalTokens, 0),
+      totalCost: anchorModels.reduce((sum, m) => sum + m.totalCost, 0),
+      totalRequests: anchorModels.reduce((sum, m) => sum + m.totalRequests, 0),
+      peakTokens: Math.max(0, ...anchorModels.flatMap((m) => m.points.map((p) => p.tokens))),
+      peakCost: Math.max(0, ...anchorModels.flatMap((m) => m.points.map((p) => p.cost))),
+      models: anchorModels,
+    };
+  });
+
+  const result: LiveTokenEconomicsPayload = {
+    generatedAt: now.toISOString(),
+    dataLagSeconds: Math.max(0, Math.floor((now.getTime() - dataAsOf.getTime()) / 1000)),
+    refreshIntervalSeconds,
+    range: range.key,
+    bucket: bucketLabel(existing.bucketSeconds),
+    bucketSeconds: existing.bucketSeconds,
+    from: fromBucket.toISOString(),
+    to: dataAsOf.toISOString(),
+    anchors,
+    unanchored: models
+      .filter((m) => m.anchorId === UNANCHORED_ANCHOR_ID)
+      .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
+  };
+
+  onProgress({ stage: "write-cache", message: "Writing updated cache to disk...", percent: 95 });
+  await writeJsonCache(range.key, result);
+  onProgress({ stage: "write-cache", message: "Incremental update complete!", percent: 100 });
 
   return result;
 }

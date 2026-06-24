@@ -50,3 +50,5 @@ code.zip
 
 .morphe.json
 .morphe.*
+.cache/
+*.tmp

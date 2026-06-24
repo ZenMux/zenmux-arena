@@ -139,10 +139,6 @@ function formatBucketEndTick(iso: string, bucketSeconds: number): string {
   return formatTick(addBucketSecondsIso(iso, bucketSeconds), bucketSeconds);
 }
 
-function formatBucketInterval(iso: string, bucketSeconds: number): string {
-  return `[${formatTick(iso, bucketSeconds)}, ${formatBucketEndTick(iso, bucketSeconds)})`;
-}
-
 function formatDateTimeTick(iso: string): string {
   const parts = new Intl.DateTimeFormat("en", {
     month: "short",
@@ -161,6 +157,10 @@ function formatRangeTick(iso: string, bucketSeconds: number, includeDate: boolea
   return includeDate ? formatDateTimeTick(iso) : formatTick(iso, bucketSeconds);
 }
 
+function formatHoverBucketInterval(iso: string, bucketSeconds: number): string {
+  return `[${formatDateTimeTick(iso)}, ${formatDateTimeTick(addBucketSecondsIso(iso, bucketSeconds))})`;
+}
+
 function formatChartHoverInterval(
   points: LiveUsagePoint[],
   index: number,
@@ -169,7 +169,7 @@ function formatChartHoverInterval(
 ): string {
   const point = points[index];
   if (!point) return "";
-  if (metric === "live") return formatBucketInterval(point.t, bucketSeconds);
+  if (metric === "live") return formatHoverBucketInterval(point.t, bucketSeconds);
   const start = points[0]?.t ?? point.t;
   const end = addBucketSecondsIso(point.t, bucketSeconds);
   const includeDate = start.slice(0, 10) !== end.slice(0, 10);
@@ -926,7 +926,7 @@ function TimeSeriesChart({
     hoverIndex == null
       ? ""
       : formatChartHoverInterval(points, hoverIndex, bucketSeconds, metric);
-  const tooltipW = hoverInterval.length > 44 ? 360 : 264;
+  const tooltipW = 320;
   const hoverX = hoverIndex == null ? 0 : xForIndex(hoverIndex);
   const tooltipX =
     hoverX > CHART.left + CHART.plotW * 0.62 ? hoverX - tooltipW - 14 : hoverX + 14;

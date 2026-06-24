@@ -13,7 +13,9 @@
     "study:aggregate": "tsx research/scripts/aggregate.ts",
     "study:report": "tsx research/scripts/report.ts",
     "study:test": "tsx research/scripts/run.ts && tsx research/scripts/extract.ts && tsx research/scripts/aggregate.ts",
-    "tokenecon": "tsx research/scripts/tokenecon.ts"
+    "tokenecon": "tsx research/scripts/tokenecon.ts",
+    "tokenecon:precompute": "tsx research/scripts/precompute-live.ts",
+    "tokenecon:watch": "while true; do pnpm tokenecon:precompute; sleep 300; done"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",

@@ -110,4 +110,5 @@ export interface LiveTokenEconomicsPayload {
   to: string;
   anchors: LiveAnchorSeries[];
   unanchored: LiveModelSeries[];
+  stale?: boolean;
 }
