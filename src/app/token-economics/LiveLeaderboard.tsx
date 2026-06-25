@@ -4,11 +4,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type PointerEvent,
 } from "react";
-import { AlertTriangle, ArrowUpRight, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, Newspaper, RefreshCw } from "lucide-react";
 import {
   DEFAULT_LIVE_RANGE,
   DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS,
@@ -300,19 +301,34 @@ export function LiveLeaderboard() {
   const [range, setRange] = useState<LiveRangeKey>(DEFAULT_LIVE_RANGE);
   const [metric, setMetric] = useState<LiveMetricKey>("cumulative");
   const [axis, setAxis] = useState<LiveYAxisKey>("tokens");
+  // Per-range payload cache: switching to an already-fetched range shows its
+  // data instantly (no skeleton) while a background refresh runs. Kept in a ref
+  // so caching a range doesn't itself trigger a render — `data` drives the UI.
+  const cacheRef = useRef<Partial<Record<LiveRangeKey, LiveTokenEconomicsPayload>>>({});
   const [data, setData] = useState<LiveTokenEconomicsPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // `loading` = first-ever load for the current range (show skeleton).
+  // `refreshing` = we already have data on screen and are silently updating it.
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  // Bumped to force a manual refresh of the current range.
+  const [manualRefresh, setManualRefresh] = useState(0);
 
-  const load = useCallback(
-    async (signal?: AbortSignal) => {
-      const json = await fetchLivePayload(range, signal);
-      setData(json);
-      setError(null);
+  // Switch the visible range, showing its cached payload instantly (no skeleton)
+  // when we've fetched it before. Done in the event handler — the right place
+  // for setState — so the fetch effect below only has to handle data arrival.
+  const selectRange = useCallback((next: LiveRangeKey) => {
+    setError(null);
+    const cached = cacheRef.current[next];
+    if (cached) {
+      setData(cached);
       setLoading(false);
-    },
-    [range],
-  );
+    } else {
+      setData(null);
+      setLoading(true);
+    }
+    setRange(next);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -336,19 +352,27 @@ export function LiveLeaderboard() {
 
     async function run(signal?: AbortSignal) {
       clearTimer();
+      // If we already have data for this range, this is a silent background
+      // refresh; otherwise it's the first load (skeleton already showing).
+      const hasData = cacheRef.current[range] != null;
+      if (hasData) setRefreshing(true);
       try {
         const json = await fetchLivePayload(range, signal);
         if (!live) return;
         refreshIntervalSeconds =
           json.refreshIntervalSeconds || DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS;
+        cacheRef.current[range] = json;
         setData(json);
         setError(null);
         setLoading(false);
+        setRefreshing(false);
         scheduleNext();
       } catch (err) {
         if (!live || signal?.aborted) return;
+        // Keep any on-screen data; just surface the error and stop spinners.
         setError(err instanceof Error ? err.message : "Live usage failed");
         setLoading(false);
+        setRefreshing(false);
         // Use longer backoff on errors to avoid overwhelming a recovering server
         timeoutId = window.setTimeout(() => {
           void run();
@@ -361,11 +385,11 @@ export function LiveLeaderboard() {
       controller.abort();
       clearTimer();
     };
-  }, [range]);
+  }, [range, manualRefresh]);
 
   return (
     <section className="space-y-7">
-      <div className="grid gap-3 border border-[#141414] bg-[#fbf9f4] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+      <div className="grid gap-4 border border-[#141414] bg-[#fbf9f4] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#6f6a5f]">
             Anchor-normalized pricing experiment
@@ -375,19 +399,28 @@ export function LiveLeaderboard() {
             models are priced like DeepSeek?
           </h1>
         </div>
-        <div className="grid min-w-0 grid-cols-1 gap-2 text-[10px] font-bold sm:min-w-[260px] sm:grid-cols-2 lg:grid-cols-3">
-          {(data?.anchors ?? []).map((anchor) => (
-            <div key={anchor.id} className="border border-[#141414] bg-[#f4f1ea] px-2.5 py-2">
-              <div className="uppercase tracking-[0.12em] text-[#6f6a5f]">{anchor.label}</div>
-              <div className="mt-1 tabular-nums text-[#141414]">
-                IN {precisePerM(anchor.price.input)}
-              </div>
-              <div className="tabular-nums text-[#141414]">
-                OUT {precisePerM(anchor.price.output)}
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Deep-dive link: the only inverted-ink element in the header, so it
+            draws the eye without being large. "Read the research" is the hook;
+            the blog subtitle rides along as muted context (+ full title in the
+            title attr). Lives at the header's right edge as a companion CTA. */}
+        <a
+          href="https://zenmux.ai/blog/token-economics"
+          target="_blank"
+          rel="noopener noreferrer"
+          title={`Read the research — Token Economics: What Happens When We Price Every "Eastern Model" to Match DeepSeek?`}
+          className="group inline-flex max-w-full items-center gap-2 self-stretch border border-[#141414] bg-[#141414] py-2 pl-3 pr-2.5 text-[#f4f1ea] transition-colors hover:bg-[#f4f1ea] hover:text-[#141414] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414] sm:self-auto"
+        >
+          <Newspaper className="size-4 shrink-0" aria-hidden />
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-[9px] font-bold uppercase tracking-[0.16em]">
+              Read the research
+            </span>
+            <span className="truncate text-[11px] font-bold leading-tight">
+              Pricing every “Eastern model” to match DeepSeek
+            </span>
+          </span>
+          <ArrowUpRight className="size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden />
+        </a>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
@@ -425,11 +458,7 @@ export function LiveLeaderboard() {
               <button
                 key={option.key}
                 type="button"
-                onClick={() => {
-                  setLoading(true);
-                  setError(null);
-                  setRange(option.key);
-                }}
+                onClick={() => selectRange(option.key)}
                 className={
                   "min-h-8 cursor-pointer border px-3 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors " +
                   (range === option.key
@@ -451,17 +480,14 @@ export function LiveLeaderboard() {
           <button
             type="button"
             onClick={() => {
-              setLoading(true);
-              setError(null);
-              load().catch((err: unknown) => {
-                setError(err instanceof Error ? err.message : "Live usage failed");
-                setLoading(false);
-              });
+              // Re-run the fetch effect for the current range without clearing
+              // the on-screen data (background refresh, spinner only).
+              setManualRefresh((n) => n + 1);
             }}
-            disabled={loading}
+            disabled={loading || refreshing}
             className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 border border-[#141414] bg-[#fbf9f4] px-3 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-[#141414] hover:text-[#f4f1ea] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <RefreshCw className={"size-3 " + (loading ? "animate-spin" : "")} />
+            <RefreshCw className={"size-3 " + (loading || refreshing ? "animate-spin" : "")} />
             Refresh
           </button>
         </div>
@@ -930,7 +956,7 @@ function TimeSeriesChart({
   const hoverX = hoverIndex == null ? 0 : xForIndex(hoverIndex);
   const tooltipX =
     hoverX > CHART.left + CHART.plotW * 0.62 ? hoverX - tooltipW - 14 : hoverX + 14;
-  const tooltipH = 30 + hoverRows.length * 16;
+  const tooltipH = 44 + hoverRows.length * 16;
   const hoverMetricLabel = metric === "live" ? "LIVE" : "TOTAL";
   const hoverAxisLabel = axis === "cost" ? "COST" : "TOKENS";
 
@@ -1183,17 +1209,27 @@ function TimeSeriesChart({
                 stroke="#141414"
                 strokeWidth="1"
               />
+              {/* Split header into two lines: the (sometimes date-spanning)
+                  interval can be ~32 chars and would paint past the fixed
+                  tooltipW box on one line. Interval on top, units below. */}
               <text
                 x={tooltipX + 10}
-                y={CHART.top + 29}
+                y={CHART.top + 27}
                 className="fill-[#141414] text-[10px] font-bold uppercase tracking-[0.08em]"
               >
-                {hoverInterval} UTC · {hoverMetricLabel} · {hoverAxisLabel}
+                {hoverInterval}
+              </text>
+              <text
+                x={tooltipX + 10}
+                y={CHART.top + 41}
+                className="fill-[#6f6a5f] text-[9px] font-bold uppercase tracking-[0.1em]"
+              >
+                UTC · {hoverMetricLabel} · {hoverAxisLabel}
               </text>
               {hoverRows.map((row, i) => (
                 <g
                   key={row.model.slug}
-                  transform={`translate(${tooltipX + 10} ${CHART.top + 49 + i * 16})`}
+                  transform={`translate(${tooltipX + 10} ${CHART.top + 63 + i * 16})`}
                 >
                   <rect
                     x="0"

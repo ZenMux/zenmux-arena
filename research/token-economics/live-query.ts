@@ -24,8 +24,6 @@ const TABLE = "valid_usage";
 export const LIVE_START_ENV = "TOKEN_ECON_LIVE_START_ISO";
 export const LIVE_BUCKET_SECONDS_ENV = "TOKEN_ECON_LIVE_BUCKET_SECONDS";
 export const LIVE_REFRESH_INTERVAL_SECONDS_ENV = "TOKEN_ECON_LIVE_REFRESH_INTERVAL_SECONDS";
-const CACHE_TTL_MS_ENV = "TOKEN_ECON_LIVE_CACHE_TTL_MS";
-const DEFAULT_CACHE_TTL_MS = 10_000; // 10s in-memory hot cache; serves bursts without re-querying
 const QUERY_TIMEOUT_ENV = "TOKEN_ECON_LIVE_QUERY_TIMEOUT_MS";
 const DEFAULT_QUERY_TIMEOUT_MS = 60_000;
 
@@ -37,7 +35,10 @@ const responseCache = new Map<string, { data: LiveTokenEconomicsPayload; expires
 // In-flight de-dup (single-flight): if a merge for a range is already running,
 // concurrent callers await the same promise instead of each firing their own
 // incremental DB query.
-const inFlight = new Map<string, Promise<LiveTokenEconomicsPayload>>();
+const inFlight = new Map<
+  string,
+  Promise<{ payload: LiveTokenEconomicsPayload; source: LiveFetchSource }>
+>();
 
 // Cache directory resolution. READ and WRITE are deliberately split so the two
 // deployment roles never interfere:
@@ -273,6 +274,34 @@ function liveRefreshIntervalSeconds(): number {
 
 function addSeconds(d: Date, seconds: number): Date {
   return new Date(d.getTime() + seconds * 1000);
+}
+
+/**
+ * The timestamp the live data SHOULD currently be advanced to, computed with
+ * pure arithmetic from env config (no file/DB IO). Mirrors how both
+ * `fetchLiveTokenEconomics` and `incrementallyUpdateCache` derive `dataAsOf`:
+ * floor `now` to the refresh interval, then to the bucket. As long as a cached
+ * payload's `to` is >= this value, nothing new could have closed yet, so the
+ * cache is exact (not stale) and no DB query is needed.
+ */
+function currentDataAsOf(now: Date, bucketSeconds: number): Date {
+  const refreshIntervalSeconds = liveRefreshIntervalSeconds();
+  const refreshBoundary = floorToBucket(now, refreshIntervalSeconds);
+  return floorToBucket(refreshBoundary, bucketSeconds);
+}
+
+/**
+ * Milliseconds from `now` until the next refresh boundary closes — i.e. how
+ * long the current answer stays bit-for-bit valid. Used as the L1 TTL so a hot
+ * range is held in memory across the whole bucket window (often minutes),
+ * instead of being recomputed every 10s. Clamped to a small floor so a request
+ * landing exactly on a boundary still caches briefly.
+ */
+function msUntilNextBoundary(now: Date): number {
+  const refreshIntervalSeconds = liveRefreshIntervalSeconds();
+  const boundary = floorToBucket(now, refreshIntervalSeconds);
+  const next = addSeconds(boundary, refreshIntervalSeconds);
+  return Math.max(1_000, next.getTime() - now.getTime());
 }
 
 function sqlDate(d: Date): string {
@@ -775,6 +804,36 @@ export async function incrementallyUpdateCache(
 }
 
 /**
+ * Which layer produced a runtime response. Surfaced to the API route as the
+ * `X-Cache-Source` header so you can tell from the browser Network panel whether
+ * a request was served from memory, the packaged baseline, or a live DB query.
+ *
+ *   - `l1-memory`     : served from the in-memory cache, ZERO DB work (fast).
+ *   - `baseline-fresh`: the packaged baseline already covers the current bucket
+ *                       (no boundary crossed since it was built) — returned as-is
+ *                       with NO config read and NO DB query. Pure time arithmetic.
+ *   - `single-flight` : joined an already-running merge for this range (fast).
+ *   - `incremental-db`: packaged baseline + a DB query for the `baseline.to → now`
+ *                       tail, merged in memory (one DB round-trip — only when a
+ *                       bucket boundary has actually closed since the baseline).
+ *   - `stale-baseline`: DB query failed; served the packaged baseline as-is.
+ *   - `full-db`       : no usable baseline; full re-aggregation from the DB (slow).
+ */
+export type LiveFetchSource =
+  | "l1-memory"
+  | "baseline-fresh"
+  | "single-flight"
+  | "incremental-db"
+  | "stale-baseline"
+  | "full-db";
+
+export interface LiveFetchResult {
+  payload: LiveTokenEconomicsPayload;
+  source: LiveFetchSource;
+  elapsedMs: number;
+}
+
+/**
  * Runtime entry point for the live leaderboard API. Designed for a read-only
  * serverless filesystem that CAN reach the DB:
  *
@@ -789,39 +848,69 @@ export async function incrementallyUpdateCache(
  *      page never hard-fails on a transient DB blip.
  *
  * Never writes to disk (`persist` is never set), so it is safe on read-only FS.
+ * Returns the payload plus diagnostics (`source`, `elapsedMs`).
  */
-export async function getLiveTokenEconomics(
+export async function getLiveTokenEconomicsWithMeta(
   requestedRange: string | null | undefined,
   now = new Date(),
-): Promise<LiveTokenEconomicsPayload> {
+): Promise<LiveFetchResult> {
+  const startedAt = Date.now();
   const range = liveRangeOption(requestedRange);
   const cacheKey = range.key;
-  const inMemoryTtl = liveMsEnv(CACHE_TTL_MS_ENV, DEFAULT_CACHE_TTL_MS);
+  // Hold a hot range in memory until the next bucket boundary closes — the whole
+  // window over which the answer cannot change — rather than a fixed short TTL.
+  const ttlMs = msUntilNextBoundary(now);
 
   // 1. L1 in-memory cache.
   const cached = responseCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
-    return { ...cached.data, generatedAt: now.toISOString() };
+    return {
+      payload: { ...cached.data, generatedAt: now.toISOString() },
+      source: "l1-memory",
+      elapsedMs: Date.now() - startedAt,
+    };
   }
 
   // 2. Single-flight: join an in-progress merge for this range if one exists.
   const existing = inFlight.get(cacheKey);
   if (existing) {
-    const data = await existing;
-    return { ...data, generatedAt: now.toISOString() };
+    const { payload } = await existing;
+    return {
+      payload: { ...payload, generatedAt: now.toISOString() },
+      source: "single-flight",
+      elapsedMs: Date.now() - startedAt,
+    };
   }
 
-  const work = (async (): Promise<LiveTokenEconomicsPayload> => {
-    // 3. Use the packaged JSON cache as the historical baseline.
+  // The merge closure returns BOTH the payload and which path it took, so the
+  // source flows out explicitly (no outer-variable mutation for TS to misjudge).
+  const work = (async (): Promise<{ payload: LiveTokenEconomicsPayload; source: LiveFetchSource }> => {
+    // 3. Read the packaged JSON cache as the historical baseline.
     const baseline = await readJsonCache(range.key);
 
     if (baseline) {
+      // 3a. BOUNDARY CHECK (pure time arithmetic, no DB, no config IO):
+      // if the baseline already reaches the current data-as-of boundary, no new
+      // bucket has closed since it was built, so the baseline IS the live answer.
+      // This is the common case between boundaries (e.g. baseline at 08:00 with a
+      // 1h bucket stays exact until 09:00) and avoids the DB entirely.
+      const lastTo = new Date(baseline.to);
+      if (
+        baseline.bucketSeconds &&
+        !Number.isNaN(lastTo.getTime()) &&
+        lastTo >= currentDataAsOf(now, baseline.bucketSeconds)
+      ) {
+        return { payload: baseline, source: "baseline-fresh" };
+      }
+
       try {
-        // Incrementally fetch only the new tail (baseline.to → now). Returns null
-        // when an incremental update isn't valid (e.g. bucket size changed) — then
-        // fall through to a full fetch.
+        // 3b. A boundary has closed: incrementally fetch only the new tail
+        // (baseline.to → now). Returns null when incremental isn't valid (e.g.
+        // bucket size changed) — then fall through to a full fetch.
         const merged = await incrementallyUpdateCache(requestedRange, baseline, now);
-        if (merged) return merged;
+        if (merged) {
+          return { payload: merged, source: "incremental-db" };
+        }
       } catch (err) {
         // DB blip during the incremental query: serve the stale baseline rather
         // than hard-failing the live page.
@@ -829,20 +918,31 @@ export async function getLiveTokenEconomics(
           `[token-economics/live] Incremental update for ${range.key} failed, serving stale baseline:`,
           err instanceof Error ? err.message : err,
         );
-        return { ...baseline, stale: true };
+        return { payload: { ...baseline, stale: true }, source: "stale-baseline" };
       }
     }
 
     // 4. No baseline (or incompatible): one full fetch from the DB.
-    return fetchLiveTokenEconomics(requestedRange, now);
+    return { payload: await fetchLiveTokenEconomics(requestedRange, now), source: "full-db" };
   })();
 
   inFlight.set(cacheKey, work);
   try {
-    const result = await work;
-    responseCache.set(cacheKey, { data: result, expiresAt: Date.now() + inMemoryTtl });
-    return result;
+    const { payload, source } = await work;
+    // Don't cache a stale-baseline result for long: we want to retry the DB on
+    // the next request, not pin a degraded answer for the whole bucket window.
+    const effectiveTtl = source === "stale-baseline" ? Math.min(ttlMs, 10_000) : ttlMs;
+    responseCache.set(cacheKey, { data: payload, expiresAt: Date.now() + effectiveTtl });
+    return { payload, source, elapsedMs: Date.now() - startedAt };
   } finally {
     inFlight.delete(cacheKey);
   }
+}
+
+/** Payload-only convenience wrapper around {@link getLiveTokenEconomicsWithMeta}. */
+export async function getLiveTokenEconomics(
+  requestedRange: string | null | undefined,
+  now = new Date(),
+): Promise<LiveTokenEconomicsPayload> {
+  return (await getLiveTokenEconomicsWithMeta(requestedRange, now)).payload;
 }
