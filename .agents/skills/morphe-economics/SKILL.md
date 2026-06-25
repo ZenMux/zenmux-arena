@@ -132,10 +132,10 @@ Upload and deploy, with one automatic retry on transient timeout errors:
 ```bash
 echo ""
 echo "=== Deploying to Morphe ==="
-if ! python3 .agents/skills/morphe-economics/scripts/morphe.py deploy --zip code.zip; then
+if ! python3 .agents/skills/morphe-economics/scripts/morphe.py deploy --zip code.zip --timeout 3600; then
   echo "⚠️  First deploy attempt hit transient timeout, retrying..."
   sleep 5
-  python3 .agents/skills/morphe-economics/scripts/morphe.py deploy --zip code.zip
+  python3 .agents/skills/morphe-economics/scripts/morphe.py deploy --zip code.zip --timeout 3600
 fi
 
 echo ""

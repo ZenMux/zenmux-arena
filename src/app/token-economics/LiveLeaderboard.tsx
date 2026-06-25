@@ -136,8 +136,30 @@ function addBucketSecondsIso(iso: string, bucketSeconds: number): string {
   return new Date(new Date(iso).getTime() + bucketSeconds * 1000).toISOString();
 }
 
-function formatBucketEndTick(iso: string, bucketSeconds: number): string {
-  return formatTick(addBucketSecondsIso(iso, bucketSeconds), bucketSeconds);
+// X-axis tick labels are split into two lines — a date row above a time row —
+// so the 72h view (5-minute buckets, labels like "14:30") is no longer
+// ambiguous about WHICH of its three calendar days a time belongs to. We label
+// the bucket's END instant (matching the prior single-line behavior). Daily
+// buckets carry no meaningful intra-day time, so `time` is null and only the
+// date row renders.
+function bucketEndTickLines(
+  iso: string,
+  bucketSeconds: number,
+): { date: string; time: string | null } {
+  const end = new Date(addBucketSecondsIso(iso, bucketSeconds));
+  const date = new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(end);
+  if (bucketSeconds >= 86400) return { date, time: null };
+  const time = new Intl.DateTimeFormat("en", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  }).format(end);
+  return { date, time };
 }
 
 function formatDateTimeTick(iso: string): string {
@@ -1038,6 +1060,13 @@ function TimeSeriesChart({
 
           {xTicks.map((idx) => {
             const x = xForIndex(idx);
+            const tick = points[idx]
+              ? bucketEndTickLines(points[idx].t, bucketSeconds)
+              : null;
+            // When the time row is present, lift the date row up so the two
+            // sit stacked within the bottom margin (date ~30px, time ~16px
+            // above the baseline). Date-only ticks keep the original baseline.
+            const dateY = tick?.time ? CHART.height - 30 : CHART.height - 16;
             return (
               <g key={idx}>
                 <line
@@ -1048,14 +1077,26 @@ function TimeSeriesChart({
                   stroke="#141414"
                   strokeOpacity={0.08}
                 />
-                <text
-                  x={x}
-                  y={CHART.height - 16}
-                  textAnchor="middle"
-                  className="fill-[#6f6a5f] text-[10px] font-bold tabular-nums"
-                >
-                  {points[idx] ? formatBucketEndTick(points[idx].t, bucketSeconds) : ""}
-                </text>
+                {tick && (
+                  <text
+                    x={x}
+                    y={dateY}
+                    textAnchor="middle"
+                    className="fill-[#141414] text-[10px] font-bold tabular-nums"
+                  >
+                    {tick.date}
+                  </text>
+                )}
+                {tick?.time && (
+                  <text
+                    x={x}
+                    y={CHART.height - 16}
+                    textAnchor="middle"
+                    className="fill-[#6f6a5f] text-[10px] font-bold tabular-nums"
+                  >
+                    {tick.time}
+                  </text>
+                )}
               </g>
             );
           })}

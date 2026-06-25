@@ -42,11 +42,14 @@ Subcommands:
                              esbuild-bundle the entry to server.js (vite always
                              external) + build dir, then zip. Writes the zip
                              OUTSIDE the source dir so it never nests itself.
-  deploy --zip PATH [--project-root DIR] [--keep-zip]
+  deploy --zip PATH [--project-root DIR] [--keep-zip] [--timeout SECONDS]
                              presign -> curl PUT upload -> crc64 -> update
                              .morphe.json (checksum + function_name) -> /api/deploy.
                              Prints the deploy result as JSON on stdout. Deletes
                              the local zip on success (--keep-zip to keep it).
+                             --timeout (default 3600s) bounds the /api/deploy
+                             call, which blocks while Morphe unzips + boots the
+                             function — minutes for a large bundle.
 
 Notes:
   * Base URL defaults to https://morphe.zenmux.app, override with MORPHE_BASE_URL.
@@ -101,8 +104,13 @@ def save_auth(payload):
 
 # ----------------------------- HTTP helpers -----------------------------------
 
-def api_post(path, body, token=None):
+def api_post(path, body, token=None, timeout=120):
     """POST JSON to {BASE_URL}/api{path}; returns parsed JSON dict.
+
+    `timeout` is the socket read timeout in seconds. Most calls finish in
+    well under the 120s default, but /deploy blocks server-side while Morphe
+    unzips the artifact and boots the function, which can take minutes for a
+    large Next.js bundle — callers pass a longer timeout for it.
 
     Raises RuntimeError with a readable message on non-2xx.
     """
@@ -118,7 +126,7 @@ def api_post(path, body, token=None):
         headers["Cookie"] = f"morphe_session={token}"
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", "replace")
@@ -803,12 +811,13 @@ def cmd_deploy(args):
     save_morphe_json(project_root, morphe)
     print(f"function_name: {function_name}", file=sys.stderr)
 
-    # 10. deploy
+    # 10. deploy — server-side unzip + function boot can take minutes for a
+    #     large bundle, so use the (long) --timeout instead of the 120s default.
     result = api_post("/deploy", {
         "functionName": function_name,
         "ossObjectName": code_object,
         "checksum": checksum,
-    }, token=token)
+    }, token=token, timeout=args.timeout)
 
     # 11. report
     print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -872,6 +881,10 @@ def main():
     p_deploy.add_argument("--keep-zip", action="store_true",
                           help="Keep the local zip after a successful deploy "
                                "(default: delete it)")
+    p_deploy.add_argument("--timeout", type=int, default=3600,
+                          help="Socket read timeout in seconds for the /deploy "
+                               "call, which blocks while Morphe unzips + boots "
+                               "the function (default: 3600)")
 
     args = parser.parse_args()
     handlers = {
