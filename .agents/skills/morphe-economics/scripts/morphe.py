@@ -28,6 +28,12 @@ Subcommands:
                              Resolve & persist function_name in .morphe.json.
                              --name given -> use it; else keep existing; else
                              generate user-xxxxxxxx. Prints the final name.
+  bump-version [--project-root DIR] [--part major|minor|patch] [--set X.Y.Z]
+                             Increment package.json's version IN PLACE so the
+                             in-app build badge advances each deploy. Default is
+                             a minor bump (0.22.0 -> 0.23.0). MUST run before the
+                             production build (next.config.ts bakes the version
+                             into the bundle). --set pins an exact version.
   package [--project-root DIR] [--out code.zip]
           [--framework auto|nextjs|bigfish|vite] [--static-dir DIR]
           [--server-entry auto|PATH] [--external NAME ...]
@@ -64,6 +70,7 @@ import argparse
 import json
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -283,6 +290,74 @@ def cmd_set_function_name(args):
         morphe["function_name"] = gen_function_name()
     save_morphe_json(project_root, morphe)
     print(morphe["function_name"])
+    return 0
+
+
+# ----------------------------- version bump -----------------------------------
+# Auto-increment package.json's `version` on every deploy so the in-app build
+# badge (which bakes package.json's version into the bundle at build time, see
+# next.config.ts) advances on its own. MUST run BEFORE `pnpm build`, or the new
+# number won't be inlined into the shipped JS.
+#
+# Default is a MINOR bump (X.Y.Z -> X.(Y+1).0), i.e. "+0.1" in the user's terms:
+# 0.22.0 -> 0.23.0. --part lets you bump major/patch instead; --set pins an exact
+# version. Only the dotted numeric core is understood; a pre-release/build suffix
+# (e.g. "1.2.3-beta.4") is dropped on bump, which is the desired reset behavior.
+
+def _parse_semver(raw):
+    """Return (major, minor, patch) ints from a version string, tolerating a
+    leading 'v' and a trailing pre-release/build suffix. Missing segments are 0."""
+    core = str(raw or "").strip().lstrip("vV")
+    core = re.split(r"[-+]", core, maxsplit=1)[0]  # drop -prerelease / +build
+    parts = core.split(".") if core else []
+    nums = []
+    for i in range(3):
+        token = parts[i] if i < len(parts) else "0"
+        try:
+            nums.append(int(token))
+        except ValueError:
+            nums.append(0)
+    return nums[0], nums[1], nums[2]
+
+
+def bump_semver(raw, part="minor"):
+    major, minor, patch = _parse_semver(raw)
+    if part == "major":
+        return f"{major + 1}.0.0"
+    if part == "patch":
+        return f"{major}.{minor}.{patch + 1}"
+    # default: minor
+    return f"{major}.{minor + 1}.0"
+
+
+def cmd_bump_version(args):
+    project_root = Path(args.project_root).resolve()
+    pkg_path = project_root / "package.json"
+    if not pkg_path.exists():
+        print(f"❌ package.json not found at {pkg_path}", file=sys.stderr)
+        return 1
+
+    raw = pkg_path.read_text()
+    try:
+        pkg = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        print(f"❌ package.json is not valid JSON: {exc}", file=sys.stderr)
+        return 1
+
+    old = pkg.get("version", "0.0.0")
+    new = args.set.strip().lstrip("vV") if args.set else bump_semver(old, args.part)
+    pkg["version"] = new
+
+    # Preserve the file's original indentation + trailing newline so the diff is
+    # just the version line (npm/pnpm write 2-space indent + a final newline).
+    indent = 2
+    m = re.search(r"\n(\s+)\"", raw)
+    if m:
+        indent = len(m.group(1).replace("\t", "  "))
+    trailing = "\n" if raw.endswith("\n") else ""
+    pkg_path.write_text(json.dumps(pkg, ensure_ascii=False, indent=indent) + trailing)
+
+    print(f"📌 Version bumped: {old} -> {new}")
     return 0
 
 
@@ -786,15 +861,20 @@ def cmd_deploy(args):
     code_object = presign["codeObject"]
     print(f"Presigned object: {code_object}", file=sys.stderr)
 
-    # 6. upload via curl (PUT direct to OSS)
-    curl = subprocess.run(
-        ["curl", "-fsS", "-X", "PUT", "-T", str(zip_path),
-         "-H", "Content-Type: application/zip",
-         "-H", f"User-Agent: {USER_AGENT}", upload_url],
-        capture_output=True, text=True,
-    )
-    if curl.returncode != 0:
-        print(f"Upload failed: {curl.stderr}", file=sys.stderr)
+    # 6. upload via urllib PUT direct to OSS (avoids curl subprocess SIGKILL on macOS for large files)
+    try:
+        import urllib.request as _urllib_req
+        with open(zip_path, "rb") as _fh:
+            _data = _fh.read()
+        _req = _urllib_req.Request(upload_url, data=_data, method="PUT")
+        _req.add_header("Content-Type", "application/zip")
+        _req.add_header("User-Agent", USER_AGENT)
+        with _urllib_req.urlopen(_req, timeout=300) as _resp:
+            if _resp.status not in (200, 201, 204):
+                print(f"Upload failed: HTTP {_resp.status}", file=sys.stderr)
+                return 1
+    except Exception as _e:
+        print(f"Upload failed: {_e}", file=sys.stderr)
         return 1
     print("Upload OK", file=sys.stderr)
 
@@ -854,6 +934,17 @@ def main():
                        help="Function name to use; omit to keep existing or generate")
     p_sfn.add_argument("--project-root", default=".")
 
+    p_bump = sub.add_parser("bump-version")
+    p_bump.add_argument("--project-root", default=".",
+                        help="Project root holding package.json (default: cwd)")
+    p_bump.add_argument("--part", default="minor",
+                        choices=["major", "minor", "patch"],
+                        help="Which semver segment to increment (default: minor, "
+                             "i.e. 0.22.0 -> 0.23.0)")
+    p_bump.add_argument("--set", default="",
+                        help="Pin an exact version instead of bumping (e.g. 1.0.0); "
+                             "overrides --part")
+
     p_package = sub.add_parser("package")
     p_package.add_argument("--project-root", default=".",
                            help="Project root holding the build output (default: cwd)")
@@ -892,6 +983,7 @@ def main():
         "login": cmd_login,
         "detect-framework": cmd_detect_framework,
         "set-function-name": cmd_set_function_name,
+        "bump-version": cmd_bump_version,
         "package": cmd_package,
         "deploy": cmd_deploy,
     }

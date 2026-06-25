@@ -32,7 +32,33 @@ python3 .agents/skills/morphe-economics/scripts/morphe.py set-function-name --na
 
 ---
 
-### Step 2: Run Incremental Pre-Aggregation
+### Step 2: Bump Version (auto-increment, runs BEFORE the build)
+Increment `package.json`'s version so the in-app build badge advances on every
+deploy. This **must** run before `pnpm build` — `next.config.ts` reads
+`package.json`'s `version` at build time and bakes it into the bundle, so a bump
+after the build would not ship.
+
+Default behavior is a **minor bump** (`X.Y.Z → X.(Y+1).0`, e.g. `0.22.0 →
+0.23.0`) — what the user calls "+0.1". The script edits `package.json` in place,
+preserving its formatting (only the version line changes):
+```bash
+echo ""
+echo "=== Bumping app version (minor +1 by default) ==="
+python3 .agents/skills/morphe-economics/scripts/morphe.py bump-version
+```
+Variations (only if explicitly requested):
+- Patch fix: `... bump-version --part patch`   (`0.22.0 → 0.22.1`)
+- Major release: `... bump-version --part major` (`0.22.0 → 1.0.0`)
+- Pin exact: `... bump-version --set 1.0.0`
+
+> The bumped `package.json` is part of the deploy diff — commit it (or let it
+> ride as a working-tree change). The build badge then reads `v0.23.0` while the
+> git sha + build time auto-refresh on their own (see `next.config.ts` /
+> `src/components/BuildStamp.tsx`).
+
+---
+
+### Step 3: Run Incremental Pre-Aggregation
 This step warms the token economics cache before building, using incremental updates to minimize runtime:
 ```bash
 bash .agents/skills/morphe-economics/scripts/predeploy.sh
@@ -51,7 +77,7 @@ This script automatically:
 
 ---
 
-### Step 3: Verify Build Configuration
+### Step 4: Verify Build Configuration
 Ensure Next.js is configured to include the `.cache` directory in standalone output. For this project, it's already pre-configured, but automatically add it if missing:
 ```bash
 if ! grep -q '\.cache/\*\*' next.config.ts 2>/dev/null && ! grep -q '\.cache/\*\*' next.config.js 2>/dev/null; then
@@ -70,13 +96,13 @@ const nextConfig: NextConfig = {
 };
 ```
 > This makes `next build`'s tracer pull `.cache/**` into `.next/standalone/`.
-> Step 5 below ALSO copies it in by hand — that's deliberate belt-and-braces:
+> Step 6 below ALSO copies it in by hand — that's deliberate belt-and-braces:
 > the trace include can miss freshly-written files depending on build timing,
 > so the explicit copy guarantees the just-refreshed baseline is packaged.
 
 ---
 
-### Step 4: Production Build
+### Step 5: Production Build
 Run standard Next.js production build:
 ```bash
 echo ""
@@ -86,7 +112,7 @@ pnpm build
 
 ---
 
-### Step 5: Copy Cache into Standalone Before Packaging
+### Step 6: Copy Cache into Standalone Before Packaging
 The morphe.py packager handles copying `.next/static` and `public/` automatically. We only need to copy the `.cache` directory into `.next/standalone/` so it gets included in the zip:
 ```bash
 echo ""
@@ -103,7 +129,7 @@ fi
 
 ---
 
-### Step 6: Package Deployment Zip (Use official morphe packager)
+### Step 7: Package Deployment Zip (Use official morphe packager)
 Use the bundled morphe.py package command for Next.js - it automatically handles native binary pruning for linux-x64, fixes pnpm symlink issues, and preserves symlinks to reduce package size:
 ```bash
 echo ""
@@ -127,7 +153,7 @@ fi
 
 ---
 
-### Step 7: Deploy to Morphe
+### Step 8: Deploy to Morphe
 Upload and deploy, with one automatic retry on transient timeout errors:
 ```bash
 echo ""
@@ -172,7 +198,7 @@ After deployment, the token economics API serves a live leaderboard like this:
 
 The runtime is **read-only**: it never writes to disk. The only writer is the
 `tokenecon:precompute` step on the writable build machine, whose output is
-packaged into the deploy artifact (Step 5).
+packaged into the deploy artifact (Step 6).
 
 ## Fallback Behavior
 If *anything* goes wrong with pre-aggregation (DB down, network issues, script errors):

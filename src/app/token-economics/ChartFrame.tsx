@@ -135,7 +135,7 @@ export function ChartFrame({
           <div className="text-right font-mono text-[10px] tabular-nums text-[#6f6a5f]">
             <div>{SITE_URL}</div>
             <div className="mt-0.5 uppercase tracking-[0.08em]">
-              {exportedAt ? `Exported ${formatUtc(exportedAt)}` : "Export time: UTC"}
+              {exportedAt ? `Exported ${formatLocal(exportedAt)}` : "Export time"}
             </div>
           </div>
         </div>
@@ -148,9 +148,26 @@ function nextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
 }
 
-function formatUtc(iso: string): string {
+// The exported image stamps the moment of export in the viewer's LOCAL
+// timezone. Export only happens on a user click in the browser, so there's no
+// SSR of this string to mismatch on. A short zone label (e.g. "GMT+8") is
+// appended so the absolute instant stays unambiguous in the saved PNG.
+function formatLocal(iso: string): string {
   const d = new Date(iso);
-  return `${d.toISOString().slice(0, 19).replace("T", " ")} UTC`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZoneName: "short",
+  }).formatToParts(d);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  const zone = get("timeZoneName");
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}:${get("second")}${zone ? ` ${zone}` : ""}`;
 }
 
 async function waitForImages(node: HTMLElement): Promise<void> {

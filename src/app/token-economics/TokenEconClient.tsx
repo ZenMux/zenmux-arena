@@ -19,6 +19,7 @@ import Link from "next/link";
 import type { TokenEconomicsData } from "@research/token-economics/types";
 import { usd, perDay, perDollarDay } from "./lib";
 import { StatBox } from "./components";
+import { LocalTime } from "@/components/LocalTime";
 import { TokenEconNav, type View } from "./TokenEconNav";
 import { Leaderboard } from "./Leaderboard";
 import { LiveLeaderboard } from "./LiveLeaderboard";
@@ -198,8 +199,8 @@ function Shell({
             >
               zenmux.ai/models
             </a>{" "}
-            on {new Date(data.generatedAt).toISOString().slice(0, 10)}. Free /
-            unpriced models excluded.
+            on <LocalTime iso={data.generatedAt} style="date" />. Free / unpriced
+            models excluded.
           </p>
           <p className="mt-2">
             <b className="text-[#141414]">DAILY TOKENS.</b> Each model&apos;s{" "}

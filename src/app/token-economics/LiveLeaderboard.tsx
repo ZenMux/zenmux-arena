@@ -106,13 +106,31 @@ function requests(n: number): string {
   return `${Math.round(n)} req`;
 }
 
+// ── Timezone note ────────────────────────────────────────────────────────────
+// The Live tape renders entirely on the client (data arrives in a useEffect, so
+// the server emits only a skeleton). That makes it safe to format every stamp in
+// the VIEWER'S local timezone — there's no server render of these strings to
+// mismatch on hydration. We simply omit `timeZone`, so Intl uses the browser's
+// zone. Bucket boundaries themselves remain UTC-aligned server-side (a property
+// of the data); only their human labels are localized. `localZone()` supplies a
+// short label (e.g. "GMT+8") wherever we used to print a literal "UTC".
+function localZone(): string {
+  try {
+    const parts = new Intl.DateTimeFormat(undefined, {
+      timeZoneName: "short",
+    }).formatToParts(new Date());
+    return parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+  } catch {
+    return "";
+  }
+}
+
 function formatTick(iso: string, bucketSeconds: number): string {
   const d = new Date(iso);
   if (bucketSeconds >= 86400) {
     return new Intl.DateTimeFormat("en", {
       month: "short",
       day: "numeric",
-      timeZone: "UTC",
     }).format(d);
   }
   if (bucketSeconds >= 3600) {
@@ -121,14 +139,12 @@ function formatTick(iso: string, bucketSeconds: number): string {
       day: "numeric",
       hour: "2-digit",
       hour12: false,
-      timeZone: "UTC",
     }).format(d);
   }
   return new Intl.DateTimeFormat("en", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: "UTC",
   }).format(d);
 }
 
@@ -150,14 +166,12 @@ function bucketEndTickLines(
   const date = new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
-    timeZone: "UTC",
   }).format(end);
   if (bucketSeconds >= 86400) return { date, time: null };
   const time = new Intl.DateTimeFormat("en", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: "UTC",
   }).format(end);
   return { date, time };
 }
@@ -169,7 +183,6 @@ function formatDateTimeTick(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: "UTC",
   }).formatToParts(new Date(iso));
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? "";
@@ -207,7 +220,6 @@ function formatStamp(iso: string): string {
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
-    timeZone: "UTC",
   }).format(new Date(iso));
 }
 
@@ -467,9 +479,9 @@ export function LiveLeaderboard() {
               <span className="text-[#141414]">{data.bucket}</span> buckets ·{" "}
               <span className="text-[#141414]">{formatDuration(data.refreshIntervalSeconds)}</span>{" "}
               refresh · <span className="text-[#141414]">{formatTick(data.from, data.bucketSeconds)}</span>{" "}
-              → <span className="text-[#141414]">{formatStamp(data.to)}</span> UTC ·{" "}
+              → <span className="text-[#141414]">{formatStamp(data.to)}</span> {localZone()} ·{" "}
               refreshed{" "}
-              <span className="text-[#141414]">{formatStamp(data.generatedAt)}</span> UTC
+              <span className="text-[#141414]">{formatStamp(data.generatedAt)}</span> {localZone()}
             </div>
           )}
           <div
@@ -490,7 +502,7 @@ export function LiveLeaderboard() {
                 title={
                   option.key === "all"
                     ? data
-                      ? `Since ${formatStamp(data.from)} UTC`
+                      ? `Since ${formatStamp(data.from)} ${localZone()}`
                       : "Since the configured live start"
                     : "Trailing 72 hours, clipped to the configured start"
                 }
@@ -1265,7 +1277,7 @@ function TimeSeriesChart({
                 y={CHART.top + 41}
                 className="fill-[#6f6a5f] text-[9px] font-bold uppercase tracking-[0.1em]"
               >
-                UTC · {hoverMetricLabel} · {hoverAxisLabel}
+                {localZone()} · {hoverMetricLabel} · {hoverAxisLabel}
               </text>
               {hoverRows.map((row, i) => (
                 <g
