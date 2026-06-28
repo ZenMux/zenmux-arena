@@ -12,6 +12,17 @@ import { Fingerprint, Coins, type LucideIcon } from "lucide-react";
 /** Where an experiment is in its lifecycle. `soon` cards are shown but inert. */
 export type ExperimentStatus = "live" | "soon";
 
+/**
+ * Visual identity hint for the hub card. Each value maps (in the homepage's
+ * CARD_THEMES table) to a card surface that mirrors the experiment's own page —
+ * so the card reads as a faithful miniature of where it leads. Add a new theme
+ * here + in CARD_THEMES when a future experiment has a distinct look; unknown /
+ * omitted values fall back to the neutral default.
+ *   · "graph"  — Who Are You?: soft shadcn graph-lab, emerald accent, node motif
+ *   · "ledger" — Token Economics: mono financial newsprint, hard rule, ink/green
+ */
+export type ExperimentTheme = "graph" | "ledger" | "default";
+
 export interface Experiment {
   /** Stable slug, also used as a React key. */
   id: string;
@@ -30,6 +41,8 @@ export interface Experiment {
   icon: LucideIcon;
   /** Tailwind utility for the icon tile accent (kept on-token where possible). */
   accent: string;
+  /** Card visual identity on the hub — mirrors the experiment's own page. */
+  theme: ExperimentTheme;
 }
 
 export const EXPERIMENTS: Experiment[] = [
@@ -43,6 +56,7 @@ export const EXPERIMENTS: Experiment[] = [
     href: "/who-are-you/studio",
     icon: Fingerprint,
     accent: "text-emerald-600 dark:text-emerald-400",
+    theme: "graph",
   },
   {
     id: "token-economics",
@@ -54,6 +68,7 @@ export const EXPERIMENTS: Experiment[] = [
     href: "/token-economics",
     icon: Coins,
     accent: "text-amber-600 dark:text-amber-400",
+    theme: "ledger",
   },
 ];
 

@@ -1,6 +1,6 @@
 {
   "name": "zenmux-arena",
-  "version": "0.23.0",
+  "version": "0.27.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
