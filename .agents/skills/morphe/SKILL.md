@@ -36,19 +36,25 @@ Execute these steps in order. Stop and report if any step fails.
 
 ### 1. Ensure logged in
 
-```bash
-python3 SKILL_DIR/scripts/morphe.py check-auth
-```
-
-- Exit 0 → already logged in (valid `accessToken` in `~/.morphe/auth.json`). Continue.
-- Exit 1 → not logged in. Ask the user for their **username** and **password**, then:
+Log in via the browser — **never ask the user for a username or password**:
 
 ```bash
-python3 SKILL_DIR/scripts/morphe.py login --username "USER" --password "PASS"
+bash SKILL_DIR/scripts/login.sh
 ```
 
-Never echo the password back. On success the token is saved to `~/.morphe/auth.json`.
-If login fails (e.g. HTTP 401), report the error and stop.
+This works like `gh auth login` / `vercel login`: the user only clicks in the
+browser, no copy-pasting tokens.
+
+- If a valid `accessToken` already exists in `~/.morphe/auth.json`, the script
+  reuses it and skips the browser (prints `AUTH_OK=1` immediately).
+- Otherwise it starts a local callback server, opens the browser to
+  `morphe.zenmux.app/cli-auth` (prints `OPEN_AUTH=<url>` — surface this to the
+  user in case the browser can't auto-open), and waits. The user logs in
+  (password or Google) and clicks **「授权并返回终端」**; the browser POSTs the
+  token back and the script writes it to `~/.morphe/auth.json`.
+- On success the script prints `AUTH_OK=1`. To force a fresh login (e.g. switch
+  accounts), run `bash SKILL_DIR/scripts/login.sh --force`.
+- If the script errors or times out (no `AUTH_OK=1`), report the error and stop.
 
 ### 2. Detect the framework
 

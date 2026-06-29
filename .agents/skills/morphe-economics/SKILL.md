@@ -22,7 +22,23 @@ Execute all steps below from the project root, using scripts bundled inside `.ag
 
 ---
 
-### Step 1: Resolve Function Name
+### Step 1: Ensure Logged In
+Log in via the browser — **never ask the user for a username or password**:
+
+```bash
+bash .agents/skills/morphe-economics/scripts/login.sh
+```
+
+This works like `gh auth login` / `vercel login`: the user only clicks in the browser, no copy-pasting tokens.
+
+- If a valid `accessToken` already exists in `~/.morphe/auth.json`, the script reuses it and skips the browser (prints `AUTH_OK=1` immediately).
+- Otherwise it starts a local callback server, opens the browser to `morphe.zenmux.app/cli-auth` (prints `OPEN_AUTH=<url>` — surface this to the user in case the browser can't auto-open), and waits. The user logs in (password or Google) and clicks **「授权并返回终端」**; the browser POSTs the token back and the script writes it to `~/.morphe/auth.json`.
+- On success the script prints `AUTH_OK=1`. To force a fresh login (e.g. switch accounts), run `bash .agents/skills/morphe-economics/scripts/login.sh --force`.
+- If the script errors or times out (no `AUTH_OK=1`), report the error and stop.
+
+---
+
+### Step 2: Resolve Function Name
 Use the provided app name or detect from directory name:
 ```bash
 APP_NAME="${1:-$(basename "$PWD")}"
@@ -32,7 +48,7 @@ python3 .agents/skills/morphe-economics/scripts/morphe.py set-function-name --na
 
 ---
 
-### Step 2: Bump Version (auto-increment, runs BEFORE the build)
+### Step 3: Bump Version (auto-increment, runs BEFORE the build)
 Increment `package.json`'s version so the in-app build badge advances on every
 deploy. This **must** run before `pnpm build` — `next.config.ts` reads
 `package.json`'s `version` at build time and bakes it into the bundle, so a bump
@@ -58,7 +74,7 @@ Variations (only if explicitly requested):
 
 ---
 
-### Step 3: Run Incremental Pre-Aggregation
+### Step 4: Run Incremental Pre-Aggregation
 This step warms the token economics cache before building, using incremental updates to minimize runtime:
 ```bash
 bash .agents/skills/morphe-economics/scripts/predeploy.sh
@@ -77,7 +93,7 @@ This script automatically:
 
 ---
 
-### Step 4: Verify Build Configuration
+### Step 5: Verify Build Configuration
 Ensure Next.js is configured to include the `.cache` directory in standalone output. For this project, it's already pre-configured, but automatically add it if missing:
 ```bash
 if ! grep -q '\.cache/\*\*' next.config.ts 2>/dev/null && ! grep -q '\.cache/\*\*' next.config.js 2>/dev/null; then
@@ -102,7 +118,7 @@ const nextConfig: NextConfig = {
 
 ---
 
-### Step 5: Production Build
+### Step 6: Production Build
 Run standard Next.js production build:
 ```bash
 echo ""
@@ -112,7 +128,7 @@ pnpm build
 
 ---
 
-### Step 6: Copy Cache into Standalone Before Packaging
+### Step 7: Copy Cache into Standalone Before Packaging
 The morphe.py packager handles copying `.next/static` and `public/` automatically. We only need to copy the `.cache` directory into `.next/standalone/` so it gets included in the zip:
 ```bash
 echo ""
@@ -129,7 +145,7 @@ fi
 
 ---
 
-### Step 7: Package Deployment Zip (Use official morphe packager)
+### Step 8: Package Deployment Zip (Use official morphe packager)
 Use the bundled morphe.py package command for Next.js - it automatically handles native binary pruning for linux-x64, fixes pnpm symlink issues, and preserves symlinks to reduce package size:
 ```bash
 echo ""
@@ -153,7 +169,7 @@ fi
 
 ---
 
-### Step 8: Deploy to Morphe
+### Step 9: Deploy to Morphe
 Upload and deploy, with one automatic retry on transient timeout errors:
 ```bash
 echo ""

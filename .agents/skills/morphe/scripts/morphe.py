@@ -43,7 +43,7 @@ Subcommands:
                              external) + build dir, then zip. Writes the zip
                              OUTSIDE the source dir so it never nests itself.
   deploy --zip PATH [--project-root DIR] [--keep-zip]
-                             presign -> curl PUT upload -> crc64 -> update
+                             presign -> PUT upload -> crc64 -> update
                              .morphe.json (checksum + function_name) -> /api/deploy.
                              Prints the deploy result as JSON on stdout. Deletes
                              the local zip on success (--keep-zip to keep it).
@@ -53,8 +53,8 @@ Notes:
   * The OpenAPI spec advertises cookie auth (morphe_session) but login returns
     an accessToken. Authenticated requests send the token BOTH as the
     morphe_session cookie AND as an Authorization: Bearer header for robustness.
-  * No third-party Python deps. The large file upload uses curl (as required);
-    JSON API calls use urllib.
+  * No third-party Python deps. Both the JSON API calls and the large-file OSS
+    upload use urllib (the upload is streamed from disk via a PUT request).
 """
 
 import argparse
@@ -72,7 +72,7 @@ BASE_URL = os.environ.get("MORPHE_BASE_URL", "https://morphe.zenmux.app").rstrip
 AUTH_PATH = Path.home() / ".morphe" / "auth.json"
 
 # Cloudflare (error 1010) bans the default Python-urllib User-Agent, so present a
-# browser-like one on every request (urllib + curl upload).
+# browser-like one on every request.
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
@@ -125,6 +125,33 @@ def api_post(path, body, token=None):
         raise RuntimeError(f"POST {path} failed: HTTP {e.code} {detail}") from None
     except urllib.error.URLError as e:
         raise RuntimeError(f"POST {path} failed: {e.reason}") from None
+
+
+def http_put_file(url, file_path, content_type):
+    """PUT a file to a presigned URL, streaming it from disk.
+
+    The file object is passed as the request body so urllib streams it instead
+    of reading the whole (often 20M+) zip into memory; Content-Length is set
+    explicitly because OSS rejects a chunked/identity PUT without it.
+    Raises RuntimeError on non-2xx or transport error.
+    """
+    file_path = Path(file_path)
+    size = file_path.stat().st_size
+    headers = {
+        "Content-Type": content_type,
+        "Content-Length": str(size),
+        "User-Agent": USER_AGENT,
+    }
+    with open(file_path, "rb") as f:
+        req = urllib.request.Request(url, data=f, headers=headers, method="PUT")
+        try:
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                resp.read()
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf-8", "replace")
+            raise RuntimeError(f"HTTP {e.code} {detail}") from None
+        except urllib.error.URLError as e:
+            raise RuntimeError(str(e.reason)) from None
 
 
 # ----------------------------- CRC64 (ECMA / xz) ------------------------------
@@ -778,15 +805,12 @@ def cmd_deploy(args):
     code_object = presign["codeObject"]
     print(f"Presigned object: {code_object}", file=sys.stderr)
 
-    # 6. upload via curl (PUT direct to OSS)
-    curl = subprocess.run(
-        ["curl", "-fsS", "-X", "PUT", "-T", str(zip_path),
-         "-H", "Content-Type: application/zip",
-         "-H", f"User-Agent: {USER_AGENT}", upload_url],
-        capture_output=True, text=True,
-    )
-    if curl.returncode != 0:
-        print(f"Upload failed: {curl.stderr}", file=sys.stderr)
+    # 6. upload via PUT direct to OSS (streamed from disk so a large zip is not
+    #    buffered in memory; Content-Length set explicitly as OSS requires it).
+    try:
+        http_put_file(upload_url, zip_path, "application/zip")
+    except RuntimeError as e:
+        print(f"Upload failed: {e}", file=sys.stderr)
         return 1
     print("Upload OK", file=sys.stderr)
 

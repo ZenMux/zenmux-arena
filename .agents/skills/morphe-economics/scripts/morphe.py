@@ -142,6 +142,33 @@ def api_post(path, body, token=None, timeout=120):
         raise RuntimeError(f"POST {path} failed: {e.reason}") from None
 
 
+def http_put_file(url, file_path, content_type):
+    """PUT a file to a presigned URL, streaming it from disk.
+
+    The file object is passed as the request body so urllib streams it instead
+    of reading the whole (often 20M+) zip into memory; Content-Length is set
+    explicitly because OSS rejects a chunked/identity PUT without it.
+    Raises RuntimeError on non-2xx or transport error.
+    """
+    file_path = Path(file_path)
+    size = file_path.stat().st_size
+    headers = {
+        "Content-Type": content_type,
+        "Content-Length": str(size),
+        "User-Agent": USER_AGENT,
+    }
+    with open(file_path, "rb") as f:
+        req = urllib.request.Request(url, data=f, headers=headers, method="PUT")
+        try:
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                resp.read()
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf-8", "replace")
+            raise RuntimeError(f"HTTP {e.code} {detail}") from None
+        except urllib.error.URLError as e:
+            raise RuntimeError(str(e.reason)) from None
+
+
 # ----------------------------- CRC64 (ECMA / xz) ------------------------------
 # Aliyun OSS uses CRC-64/XZ: poly 0x42F0E1EBA9EA3693, reflected, init/xorout all-ones.
 
@@ -861,20 +888,12 @@ def cmd_deploy(args):
     code_object = presign["codeObject"]
     print(f"Presigned object: {code_object}", file=sys.stderr)
 
-    # 6. upload via urllib PUT direct to OSS (avoids curl subprocess SIGKILL on macOS for large files)
+    # 6. upload via PUT direct to OSS (streamed from disk so a large zip is not
+    #    buffered in memory; Content-Length set explicitly as OSS requires it).
     try:
-        import urllib.request as _urllib_req
-        with open(zip_path, "rb") as _fh:
-            _data = _fh.read()
-        _req = _urllib_req.Request(upload_url, data=_data, method="PUT")
-        _req.add_header("Content-Type", "application/zip")
-        _req.add_header("User-Agent", USER_AGENT)
-        with _urllib_req.urlopen(_req, timeout=300) as _resp:
-            if _resp.status not in (200, 201, 204):
-                print(f"Upload failed: HTTP {_resp.status}", file=sys.stderr)
-                return 1
-    except Exception as _e:
-        print(f"Upload failed: {_e}", file=sys.stderr)
+        http_put_file(upload_url, zip_path, "application/zip")
+    except RuntimeError as e:
+        print(f"Upload failed: {e}", file=sys.stderr)
         return 1
     print("Upload OK", file=sys.stderr)
 

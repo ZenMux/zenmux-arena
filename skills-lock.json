@@ -23,7 +23,7 @@
       "source": "zenmux/skills",
       "sourceType": "github",
       "skillPath": "skills/morphe/SKILL.md",
-      "computedHash": "4c36dbd2fdd4123fe4609a8ef306b11d3e62600e67a6ef60e6191fc3d7dd1c4a"
+      "computedHash": "16c001056132edfaef994ef9f6202df6519c3b47588d1a3cd5703bb75e4c330c"
     },
     "next-best-practices": {
       "source": "vercel-labs/next-skills",
@@ -115,11 +115,11 @@
       "skillPath": "skills/zenmux-usage/SKILL.md",
       "computedHash": "66b3ec9462f71148ca354f24737c537019f4fec9280dc2ec2c63289bb696dc50"
     },
-    "morphe-plus": {
+    "morphe-economics": {
       "source": "local",
       "sourceType": "local",
-      "skillPath": "skills/morphe-plus/SKILL.md",
-      "computedHash": "cf1fd92bebabf182bec3a3890e3ba658f2e00087ad7ad578ad6648820c0e0cde"
+      "skillPath": "skills/morphe-economics/SKILL.md",
+      "computedHash": "9b7a4e90bc9bbc84f76101f3e6d1478e21ac1af7ce5c732a7c9866410838b4e1"
     }
   }
 }
