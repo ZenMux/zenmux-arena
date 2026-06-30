@@ -29,6 +29,7 @@ export type VendorId =
   | "xiaomi"
   | "tencent"
   | "inclusionai"
+  | "meituan"
   | "meta"
   | "mistral"
   | "agnes"

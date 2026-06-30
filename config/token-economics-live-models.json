@@ -162,6 +162,13 @@
       "inputPrice": 0.8848,
       "outputPrice": 4.424,
       "anchor": "deepseek-v4-pro"
+    },
+    {
+      "model": "LongCat-2.0",
+      "slug": "meituan/longcat-2.0",
+      "inputPrice": 0.75,
+      "outputPrice": 2.95,
+      "anchor": "deepseek-v4-pro"
     }
   ]
 }

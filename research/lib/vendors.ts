@@ -175,6 +175,17 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
       "ming",
     ],
   },
+  meituan: {
+    id: "meituan",
+    name: "LongCat",
+    logo: "longcat.png",
+    aliases: [
+      "meituan",
+      "longcat",
+      "long cat",
+      "美团",
+    ],
+  },
   meta: {
     id: "meta",
     name: "Meta",

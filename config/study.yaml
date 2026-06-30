@@ -143,6 +143,7 @@ models:
     }
   - { id: "qwen/qwen3.7-max:alibaba", vendor: qwen, label: "Qwen3.7 Max" }
   - { id: "baidu/ernie-5.1:baidu", vendor: baidu, label: "ERNIE 5.1" }
+  - { id: "meituan/longcat-2.0:meituan", vendor: meituan, label: "LongCat 2.0" }
 
 # Identity extractor: reads each answer and returns the claimed vendor as JSON. gemini-3.5-flash
 extractor:

@@ -64,6 +64,7 @@ const NAMESPACE_TO_VENDOR: Record<string, VendorId> = {
   mistralai: "mistral",
   mistral: "mistral",
   "sapiens-ai": "agnes",
+  meituan: "meituan",
   skyreels: "kwai",
 };
 

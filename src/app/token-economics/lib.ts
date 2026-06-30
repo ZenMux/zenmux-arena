@@ -60,6 +60,7 @@ const VENDOR_COLOR: Record<string, string> = {
   meta: "#0668e1",
   mistral: "#fa520f",
   agnes: "#8b5cf6",
+  meituan: "#29E154",
 };
 
 export function vendorColor(vendor: string): string {
@@ -98,6 +99,7 @@ const VENDOR_LOGO_SVG: Partial<Record<VendorId, string>> = {
   meta: "meta_color.svg",
   mistral: "mistral_color.svg",
   agnes: "sapiens-al_color.svg",
+  meituan: "longcat_color.svg",
 };
 
 /** Brand-colored SVG web path for a vendor, or null if unmapped (pseudo-vendor). */
