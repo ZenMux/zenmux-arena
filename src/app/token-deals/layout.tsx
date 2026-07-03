@@ -1,29 +1,43 @@
-// Token Deals（让利账本）— the brutalist shell. Same terminal-ledger system as
-// /token-economics (Space Mono, cream paper, ink borders, light-only) but a
-// fully separate route: this experiment shares the LOOK by convention, not by
-// importing the other module's layout, so the two never couple at runtime.
+// Token Deals — THE DISCOUNT BOARD shell. A deliberate break from the
+// token-economics terminal-ledger look: this experiment is a stadium
+// scoreboard (worldcupnext.com energy) — pitch-black frame, full-bleed
+// vendor-color bands, gigantic poster type. Fonts: Archivo Black for the
+// shouting, Archivo for labels, IBM Plex Mono for the ledger numerals.
 
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { Space_Mono } from "next/font/google";
+import { Archivo, Archivo_Black, IBM_Plex_Mono } from "next/font/google";
 
-const spaceMono = Space_Mono({
-  weight: ["400", "700"],
+const archivo = Archivo({
   subsets: ["latin"],
-  variable: "--font-token-deals",
+  variable: "--font-deals-body",
+  display: "swap",
+});
+
+const archivoBlack = Archivo_Black({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-deals-display",
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-deals-mono",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Token Deals · 让利账本 — ZenMux Arena",
+  title: "Token Deals — ZenMux Arena",
   description:
-    "How much ZenMux is saving developers, live: every subsidized model's list price, deal price, and the running total of money left on the table — for you.",
+    "The live discount board: every model ZenMux is subsidizing right now — list price, deal price, and the running total saved for developers.",
 };
 
 export default function TokenDealsLayout({ children }: { children: ReactNode }) {
   return (
     <div
-      className={`${spaceMono.variable} flex min-h-dvh flex-col bg-[#f4f1ea] font-[family-name:var(--font-token-deals)] text-[#141414] antialiased selection:bg-[#141414] selection:text-[#f4f1ea]`}
+      className={`${archivo.variable} ${archivoBlack.variable} ${plexMono.variable} flex min-h-dvh flex-col bg-[#0a0a0b] font-[family-name:var(--font-deals-body)] text-white antialiased selection:bg-[#3dff8e] selection:text-[#0a0a0b]`}
     >
       {children}
     </div>

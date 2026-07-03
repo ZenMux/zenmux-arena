@@ -81,6 +81,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": ["./public/**/*", "./config/token-economics-live-models.json"],
     "/api/token-economics/live/**": ["./.cache/**"],
+    "/api/token-deals/live/**": ["./.cache/**"],
   },
   // @resvg/resvg-js loads a platform-native .node binary at runtime; it must not
   // be bundled by Turbopack/webpack. Keep it external so the export route can

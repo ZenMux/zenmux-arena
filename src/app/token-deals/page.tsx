@@ -1,31 +1,31 @@
-// Token Deals（让利账本）— the landing surface. The shell (nav + headline strip)
-// renders on the server; everything money-related lives in DealsClient, which
-// polls /api/token-deals/live (all data arrives client-side, so the page itself
-// stays static-fast and the skeleton shows instantly).
+// Token Deals — THE BOARD landing surface. The shell (ticker nav + the
+// server-rendered opener headline) is static-fast; everything money-related
+// lives in DealsClient, which polls /api/token-deals/live.
 
 import type { Metadata } from "next";
 import { TokenDealsNav } from "./TokenDealsNav";
 import { DealsClient } from "./DealsClient";
 
 export const metadata: Metadata = {
-  title: "Token Deals · 让利账本 — ZenMux Arena",
+  title: "Token Deals — the live discount board · ZenMux Arena",
   description:
-    "A live, public ledger of ZenMux's model subsidies: list price → deal price for every discounted model, and the running total saved for developers.",
+    "A live public ledger of ZenMux's model subsidies: list price → deal price for every discounted model, and the running total saved for developers.",
 };
 
 export default function TokenDealsPage() {
   return (
     <>
-      <TokenDealsNav active="deals" />
-      <div className="mx-auto w-full max-w-[1400px] px-4 pt-6 sm:px-6">
-        <div className="grid gap-2 border border-[#141414] bg-[#fbf9f4] px-4 py-3">
-          <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#6f6a5f]">
-            Subsidy ledger experiment · 一份账本，两个受众
-          </p>
-          <h1 className="max-w-4xl text-xl font-bold uppercase leading-tight tracking-[0.06em] text-[#141414] sm:text-2xl">
-            We&apos;re paying part of your token bill. Here&apos;s the receipt —
-            live, model by model.
+      <TokenDealsNav active="board" />
+      <div className="border-b-[3px] border-[#0a0a0b] bg-white">
+        <div className="mx-auto w-full max-w-[1800px] px-4 py-8 sm:px-8 sm:py-10">
+          <h1 className="max-w-6xl font-[family-name:var(--font-deals-display)] text-[clamp(1.8rem,4.6vw,4.2rem)] uppercase leading-[0.95] tracking-tight text-[#0a0a0b]">
+            We&apos;re paying part of your token bill.
+            <br />
+            <span className="text-[#0c6b33]">Here&apos;s the receipt.</span>
           </h1>
+          <p className="mt-3 font-[family-name:var(--font-deals-mono)] text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0a0a0b]/60 sm:text-xs">
+            Live · model by model · from the same billing data that produces your invoices
+          </p>
         </div>
       </div>
       <DealsClient />

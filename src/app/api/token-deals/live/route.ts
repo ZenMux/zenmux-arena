@@ -1,6 +1,5 @@
 import { gzipSync } from "node:zlib";
 import {
-  DealsConfigError,
   DealsDbConfigError,
   buildDegradedPayload,
   getTokenDealsWithMeta,
@@ -49,15 +48,8 @@ export async function GET(request: Request) {
       "Server-Timing": `deals;desc=${source};dur=${elapsedMs}`,
     });
   } catch (error) {
-    // A broken registry is a deploy bug — surface it loudly, don't degrade.
-    if (error instanceof DealsConfigError) {
-      return Response.json(
-        { error: error.message },
-        { status: 500, headers: { "X-Cache-Source": "error-registry" } },
-      );
-    }
-    // Billing DB missing/unreachable → DEGRADED, not an error: list prices and
-    // discounts come from the registry and must stay usable (PRD 图 5). The
+    // Billing DB missing/unreachable → DEGRADED, not an error: deal facts fall
+    // back to the packaged baseline and must stay usable (PRD 图 5). The
     // client keys off `live: false` to show the unavailable state + retry.
     if (error instanceof DealsDbConfigError) {
       console.warn("[token-deals] live DB not configured, serving degraded payload");

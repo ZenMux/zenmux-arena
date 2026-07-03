@@ -1,33 +1,97 @@
+#!/usr/bin/env tsx
 // Precompute the Token Deals（让利账本）baseline caches.
 //
-// Runs the full DB aggregation for both ranges and persists them to
-// .cache/token-deals/{all,72h}.json — the packaged baselines the read-only
-// runtime extends incrementally (see research/token-deals/query.ts). Run this
-// on a writable machine with the TOKEN_ECON_LIVE_DB_* env set, before or during
-// deploy, exactly like tokenecon:precompute does for the live leaderboard.
+// Aligned with precompute-live.ts (token-economics): loads .env.local for local
+// runs, tries an INCREMENTAL update of the existing baseline first (only the
+// tail buckets since the last cache are re-queried, plus a small overlap for
+// late-arriving billing rows), and falls back to a full DB aggregation when no
+// usable baseline exists (first run, schema bump, bucket change).
+//
+// Persists .cache/token-deals/{all,72h}.json — the packaged baselines the
+// read-only runtime extends incrementally (see research/token-deals/query.ts).
+// Run on a writable machine with TOKEN_ECON_LIVE_DB_* set, before or during
+// deploy — the morphe-economics skill's predeploy step does this automatically.
 //
 //   pnpm tokendeals:precompute
 
-import { DEAL_RANGE_OPTIONS } from "../token-deals/deals-config";
-import { closeDealsDbPool, fetchTokenDeals } from "../token-deals/query";
+import { config as loadDotenv } from "dotenv";
+import path from "node:path";
+import {
+  DEAL_RANGE_OPTIONS,
+  type DealRangeKey,
+  type TokenDealsPayload,
+} from "@research/token-deals/types";
+import {
+  closeDealsDbPool,
+  fetchTokenDeals,
+  incrementallyUpdate,
+  readJsonCache,
+} from "@research/token-deals/query";
 
-async function main() {
-  const now = new Date();
-  for (const range of DEAL_RANGE_OPTIONS) {
-    const started = Date.now();
-    const payload = await fetchTokenDeals(range.key, now, { persist: true });
-    console.log(
-      `[token-deals] precomputed ${range.key}: ${payload.deals.length} deals, ` +
-        `${payload.from.slice(0, 10)} → ${payload.to}, ` +
-        `total saved $${payload.totals?.saved.toFixed(2) ?? "—"} ` +
-        `(${Date.now() - started}ms)`,
-    );
-  }
+// Load .env.local for local runs (Morphe deployments inject env vars directly)
+loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
+
+function summarize(payload: TokenDealsPayload): string {
+  const freeCount = payload.deals.filter((d) => d.dealType === "free").length;
+  const t = payload.totals;
+  const split = t
+    ? `saved $${t.saved.toFixed(2)} (PAYG $${(t.saved - t.subSaved).toFixed(2)} + 订阅 $${t.subSaved.toFixed(2)}), ` +
+      `paid $${t.paid.toFixed(2)} (PAYG $${(t.paid - t.subPaid).toFixed(2)} + 订阅 $${t.subPaid.toFixed(2)})`
+    : "no totals";
+  return `${payload.deals.length} deals (${freeCount} free), ${payload.from.slice(0, 10)} → ${payload.to}, ${split}`;
 }
 
-main()
-  .catch((err) => {
-    console.error("[token-deals] precompute failed:", err);
-    process.exitCode = 1;
-  })
-  .finally(() => closeDealsDbPool());
+async function precomputeRange(range: DealRangeKey, index: number, total: number): Promise<void> {
+  const prefix = `[precompute-deals] [${index + 1}/${total}] ${range.padEnd(4)}`;
+  const started = Date.now();
+
+  const existing = await readJsonCache(range);
+  if (existing) {
+    console.log(`${prefix} Found existing cache (data → ${existing.to}), attempting incremental update...`);
+    const merged = await incrementallyUpdate(range, existing, new Date(), { persist: true });
+    if (merged) {
+      const newBuckets = Math.max(
+        0,
+        Math.round((Date.parse(merged.to) - Date.parse(existing.to)) / (merged.bucketSeconds * 1000)),
+      );
+      console.log(`${prefix} ✅ Incremental update done (+${newBuckets} new buckets): ${summarize(merged)} (${Date.now() - started}ms)`);
+      return;
+    }
+    console.log(`${prefix} Incremental update not possible (schema/bucket change), falling back to full refetch...`);
+  }
+
+  const payload = await fetchTokenDeals(range, new Date(), { persist: true });
+  console.log(`${prefix} ✅ Full fetch done: ${summarize(payload)} (${Date.now() - started}ms)`);
+}
+
+async function main() {
+  const ranges = DEAL_RANGE_OPTIONS.map((r) => r.key);
+  console.log(`[precompute-deals] Starting pre-aggregation for ${ranges.length} ranges: ${ranges.join(", ")}`);
+  console.log(`[precompute-deals] Cache directory: .cache/token-deals/`);
+  console.log();
+
+  const failures: Array<{ range: string; reason: unknown }> = [];
+  for (let i = 0; i < ranges.length; i++) {
+    try {
+      await precomputeRange(ranges[i], i, ranges.length);
+    } catch (err) {
+      failures.push({ range: ranges[i], reason: err });
+      console.error(`[precompute-deals] [${i + 1}/${ranges.length}] ${ranges[i]} ❌ Failed: ${err instanceof Error ? err.message : err}`);
+    }
+    console.log();
+  }
+
+  if (failures.length > 0) {
+    console.error(`[precompute-deals] ❌ ${failures.length}/${ranges.length} ranges failed.`);
+    await closeDealsDbPool();
+    process.exit(1);
+  }
+  console.log(`[precompute-deals] 🎉 All ranges pre-aggregated successfully!`);
+  await closeDealsDbPool();
+}
+
+main().catch(async (err) => {
+  console.error("[precompute-deals] Fatal error:", err);
+  await closeDealsDbPool();
+  process.exit(1);
+});

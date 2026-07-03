@@ -1,30 +1,24 @@
 #!/bin/bash
-# morphe-economics pre-deployment script: refresh the token-economics baseline
-# before building, so the deploy artifact ships with fresh pre-aggregated data.
+# morphe-economics pre-deployment script: refresh the token-economics AND
+# token-deals baselines before building, so the deploy artifact ships with
+# fresh pre-aggregated data for both live dashboards.
 #
 # Designed for a daily manual deploy whose whole purpose is to refresh data:
-# it makes the shipped baseline's freshness LOUD and unmissable, but never hard-
-# blocks the deploy (the read-only runtime tops up the tail incrementally at
-# request time regardless, so shipping a slightly-old baseline is still safe).
+# it makes the shipped baselines' freshness LOUD and unmissable, but never
+# hard-blocks the deploy (the read-only runtime tops up the tail incrementally
+# at request time regardless, so shipping a slightly-old baseline is still
+# safe). Each module refreshes independently — a token-deals failure never
+# blocks the token-economics refresh, and vice versa.
 set -euo pipefail
 
-echo "=== [morphe-economics] Pre-deployment: refreshing token-economics baseline ==="
-
-# Check for token economics precompute support
-if [ -f "research/scripts/precompute-live.ts" ] && grep -q "tokenecon:precompute" package.json; then
-  echo "✅ Token economics live feature detected"
-else
-  echo "ℹ️ No token economics precompute script found, skipping pre-aggregation"
-  exit 0
-fi
-
-CACHE_DIR=".cache/token-economics/live"
+echo "=== [morphe-economics] Pre-deployment: refreshing live baselines ==="
 
 # Prints each cached range's data window + how stale it is vs. now. Reads the
 # JSON `to`/`generatedAt` fields (not file mtime) so you see the ACTUAL data age
 # you are about to ship. `node` is always present (this is a Next.js project).
 report_freshness() {
-  if [ ! -d "$CACHE_DIR" ] || [ -z "$(ls -A "$CACHE_DIR" 2>/dev/null)" ]; then
+  local dir="$1"
+  if [ ! -d "$dir" ] || [ -z "$(ls -A "$dir" 2>/dev/null)" ]; then
     echo "   (no cache files present)"
     return
   fi
@@ -42,38 +36,65 @@ report_freshness() {
         console.log(`   ${f.padEnd(10)} ⚠️  unreadable: ${e.message}`);
       }
     }
-  ' "$CACHE_DIR"
+  ' "$dir"
 }
 
-# Snapshot pre-existing baseline age so we can tell the user what they'd ship if
-# precompute fails.
-echo ""
-echo "--- Baseline BEFORE refresh ---"
-report_freshness
+# refresh_module <label> <cache-dir> <pnpm-script>
+# Runs one module's incremental precompute; on failure prints the loud banner
+# with the (unchanged, stale) baseline being shipped and returns 0 — precompute
+# is a performance optimization, never a deploy blocker.
+refresh_module() {
+  local label="$1" cache_dir="$2" script="$3"
 
-echo ""
-echo "=== [morphe-economics] Incrementally pre-aggregating token economics data ==="
-if ! pnpm tokenecon:precompute; then
   echo ""
-  echo "############################################################"
-  echo "⚠️  PRE-AGGREGATION FAILED — baseline was NOT refreshed."
-  echo "    Deploy will continue and ship the PREVIOUS baseline below."
-  echo "    The read-only runtime will top up the tail from the DB on"
-  echo "    first request, so data is still correct (just a bigger first"
-  echo "    incremental query). Re-run the deploy once the DB is reachable"
-  echo "    if you want today's fresh baseline packaged."
-  echo "############################################################"
-  echo "--- Baseline being shipped (UNCHANGED, stale) ---"
-  report_freshness
-  exit 0
+  echo "--- [$label] Baseline BEFORE refresh ---"
+  report_freshness "$cache_dir"
+
+  echo ""
+  echo "=== [morphe-economics] Incrementally pre-aggregating $label ==="
+  if ! pnpm "$script"; then
+    echo ""
+    echo "############################################################"
+    echo "⚠️  [$label] PRE-AGGREGATION FAILED — baseline NOT refreshed."
+    echo "    Deploy will continue and ship the PREVIOUS baseline below."
+    echo "    The read-only runtime will top up the tail from the DB on"
+    echo "    first request, so data is still correct (just a bigger first"
+    echo "    incremental query). Re-run the deploy once the DB is reachable"
+    echo "    if you want today's fresh baseline packaged."
+    echo "############################################################"
+    echo "--- [$label] Baseline being shipped (UNCHANGED, stale) ---"
+    report_freshness "$cache_dir"
+    return 0
+  fi
+
+  echo ""
+  if [ -d "$cache_dir" ] && [ -n "$(ls -A "$cache_dir" 2>/dev/null)" ]; then
+    echo "✅ [$label] Baseline refreshed. Shipping this data:"
+    report_freshness "$cache_dir"
+  else
+    echo "⚠️  [$label] Warning: cache directory empty after precompute; runtime will do a one-time full DB fetch on first request."
+  fi
+}
+
+FOUND_ANY=0
+
+if [ -f "research/scripts/precompute-live.ts" ] && grep -q "tokenecon:precompute" package.json; then
+  FOUND_ANY=1
+  refresh_module "token-economics" ".cache/token-economics/live" "tokenecon:precompute"
+else
+  echo "ℹ️ No token-economics precompute script found, skipping"
 fi
 
-echo ""
-if [ -d "$CACHE_DIR" ] && [ -n "$(ls -A "$CACHE_DIR" 2>/dev/null)" ]; then
-  echo "✅ Token economics baseline refreshed. Shipping this data:"
-  report_freshness
+if [ -f "research/scripts/precompute-deals.ts" ] && grep -q "tokendeals:precompute" package.json; then
+  FOUND_ANY=1
+  refresh_module "token-deals" ".cache/token-deals" "tokendeals:precompute"
 else
-  echo "⚠️  Warning: cache directory empty after precompute; runtime will do a one-time full DB fetch on first request."
+  echo "ℹ️ No token-deals precompute script found, skipping"
+fi
+
+if [ "$FOUND_ANY" = "0" ]; then
+  echo "ℹ️ No live precompute scripts found in this project, nothing to pre-aggregate"
+  exit 0
 fi
 
 echo ""

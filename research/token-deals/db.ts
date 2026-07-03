@@ -1,0 +1,142 @@
+// Token Deals（让利账本）— shared DB pool, env plumbing, and time helpers.
+//
+// Same billing DB as the token-economics live pipeline — the deals ledger reads
+// the identical tables, so it reuses those env vars on purpose (one secret to
+// provision, not two). The pool is deliberately separate from token-economics'
+// (that module may not be modified per the PRD), but tuned the same way.
+
+import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
+
+export const REFRESH_INTERVAL_SECONDS = 300;
+export const HOUR = 3600;
+export const DAY = 86400;
+export const QUERY_TIMEOUT_MS = 120_000;
+
+const DB_ENV = {
+  host: "TOKEN_ECON_LIVE_DB_HOST",
+  port: "TOKEN_ECON_LIVE_DB_PORT",
+  user: "TOKEN_ECON_LIVE_DB_USER",
+  password: "TOKEN_ECON_LIVE_DB_PASSWORD",
+  database: "TOKEN_ECON_LIVE_DB_DATABASE",
+} as const;
+
+/** Shared live-window start (same env var as token-economics). Deal windows and
+    free-model ledgers are clamped to this instant — discount rows fully
+    reverted before it (e.g. the 2026-06-18 test batch) never surface. */
+export const LIVE_START_ENV = "TOKEN_ECON_LIVE_START_ISO";
+export const DEFAULT_DEALS_START_ISO = "2026-06-23T06:00:00.000Z";
+
+export class DealsDbConfigError extends Error {
+  constructor(readonly missing: string[]) {
+    super(`Missing live usage database env: ${missing.join(", ")}`);
+    this.name = "DealsDbConfigError";
+  }
+}
+
+export function liveStartMs(): number {
+  const raw = process.env[LIVE_START_ENV]?.trim() || DEFAULT_DEALS_START_ISO;
+  const ms = Date.parse(raw);
+  if (Number.isNaN(ms)) {
+    throw new DealsDbConfigError([`${LIVE_START_ENV} (invalid ISO date: ${JSON.stringify(raw)})`]);
+  }
+  return ms;
+}
+
+function dbConfig() {
+  const missing = Object.values(DB_ENV).filter((name) => !process.env[name]);
+  if (missing.length > 0) throw new DealsDbConfigError(missing);
+  return {
+    host: process.env[DB_ENV.host]!,
+    port: Number(process.env[DB_ENV.port] ?? "3306"),
+    user: process.env[DB_ENV.user]!,
+    password: process.env[DB_ENV.password]!,
+    database: process.env[DB_ENV.database]!,
+  };
+}
+
+let pool: Pool | null = null;
+
+export function getPool(): Pool {
+  if (pool) return pool;
+  pool = mysql.createPool({
+    ...dbConfig(),
+    waitForConnections: true,
+    connectionLimit: 4,
+    queueLimit: 32,
+    connectTimeout: 10_000,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 30_000,
+    idleTimeout: 60_000,
+    maxIdle: 2,
+    timezone: "Z",
+    dateStrings: true,
+    supportBigNumbers: true,
+    decimalNumbers: true,
+  });
+  return pool;
+}
+
+/** For CLI scripts (precompute) so the process can exit cleanly. */
+export async function closeDealsDbPool(): Promise<void> {
+  if (pool) {
+    await pool.end();
+    pool = null;
+  }
+}
+
+/** Run one query on a UTC-pinned session with retry-once semantics (transient
+    OceanBase blips destroy the connection and retry on a fresh one). */
+export async function queryRows<T extends RowDataPacket>(
+  sql: string,
+  values: unknown[],
+): Promise<T[]> {
+  let retries = 2;
+  for (;;) {
+    const conn = await getPool().getConnection();
+    try {
+      await conn.query("SET SESSION time_zone = '+00:00'");
+      await conn.query(`SET SESSION ob_query_timeout = ${QUERY_TIMEOUT_MS * 1000}`).catch(() => {});
+      const [rows] = await conn.query<T[]>({ sql, values, timeout: QUERY_TIMEOUT_MS });
+      conn.release();
+      return rows;
+    } catch (err) {
+      conn.destroy();
+      retries--;
+      if (retries <= 0) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Time helpers
+// ---------------------------------------------------------------------------
+
+export function floorTo(ms: number, seconds: number): number {
+  const step = seconds * 1000;
+  return Math.floor(ms / step) * step;
+}
+
+/** "2026-06-23 06:00:00" (UTC, for created_at/gmt_* comparisons). */
+export function sqlDate(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 19).replace("T", " ");
+}
+
+/** Parse a UTC "YYYY-MM-DD HH:MM:SS" from a dateStrings session. */
+export function parseSqlUtc(value: string | Date | null | undefined): number | null {
+  if (value == null) return null;
+  if (value instanceof Date) return value.getTime();
+  const ms = Date.parse(`${value.replace(" ", "T")}Z`);
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/** "YYYY-MM-DD" (UTC calendar date) of an instant. */
+export function utcDateOf(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+export function toNumber(v: number | string | null | undefined): number {
+  if (v == null) return 0;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}

@@ -65,9 +65,9 @@ function loadLiveStats(): LiveStats | null {
   }
 }
 
-/** Token Deals mini metrics for its hub card: active-deal count + deepest
- *  discount from the registry (always available), plus the cumulative-saved
- *  total from the packaged baseline cache when the deploy carries one. */
+/** Token Deals mini metrics for its hub card, read from the packaged baseline
+ *  cache (deal facts live in the billing DB now — the baseline is the only
+ *  build-time snapshot of them). Null when no baseline shipped. */
 interface DealsCardStats {
   activeCount: number;
   bestDiscount: number | null;
@@ -76,29 +76,21 @@ interface DealsCardStats {
 
 function loadDealsStats(): DealsCardStats | null {
   try {
-    const registryPath = path.join(process.cwd(), "config", "token-deals.json");
-    const registry = JSON.parse(fs.readFileSync(registryPath, "utf8")) as {
-      deals?: { discount?: number; startDate?: string; endDate?: string | null }[];
-    };
-    const today = new Date().toISOString().slice(0, 10);
-    const active = (registry.deals ?? []).filter(
-      (d) =>
-        typeof d.discount === "number" &&
-        (d.startDate ?? "") <= today &&
-        (d.endDate == null || d.endDate >= today),
-    );
-    let totalSaved: number | null = null;
     const cachePath = path.join(process.cwd(), ".cache", "token-deals", "all.json");
-    if (fs.existsSync(cachePath)) {
-      const payload = JSON.parse(fs.readFileSync(cachePath, "utf8")) as {
-        totals?: { saved?: number } | null;
-      };
-      totalSaved = payload.totals?.saved ?? null;
-    }
+    const payload = JSON.parse(fs.readFileSync(cachePath, "utf8")) as {
+      activeCount?: number;
+      totals?: { saved?: number } | null;
+      deals?: { dealType?: string; discount?: number; status?: string }[];
+    };
+    // Deepest factor among active PAID deals — free models (discount 0) would
+    // flatten "低至 x0.17" to a meaningless x0.00.
+    const activePaid = (payload.deals ?? []).filter(
+      (d) => d.status === "active" && d.dealType !== "free" && typeof d.discount === "number",
+    );
     return {
-      activeCount: active.length,
-      bestDiscount: active.length ? Math.min(...active.map((d) => d.discount!)) : null,
-      totalSaved,
+      activeCount: payload.activeCount ?? activePaid.length,
+      bestDiscount: activePaid.length ? Math.min(...activePaid.map((d) => d.discount!)) : null,
+      totalSaved: payload.totals?.saved ?? null,
     };
   } catch {
     return null;

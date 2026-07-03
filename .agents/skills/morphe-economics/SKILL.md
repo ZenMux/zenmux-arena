@@ -1,6 +1,6 @@
 ---
 name: morphe-economics
-description: Fully independent deployment skill for ZenMux projects with live token economics dashboards. Automatically runs incremental pre-aggregation of live data and packages warm cache into deployment for instant cold starts. Does NOT depend on base morphe skill - all scripts are bundled directly. Use when deploying ZenMux Arena or any project with the token economics live dashboard to get zero-timeout instant page loads.
+description: Fully independent deployment skill for ZenMux projects with live token economics / token deals dashboards. Automatically runs incremental pre-aggregation of live data (token-economics leaderboard AND token-deals ledger) and packages warm caches into deployment for instant cold starts. Does NOT depend on base morphe skill - all scripts are bundled directly. Use when deploying ZenMux Arena or any project with the live dashboards to get zero-timeout instant page loads.
 ---
 
 # Morphe Economics (ZenMux Token Economics Optimized Deploy)
@@ -75,14 +75,19 @@ Variations (only if explicitly requested):
 ---
 
 ### Step 4: Run Incremental Pre-Aggregation
-This step warms the token economics cache before building, using incremental updates to minimize runtime:
+This step warms the live caches before building — **both** the token-economics
+leaderboard (`.cache/token-economics/live/`) and the token-deals ledger
+(`.cache/token-deals/`) — using incremental updates to minimize runtime:
 ```bash
 bash .agents/skills/morphe-economics/scripts/predeploy.sh
 ```
 This script automatically:
-- Detects if the project has the token economics precompute script
-- Loads environment variables from `.env.local`
-- Runs **incremental** pre-aggregation: only fetches new data since last cache + 12 bucket overlap to fix late-arriving DB records
+- Detects which live precompute scripts the project has
+  (`tokenecon:precompute`, `tokendeals:precompute`) and runs each one that
+  exists; the two refresh independently, so one failing never blocks the other
+- Loads environment variables from `.env.local` (the precompute scripts do
+  this themselves via dotenv)
+- Runs **incremental** pre-aggregation: only fetches new data since last cache + a small bucket overlap to fix late-arriving DB records
 - Automatically cleans up DB connections so it doesn't hang
 - Never fails the deployment on precompute errors (just warns loudly and continues)
 - Prints a **data-freshness report** before AND after refresh — each range's
@@ -102,12 +107,14 @@ if ! grep -q '\.cache/\*\*' next.config.ts 2>/dev/null && ! grep -q '\.cache/\*\
 fi
 ```
 Required config (Next.js 15+ — `outputFileTracingIncludes` is a **top-level**
-key, NOT under `experimental`):
+key, NOT under `experimental`; one entry per live API route that reads the
+packaged cache):
 ```ts
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingIncludes: {
     "/api/token-economics/live/**": ["./.cache/**"],
+    "/api/token-deals/live/**": ["./.cache/**"],
   },
 };
 ```
@@ -128,17 +135,24 @@ pnpm build
 
 ---
 
-### Step 7: Copy Cache into Standalone Before Packaging
-The morphe.py packager handles copying `.next/static` and `public/` automatically. We only need to copy the `.cache` directory into `.next/standalone/` so it gets included in the zip:
+### Step 7: Copy Caches into Standalone Before Packaging
+The morphe.py packager handles copying `.next/static` and `public/` automatically. We only need to copy the `.cache` directories into `.next/standalone/` so they get included in the zip:
 ```bash
 echo ""
-echo "=== Copying token economics cache into standalone ==="
+echo "=== Copying live caches into standalone ==="
 if [ -d ".cache/token-economics/live" ] && [ "$(ls -A .cache/token-economics/live)" ]; then
   mkdir -p .next/standalone/.cache/token-economics/live
   cp -f .cache/token-economics/live/*.json .next/standalone/.cache/token-economics/live/
   echo "✅ Token economics cache staged in standalone dir"
 else
-  echo "ℹ️  No cache directory found; runtime will do a one-time full DB fetch on first request (no baseline packaged)"
+  echo "ℹ️  No token-economics cache found; runtime will do a one-time full DB fetch on first request (no baseline packaged)"
+fi
+if [ -d ".cache/token-deals" ] && ls .cache/token-deals/*.json >/dev/null 2>&1; then
+  mkdir -p .next/standalone/.cache/token-deals
+  cp -f .cache/token-deals/*.json .next/standalone/.cache/token-deals/
+  echo "✅ Token deals cache staged in standalone dir"
+else
+  echo "ℹ️  No token-deals cache found; runtime will do a one-time full DB fetch on first request (no baseline packaged)"
 fi
 ```
 > **Note**: morphe.py already handles `.next/static` and `public/` during the package step — do NOT manually cp those, it would duplicate them.
@@ -161,9 +175,14 @@ if ! unzip -l code.zip | grep -qE "^[[:space:]]+[0-9]+ .+ server\.js$"; then
   echo "❌ Error: server.js not found at zip root, deployment would fail!"; exit 1
 fi
 if unzip -l code.zip | grep -q ".cache/token-economics/live/.*\.json"; then
-  echo "✅ Cache files verified in deployment package (instant cold start guaranteed)"
+  echo "✅ Token-economics cache verified in deployment package (instant cold start guaranteed)"
 else
-  echo "⚠️  Warning: Cache not found in package; runtime will do a one-time full DB fetch on first request"
+  echo "⚠️  Warning: token-economics cache not found in package; runtime will do a one-time full DB fetch on first request"
+fi
+if unzip -l code.zip | grep -q ".cache/token-deals/.*\.json"; then
+  echo "✅ Token-deals cache verified in deployment package (instant cold start guaranteed)"
+else
+  echo "⚠️  Warning: token-deals cache not found in package; runtime will do a one-time full DB fetch on first request"
 fi
 ```
 
@@ -212,9 +231,11 @@ After deployment, the token economics API serves a live leaderboard like this:
 4. **Stale fallback**: if the incremental DB query fails (transient blip), the
    packaged baseline is served with `stale: true` so the page never hard-fails.
 
-The runtime is **read-only**: it never writes to disk. The only writer is the
-`tokenecon:precompute` step on the writable build machine, whose output is
-packaged into the deploy artifact (Step 6).
+The runtime is **read-only**: it never writes to disk. The only writers are the
+`tokenecon:precompute` / `tokendeals:precompute` steps on the writable build
+machine, whose output is packaged into the deploy artifact (Step 7). The
+token-deals ledger (`/api/token-deals/live`) follows the exact same 4-layer
+chain with its own baseline files in `.cache/token-deals/{all,72h}.json`.
 
 ## Fallback Behavior
 If *anything* goes wrong with pre-aggregation (DB down, network issues, script errors):

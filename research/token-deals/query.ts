@@ -5,6 +5,24 @@
 // forbids touching token-economics code, and the aggregation itself is different
 // (per-deal-window money math instead of anchor boards).
 //
+// Sources (v3): deal FACTS come from model_discount + model (./discovery.ts);
+// usage/cost/subsidy come from valid_usage. Two billing families, one ledger:
+//
+//   PAYG（metered / fallbackMetered）— discount_amount is EXACTLY the model
+//   deal on these rows (ratio = configured factor; 0 on non-deal models; full
+//   list price on -free models; verified against production 2026-07-03):
+//     paid += Σ bill_amount        saved += Σ discount_amount
+//
+//   订阅（subscription）— these rows carry no usable discount split
+//   (discount_amount = full origin on EVERY model = plan coverage), and
+//   per-user flow rates differ so flow_quota can't price them either. The
+//   deal share is therefore computed as origin × the SAME-PERIOD per-provider
+//   model_discount factor (0 for free models):
+//     subPaid += Σ origin × factor  subSaved += Σ origin × (1 − factor)
+//
+//   point.paid / point.saved are the TOTALS of both families; subPaid/subSaved
+//   ride along so the UI can split PAYG vs 订阅.
+//
 // Layers, cheapest first (see getTokenDealsWithMeta):
 //   1. L1 in-memory cache — held until the next refresh boundary closes.
 //   2. Single-flight — concurrent callers share one in-progress merge.
@@ -20,15 +38,23 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
-import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
+import type { RowDataPacket } from "mysql2/promise";
 import {
+  DAY,
+  HOUR,
+  REFRESH_INTERVAL_SECONDS,
+  floorTo,
+  queryRows,
+  sqlDate,
+  toNumber,
+} from "./db";
+import { discoverDeals } from "./discovery";
+import {
+  DEALS_SCHEMA_VERSION,
   DEFAULT_DEAL_RANGE,
-  DealsConfigError,
   dateStartMs,
   dealRangeOption,
   dealStatus,
-  loadDealsConfig,
-  savedForTokens,
   windowEndMs,
   type DealPeriod,
   type DealRangeKey,
@@ -37,36 +63,14 @@ import {
   type DealUsagePoint,
   type DealsTotals,
   type TokenDealsPayload,
-} from "./deals-config";
+} from "./types";
 
-export { DealsConfigError } from "./deals-config";
+export { DealsDbConfigError, closeDealsDbPool } from "./db";
 
 const TABLE = "valid_usage";
-const REFRESH_INTERVAL_SECONDS = 300;
-const HOUR = 3600;
-const DAY = 86400;
-const QUERY_TIMEOUT_MS = 120_000;
 // Re-fetch this many trailing buckets on incremental merges so late-arriving
 // billing rows (backfills) still land. 3 days / 12 hours of overlap.
 const OVERLAP_BUCKETS: Record<number, number> = { [DAY]: 3, [HOUR]: 12 };
-
-// Same billing DB as the token-economics live pipeline — the deals ledger reads
-// the identical valid_usage table, so it reuses those env vars on purpose (one
-// secret to provision, not two).
-const DB_ENV = {
-  host: "TOKEN_ECON_LIVE_DB_HOST",
-  port: "TOKEN_ECON_LIVE_DB_PORT",
-  user: "TOKEN_ECON_LIVE_DB_USER",
-  password: "TOKEN_ECON_LIVE_DB_PASSWORD",
-  database: "TOKEN_ECON_LIVE_DB_DATABASE",
-} as const;
-
-export class DealsDbConfigError extends Error {
-  constructor(readonly missing: string[]) {
-    super(`Missing live usage database env: ${missing.join(", ")}`);
-    this.name = "DealsDbConfigError";
-  }
-}
 
 const CACHE_DIR_ENV = "TOKEN_DEALS_CACHE_DIR";
 
@@ -108,73 +112,12 @@ export async function writeJsonCache(range: DealRangeKey, data: TokenDealsPayloa
 }
 
 // ---------------------------------------------------------------------------
-// DB pool
-// ---------------------------------------------------------------------------
-
-let pool: Pool | null = null;
-
-function dbConfig() {
-  const missing = Object.values(DB_ENV).filter((name) => !process.env[name]);
-  if (missing.length > 0) throw new DealsDbConfigError(missing);
-  return {
-    host: process.env[DB_ENV.host]!,
-    port: Number(process.env[DB_ENV.port] ?? "3306"),
-    user: process.env[DB_ENV.user]!,
-    password: process.env[DB_ENV.password]!,
-    database: process.env[DB_ENV.database]!,
-  };
-}
-
-function getPool(): Pool {
-  if (pool) return pool;
-  pool = mysql.createPool({
-    ...dbConfig(),
-    waitForConnections: true,
-    connectionLimit: 4,
-    queueLimit: 32,
-    connectTimeout: 10_000,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 30_000,
-    idleTimeout: 60_000,
-    maxIdle: 2,
-    timezone: "Z",
-    dateStrings: true,
-    supportBigNumbers: true,
-    decimalNumbers: true,
-  });
-  return pool;
-}
-
-/** For CLI scripts (precompute) so the process can exit cleanly. */
-export async function closeDealsDbPool(): Promise<void> {
-  if (pool) {
-    await pool.end();
-    pool = null;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Time helpers
 // ---------------------------------------------------------------------------
-
-function floorTo(ms: number, seconds: number): number {
-  const step = seconds * 1000;
-  return Math.floor(ms / step) * step;
-}
-
-function sqlDate(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 19).replace("T", " ");
-}
 
 function bucketIso(bucket: string | Date): string {
   if (bucket instanceof Date) return bucket.toISOString();
   return `${bucket.replace(" ", "T")}.000Z`;
-}
-
-function toNumber(v: number | string | null | undefined): number {
-  if (v == null) return 0;
-  const n = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(n) ? n : 0;
 }
 
 /** The instant the live data should currently be advanced to: the last closed
@@ -199,20 +142,21 @@ function bucketExpression(bucketSeconds: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// DB query
+// DB queries — one per billing family
 // ---------------------------------------------------------------------------
 
 interface UsageRow extends RowDataPacket {
   model_slug: string;
   bucket: string | Date;
   requests: number | string;
-  cost: number | string | null;
+  paid: number | string | null;
+  saved: number | string | null;
   prompt_tokens: number | string | null;
   completion_tokens: number | string | null;
   reasoning_tokens: number | string | null;
 }
 
-async function queryUsageRows(params: {
+async function queryPaygRows(params: {
   slugs: string[];
   fromMs: number;
   toMs: number;
@@ -225,56 +169,96 @@ async function queryUsageRows(params: {
       model_slug,
       ${bucketExpression(params.bucketSeconds)} AS bucket,
       COUNT(*) AS requests,
-      SUM(COALESCE(bill_amount, 0)) AS cost,
+      SUM(COALESCE(bill_amount, 0)) AS paid,
+      SUM(COALESCE(discount_amount, 0)) AS saved,
       SUM(COALESCE(tokens_prompt, 0)) AS prompt_tokens,
       SUM(COALESCE(tokens_completion, 0)) AS completion_tokens,
       SUM(COALESCE(tokens_reasoning, 0)) AS reasoning_tokens
     FROM ${TABLE}
     WHERE deleted = 0
+      AND billing_type IN ('metered', 'fallbackMetered')
       AND model_slug IN (${placeholders})
       AND created_at >= ?
       AND created_at < ?
     GROUP BY model_slug, bucket
     ORDER BY bucket ASC, model_slug ASC
   `;
+  return queryRows<UsageRow>(sql, [...params.slugs, sqlDate(params.fromMs), sqlDate(params.toMs)]);
+}
 
-  let retries = 2;
-  while (retries > 0) {
-    const conn = await getPool().getConnection();
-    try {
-      await conn.query("SET SESSION time_zone = '+00:00'");
-      await conn.query(`SET SESSION ob_query_timeout = ${QUERY_TIMEOUT_MS * 1000}`).catch(() => {});
-      const [rows] = await conn.query<UsageRow[]>({
-        sql,
-        values: [...params.slugs, sqlDate(params.fromMs), sqlDate(params.toMs)],
-        timeout: QUERY_TIMEOUT_MS,
-      });
-      conn.release();
-      return rows;
-    } catch (err) {
-      conn.destroy();
-      retries--;
-      if (retries <= 0) throw err;
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-  }
-  throw new Error("Failed after retries");
+interface SubRow extends RowDataPacket {
+  model_slug: string;
+  provider_slug: string;
+  bucket: string | Date;
+  requests: number | string;
+  origin: number | string | null;
+  prompt_tokens: number | string | null;
+  completion_tokens: number | string | null;
+  reasoning_tokens: number | string | null;
+}
+
+/** Subscription usage, grouped per PROVIDER so the same-period per-provider
+    factor can be applied (mimo-v2.5 runs x0.34 and x0.93 side by side). */
+async function querySubRows(params: {
+  slugs: string[];
+  fromMs: number;
+  toMs: number;
+  bucketSeconds: number;
+}): Promise<SubRow[]> {
+  if (params.slugs.length === 0 || params.fromMs >= params.toMs) return [];
+  const placeholders = params.slugs.map(() => "?").join(",");
+  const sql = `
+    SELECT
+      model_slug,
+      provider_slug,
+      ${bucketExpression(params.bucketSeconds)} AS bucket,
+      COUNT(*) AS requests,
+      SUM(COALESCE(origin_amount, 0)) AS origin,
+      SUM(COALESCE(tokens_prompt, 0)) AS prompt_tokens,
+      SUM(COALESCE(tokens_completion, 0)) AS completion_tokens,
+      SUM(COALESCE(tokens_reasoning, 0)) AS reasoning_tokens
+    FROM ${TABLE}
+    WHERE deleted = 0
+      AND billing_type = 'subscription'
+      AND model_slug IN (${placeholders})
+      AND created_at >= ?
+      AND created_at < ?
+    GROUP BY model_slug, provider_slug, bucket
+    ORDER BY bucket ASC, model_slug ASC
+  `;
+  return queryRows<SubRow>(sql, [...params.slugs, sqlDate(params.fromMs), sqlDate(params.toMs)]);
 }
 
 // ---------------------------------------------------------------------------
 // Aggregation
 // ---------------------------------------------------------------------------
 
+/** One (slug, bucket) of settled numbers. Baseline points reload into this
+    shape as-is; fresh PAYG rows land with sub fields at 0 and get the fresh
+    subscription contribution added during assembly. */
 interface RawBucket {
   t: string;
   requests: number;
-  cost: number;
+  paid: number;
+  saved: number;
+  subPaid: number;
+  subSaved: number;
   promptTokens: number;
   outputTokens: number; // completion + reasoning
 }
 
+/** Fresh subscription sums per (slug, bucket, provider) — factors not yet
+    applied (they depend on which deal period owns the bucket). */
+interface SubBucket {
+  requests: number;
+  origin: number;
+  promptTokens: number;
+  outputTokens: number;
+}
+type SubRaw = Map<string, Map<string, Map<string, SubBucket>>>;
+
 /** Buckets a deal owns within [fromMs, toMs): clipped to the deal's own window.
-    Two periods of the same model never overlap (registry invariant), so date
+    Two periods of the same model never overlap (discovery merges them), so date
     clipping alone assigns every bucket to at most one period per slug. */
 function dealBucketRange(deal: DealPeriod, fromMs: number, toMs: number, bucketSeconds: number) {
   const start = Math.max(dateStartMs(deal.startDate), fromMs);
@@ -286,6 +270,7 @@ function dealBucketRange(deal: DealPeriod, fromMs: number, toMs: number, bucketS
 function assemble(params: {
   deals: DealPeriod[];
   rawBySlug: Map<string, Map<string, RawBucket>>;
+  subRawBySlug: SubRaw;
   range: DealRangeKey;
   bucketSeconds: number;
   fromMs: number;
@@ -293,7 +278,7 @@ function assemble(params: {
   now: Date;
   lastSuccessAt: string | null;
 }): TokenDealsPayload {
-  const { deals, rawBySlug, range, bucketSeconds, fromMs, toMs, now } = params;
+  const { deals, rawBySlug, subRawBySlug, range, bucketSeconds, fromMs, toMs, now } = params;
   const stepMs = bucketSeconds * 1000;
 
   const series: DealSeries[] = [];
@@ -303,6 +288,13 @@ function assemble(params: {
 
     const bounds = dealBucketRange(deal, fromMs, toMs, bucketSeconds);
     const byTime = rawBySlug.get(deal.slug) ?? new Map<string, RawBucket>();
+    const subByTime = subRawBySlug.get(deal.slug) ?? new Map<string, Map<string, SubBucket>>();
+    // Same-period per-provider factor; free deals subsidize 100% (factor 0).
+    const factorFor = (provider: string): number => {
+      if (deal.dealType === "free") return 0;
+      return deal.providers.find((p) => p.slug === provider)?.discount ?? deal.discount;
+    };
+
     const points: DealUsagePoint[] = [];
     const stats: DealStats = {
       tokens: 0,
@@ -311,27 +303,57 @@ function assemble(params: {
       requests: 0,
       paid: 0,
       saved: 0,
+      subPaid: 0,
+      subSaved: 0,
     };
 
     if (bounds) {
       for (let t = bounds.startMs; t < bounds.endMs; t += stepMs) {
         const iso = new Date(t).toISOString();
         const raw = byTime.get(iso);
-        const promptTokens = raw?.promptTokens ?? 0;
-        const outputTokens = raw?.outputTokens ?? 0;
+        let promptTokens = raw?.promptTokens ?? 0;
+        let outputTokens = raw?.outputTokens ?? 0;
+        let requests = raw?.requests ?? 0;
+        let subPaid = raw?.subPaid ?? 0;
+        let subSaved = raw?.subSaved ?? 0;
+
+        const freshSub = subByTime.get(iso);
+        if (freshSub) {
+          for (const [provider, sub] of freshSub) {
+            const factor = factorFor(provider);
+            subPaid += sub.origin * factor;
+            subSaved += sub.origin * (1 - factor);
+            promptTokens += sub.promptTokens;
+            outputTokens += sub.outputTokens;
+            requests += sub.requests;
+          }
+        }
+
+        // paid/saved are family totals. `raw` holds either a fresh PAYG bucket
+        // (sub fields 0) or a settled baseline bucket (sub share included in
+        // paid/saved AND recorded in subPaid/subSaved) — so the PAYG share is
+        // always raw.paid − raw.subPaid, and the total re-adds the up-to-date
+        // subscription share computed above.
+        const paid = (raw?.paid ?? 0) - (raw?.subPaid ?? 0) + subPaid;
+        const saved = (raw?.saved ?? 0) - (raw?.subSaved ?? 0) + subSaved;
+
         const tokens = promptTokens + outputTokens;
-        const requests = raw?.requests ?? 0;
-        const paid = raw?.cost ?? 0;
-        const saved = raw ? savedForTokens(deal, promptTokens, outputTokens) : 0;
-        points.push({ t: iso, tokens, promptTokens, outputTokens, requests, paid, saved });
+        points.push({ t: iso, tokens, promptTokens, outputTokens, requests, paid, saved, subPaid, subSaved });
         stats.tokens += tokens;
         stats.promptTokens += promptTokens;
         stats.outputTokens += outputTokens;
         stats.requests += requests;
         stats.paid += paid;
         stats.saved += saved;
+        stats.subPaid += subPaid;
+        stats.subSaved += subSaved;
       }
     }
+
+    // A hidden/removed free model that never saw a request inside the window
+    // is catalog noise, not a deal — drop it. (Visible free models stay even
+    // at zero usage: they ARE claimable offers.)
+    if (deal.dealType === "free" && deal.delisted && stats.requests === 0) continue;
 
     series.push({ ...deal, status, stats, points });
   }
@@ -345,10 +367,13 @@ function assemble(params: {
     saved: series.reduce((sum, d) => sum + (d.stats?.saved ?? 0), 0),
     paid: series.reduce((sum, d) => sum + (d.stats?.paid ?? 0), 0),
     tokens: series.reduce((sum, d) => sum + (d.stats?.tokens ?? 0), 0),
+    subSaved: series.reduce((sum, d) => sum + (d.stats?.subSaved ?? 0), 0),
+    subPaid: series.reduce((sum, d) => sum + (d.stats?.subPaid ?? 0), 0),
     weightedDiscount: weightedDiscount(active),
   };
 
   return {
+    schema: DEALS_SCHEMA_VERSION,
     generatedAt: now.toISOString(),
     refreshIntervalSeconds: REFRESH_INTERVAL_SECONDS,
     range,
@@ -364,15 +389,17 @@ function assemble(params: {
   };
 }
 
-/** Saved-weighted mean discount across active deals; plain mean before any
-    usage lands (all weights zero). Null with no active deals. */
+/** Saved-weighted mean discount across active PAID deals; plain mean before any
+    usage lands (all weights zero). Free deals (discount 0) are excluded so they
+    can't drag the "average discount" stat to a meaningless number. */
 function weightedDiscount(active: DealSeries[]): number | null {
-  if (active.length === 0) return null;
-  const totalSaved = active.reduce((sum, d) => sum + (d.stats?.saved ?? 0), 0);
+  const paid = active.filter((d) => d.dealType !== "free");
+  if (paid.length === 0) return null;
+  const totalSaved = paid.reduce((sum, d) => sum + (d.stats?.saved ?? 0), 0);
   if (totalSaved <= 0) {
-    return active.reduce((sum, d) => sum + d.discount, 0) / active.length;
+    return paid.reduce((sum, d) => sum + d.discount, 0) / paid.length;
   }
-  return active.reduce((sum, d) => sum + d.discount * (d.stats?.saved ?? 0), 0) / totalSaved;
+  return paid.reduce((sum, d) => sum + d.discount * (d.stats?.saved ?? 0), 0) / totalSaved;
 }
 
 function rangeWindow(range: DealRangeKey, deals: DealPeriod[], dataAsOfMs: number) {
@@ -383,21 +410,51 @@ function rangeWindow(range: DealRangeKey, deals: DealPeriod[], dataAsOfMs: numbe
   return { bucketSeconds, fromMs: floorTo(rawFrom, bucketSeconds), toMs: dataAsOfMs };
 }
 
-function rowsToMap(rows: UsageRow[]): Map<string, Map<string, RawBucket>> {
-  const bySlug = new Map<string, Map<string, RawBucket>>();
+function paygRowsToMap(rows: UsageRow[], into?: Map<string, Map<string, RawBucket>>): Map<string, Map<string, RawBucket>> {
+  const bySlug = into ?? new Map<string, Map<string, RawBucket>>();
   for (const row of rows) {
     const t = bucketIso(row.bucket);
     const byTime = bySlug.get(row.model_slug) ?? new Map<string, RawBucket>();
     byTime.set(t, {
       t,
       requests: toNumber(row.requests),
-      cost: toNumber(row.cost),
+      paid: toNumber(row.paid),
+      saved: toNumber(row.saved),
+      subPaid: 0,
+      subSaved: 0,
       promptTokens: toNumber(row.prompt_tokens),
       outputTokens: toNumber(row.completion_tokens) + toNumber(row.reasoning_tokens),
     });
     bySlug.set(row.model_slug, byTime);
   }
   return bySlug;
+}
+
+function subRowsToMap(rows: SubRow[], into?: SubRaw): SubRaw {
+  const bySlug = into ?? new Map();
+  for (const row of rows) {
+    const t = bucketIso(row.bucket);
+    const byTime = bySlug.get(row.model_slug) ?? new Map<string, Map<string, SubBucket>>();
+    const byProvider = byTime.get(t) ?? new Map<string, SubBucket>();
+    const prev = byProvider.get(row.provider_slug) ?? {
+      requests: 0,
+      origin: 0,
+      promptTokens: 0,
+      outputTokens: 0,
+    };
+    prev.requests += toNumber(row.requests);
+    prev.origin += toNumber(row.origin);
+    prev.promptTokens += toNumber(row.prompt_tokens);
+    prev.outputTokens += toNumber(row.completion_tokens) + toNumber(row.reasoning_tokens);
+    byProvider.set(row.provider_slug, prev);
+    byTime.set(t, byProvider);
+    bySlug.set(row.model_slug, byTime);
+  }
+  return bySlug;
+}
+
+function uniqueSlugs(deals: DealPeriod[]): string[] {
+  return [...new Set(deals.map((d) => d.slug))];
 }
 
 /** Full re-aggregation straight from the DB (cold path / precompute). */
@@ -407,16 +464,20 @@ export async function fetchTokenDeals(
   options: { persist?: boolean } = {},
 ): Promise<TokenDealsPayload> {
   const range = dealRangeOption(requestedRange).key;
-  const deals = await loadDealsConfig();
+  const deals = await discoverDeals();
   const dataAsOfMs = currentDataAsOf(now);
   const { bucketSeconds, fromMs, toMs } = rangeWindow(range, deals, dataAsOfMs);
+  const slugs = uniqueSlugs(deals);
 
-  const slugs = [...new Set(deals.map((d) => d.slug))];
-  const rows = await queryUsageRows({ slugs, fromMs, toMs, bucketSeconds });
+  const [paygRows, subRows] = await Promise.all([
+    queryPaygRows({ slugs, fromMs, toMs, bucketSeconds }),
+    querySubRows({ slugs, fromMs, toMs, bucketSeconds }),
+  ]);
 
   const payload = assemble({
     deals,
-    rawBySlug: rowsToMap(rows),
+    rawBySlug: paygRowsToMap(paygRows),
+    subRawBySlug: subRowsToMap(subRows),
     range,
     bucketSeconds,
     fromMs,
@@ -430,34 +491,67 @@ export async function fetchTokenDeals(
 }
 
 /** Baseline + incremental merge: reuse the packaged payload's old buckets and
-    query the DB only for the tail (baseline.to − overlap → now). Returns null
-    when the baseline isn't usable and a full fetch should run instead. */
-async function incrementallyUpdate(
+    query the DB only for the tail (baseline.to − overlap → now). Deals that
+    appeared AFTER the baseline was packaged (new discount rows / new free
+    models) get their full window fetched — they're young by definition, so
+    that query is small. Returns null when the baseline isn't usable and a
+    full fetch should run instead. Exported for the precompute script. */
+export async function incrementallyUpdate(
   range: DealRangeKey,
   baseline: TokenDealsPayload,
-  now: Date,
+  now = new Date(),
+  options: { persist?: boolean } = {},
 ): Promise<TokenDealsPayload | null> {
-  const deals = await loadDealsConfig();
+  // Older-schema baselines carry different money semantics — full refetch once.
+  if (baseline.schema !== DEALS_SCHEMA_VERSION) return null;
+
+  const deals = await discoverDeals();
   const dataAsOfMs = currentDataAsOf(now);
   const { bucketSeconds, fromMs, toMs } = rangeWindow(range, deals, dataAsOfMs);
   if (baseline.bucketSeconds !== bucketSeconds) return null;
 
   const baselineTo = Date.parse(baseline.to);
   if (Number.isNaN(baselineTo)) return null;
-  if (baselineTo >= toMs) return { ...baseline, generatedAt: now.toISOString() };
+  if (baselineTo >= toMs) {
+    const payload = { ...baseline, generatedAt: now.toISOString() };
+    if (options.persist) await writeJsonCache(range, payload);
+    return payload;
+  }
 
   const overlapMs = (OVERLAP_BUCKETS[bucketSeconds] ?? 3) * bucketSeconds * 1000;
   const incFromMs = Math.max(fromMs, floorTo(baselineTo, bucketSeconds) - overlapMs);
   // A tail bigger than half the window buys nothing over a full fetch.
   if (toMs - incFromMs > (toMs - fromMs) * 0.5) return null;
 
-  const slugs = [...new Set(deals.map((d) => d.slug))];
-  const rows = await queryUsageRows({ slugs, fromMs: incFromMs, toMs, bucketSeconds });
+  // Split slugs: ones the baseline has buckets for get a tail query; brand-new
+  // ones (no baseline series) need their whole clipped window.
+  const baselineSlugs = new Set(baseline.deals.map((d) => d.slug));
+  const knownSlugs: string[] = [];
+  const newDeals: DealPeriod[] = [];
+  for (const deal of deals) {
+    if (baselineSlugs.has(deal.slug)) {
+      if (!knownSlugs.includes(deal.slug)) knownSlugs.push(deal.slug);
+    } else {
+      newDeals.push(deal);
+    }
+  }
+  const newSlugs = uniqueSlugs(newDeals);
+  const newFromMs =
+    newDeals.length > 0
+      ? Math.max(fromMs, floorTo(Math.min(...newDeals.map((d) => dateStartMs(d.startDate))), bucketSeconds))
+      : incFromMs;
+
+  const [tailPayg, tailSub, newPayg, newSub] = await Promise.all([
+    queryPaygRows({ slugs: knownSlugs, fromMs: incFromMs, toMs, bucketSeconds }),
+    querySubRows({ slugs: knownSlugs, fromMs: incFromMs, toMs, bucketSeconds }),
+    queryPaygRows({ slugs: newSlugs, fromMs: newFromMs, toMs, bucketSeconds }),
+    querySubRows({ slugs: newSlugs, fromMs: newFromMs, toMs, bucketSeconds }),
+  ]);
 
   // Rebuild the raw per-slug map: baseline buckets before the incremental
-  // window + fresh buckets inside it. This is lossless — every point carries
-  // its own prompt/output split and request count, and each (slug, bucket)
-  // belongs to exactly one period per slug (non-overlap registry invariant).
+  // window (their subscription share is already settled into subPaid/subSaved)
+  // + fresh buckets inside it. This is lossless — every point is additive, and
+  // each (slug, bucket) belongs to exactly one period per slug.
   const rawBySlug = new Map<string, Map<string, RawBucket>>();
   for (const deal of baseline.deals) {
     if (!deal.points) return null; // degraded baseline → full fetch
@@ -468,22 +562,25 @@ async function incrementallyUpdate(
       byTime.set(p.t, {
         t: p.t,
         requests: p.requests,
-        cost: p.paid,
+        paid: p.paid,
+        saved: p.saved,
+        subPaid: p.subPaid,
+        subSaved: p.subSaved,
         promptTokens: p.promptTokens,
         outputTokens: p.outputTokens,
       });
     }
     rawBySlug.set(deal.slug, byTime);
   }
-  for (const [slug, byTime] of rowsToMap(rows)) {
-    const target = rawBySlug.get(slug) ?? new Map<string, RawBucket>();
-    for (const [t, raw] of byTime) target.set(t, raw);
-    rawBySlug.set(slug, target);
-  }
+  paygRowsToMap(tailPayg, rawBySlug);
+  paygRowsToMap(newPayg, rawBySlug);
+  const subRawBySlug = subRowsToMap(tailSub);
+  subRowsToMap(newSub, subRawBySlug);
 
-  return assemble({
+  const payload = assemble({
     deals,
     rawBySlug,
+    subRawBySlug,
     range,
     bucketSeconds,
     fromMs,
@@ -491,18 +588,26 @@ async function incrementallyUpdate(
     now,
     lastSuccessAt: now.toISOString(),
   });
+  if (options.persist) await writeJsonCache(range, payload);
+  return payload;
 }
 
 // ---------------------------------------------------------------------------
-// Degraded payload — registry facts only, no money numbers
+// Degraded payload — deal facts from the freshest packaged baseline, no money
+// numbers. (Deal discovery lives in the DB now, so when the DB is down the
+// baseline is the only fact source left; with no baseline the page shows its
+// error panel and retries.)
 // ---------------------------------------------------------------------------
 
 let lastSuccessAt: string | null = null;
 
 export async function buildDegradedPayload(now = new Date()): Promise<TokenDealsPayload> {
-  const deals = await loadDealsConfig();
+  // Only a same-schema baseline is safe to surface — an older baseline's deals
+  // lack fields the client relies on (dealType/providers/sub split).
+  const candidates = [await readJsonCache("all"), await readJsonCache("72h")];
+  const baseline = candidates.find((b) => b?.schema === DEALS_SCHEMA_VERSION) ?? null;
   const dataAsOfMs = currentDataAsOf(now);
-  const visible: DealSeries[] = deals
+  const visible: DealSeries[] = (baseline?.deals ?? [])
     .map(
       (deal): DealSeries => ({
         ...deal,
@@ -514,10 +619,8 @@ export async function buildDegradedPayload(now = new Date()): Promise<TokenDeals
     .filter((d) => d.status !== "scheduled");
   // Deepest discount first — with no SAVED to rank by, rule 6's tiebreak is the order.
   visible.sort((a, b) => a.discount - b.discount);
-  // Fall back to the freshest packaged baseline's stamp when this process has
-  // never seen a live success (e.g. cold serverless instance during an outage).
-  const baselineStamp = lastSuccessAt ?? (await readJsonCache("all"))?.lastSuccessAt ?? null;
   return {
+    schema: DEALS_SCHEMA_VERSION,
     generatedAt: now.toISOString(),
     refreshIntervalSeconds: REFRESH_INTERVAL_SECONDS,
     range: DEFAULT_DEAL_RANGE,
@@ -525,7 +628,7 @@ export async function buildDegradedPayload(now = new Date()): Promise<TokenDeals
     from: new Date(dataAsOfMs).toISOString(),
     to: new Date(dataAsOfMs).toISOString(),
     live: false,
-    lastSuccessAt: baselineStamp,
+    lastSuccessAt: lastSuccessAt ?? baseline?.lastSuccessAt ?? null,
     activeCount: visible.filter((d) => d.status === "active").length,
     endedCount: visible.filter((d) => d.status === "ended").length,
     totals: null,
@@ -584,7 +687,7 @@ export async function getTokenDealsWithMeta(
 
   const work = (async (): Promise<{ payload: TokenDealsPayload; source: DealsFetchSource }> => {
     const baseline = await readJsonCache(range);
-    if (baseline?.live) {
+    if (baseline?.live && baseline.schema === DEALS_SCHEMA_VERSION) {
       const baselineTo = Date.parse(baseline.to);
       if (!Number.isNaN(baselineTo) && baselineTo >= currentDataAsOf(now)) {
         return { payload: baseline, source: "baseline-fresh" };
@@ -593,7 +696,6 @@ export async function getTokenDealsWithMeta(
         const merged = await incrementallyUpdate(range, baseline, now);
         if (merged) return { payload: merged, source: "incremental-db" };
       } catch (err) {
-        if (err instanceof DealsConfigError) throw err; // registry bug: surface it
         console.warn(
           `[token-deals] Incremental update for ${range} failed, serving stale baseline:`,
           err instanceof Error ? err.message : err,

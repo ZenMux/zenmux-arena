@@ -1,334 +1,54 @@
 "use client";
 
-// Token Deals（让利账本）— the page brain. One payload (range "all", the full
-// deal windows) drives EVERYTHING money-related: hero total, stat row, cards,
-// ended archive. The chart additionally supports a 72H hourly view fetched on
-// demand — but card numbers never come from the clipped window, so switching
-// the chart range can't silently shrink the ledger (口径事故).
+// Token Deals — THE BOARD. A stadium scoreboard of every subsidy ZenMux is
+// running: a giant green total, four solid stat blocks, then one full-bleed
+// band per deal in the vendor's brand color (flag-circle logo, poster-size
+// model name, poster-size % OFF). Ended deals archive as desaturated strips.
 //
-// State machine per the PRD: loading (skeleton) → ready → refreshing (silent) →
-// degraded (fetch failed OR payload.live=false: list prices + discounts stay,
-// money shows "—", auto-retry with 10s backoff).
+// One payload (range "all", full deal windows) drives EVERYTHING money-related
+// via useDealsFeed — the trend charts live on /token-deals/ladder.
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowUpRight, RefreshCw } from "lucide-react";
+import type { DealSeries, TokenDealsPayload } from "@research/token-deals/types";
+import { VendorGlyph } from "../token-economics/components";
 import {
-  DEAL_RANGE_OPTIONS,
-  type DealRangeKey,
-  type DealSeries,
-  type TokenDealsPayload,
-} from "@research/token-deals/types";
-import { VendorGlyph, StatBox } from "../token-economics/components";
-import { LiveSkeletonStyles } from "../token-economics/LiveSkeletonChart";
-import { ChartFrame } from "./ChartFrame";
-import { SubsidyChart, AXIS_OPTIONS, type ChartAxis } from "./SubsidyChart";
-import {
+  bandTheme,
   dealHref,
   discountFactor,
-  discountZhe,
-  isDeepDiscount,
+  percentOff,
   perM,
   shortDate,
   subsidyPct,
   tokens,
   usdGrouped,
 } from "./lib";
-
-const ERROR_BACKOFF_MS = 10_000;
-const REFRESH_SETTLE_MS = 750;
-const DEFAULT_REFRESH_SECONDS = 300;
+import { formatStamp, localZone, useDealsFeed } from "./useDealsFeed";
 
 type SortKey = "saved" | "discount" | "used" | "newest";
+type DealFilter = "all" | "discount" | "free";
 
 const SORT_OPTIONS = [
   { key: "saved", label: "SAVED", title: "Most subsidy dollars first" },
-  { key: "discount", label: "DISCOUNT", title: "Deepest discount first" },
+  { key: "discount", label: "% OFF", title: "Deepest discount first" },
   { key: "used", label: "USED", title: "Most in-deal tokens first" },
   { key: "newest", label: "NEWEST", title: "Most recently started first" },
 ] as const satisfies { key: SortKey; label: string; title: string }[];
 
-async function fetchDeals(range: DealRangeKey, signal?: AbortSignal): Promise<TokenDealsPayload> {
-  const res = await fetch(`/api/token-deals/live?range=${range}`, { cache: "no-store", signal });
-  const json = (await res.json()) as TokenDealsPayload | { error?: string };
-  if (!res.ok) throw new Error("error" in json && json.error ? json.error : "Deals fetch failed");
-  return json as TokenDealsPayload;
-}
+const FILTER_OPTIONS = [
+  { key: "all", label: "ALL", title: "Every live deal" },
+  { key: "discount", label: "DISCOUNTED", title: "Percentage-off deals only" },
+  { key: "free", label: "FREE", title: "Free (100% off) models only" },
+] as const satisfies { key: DealFilter; label: string; title: string }[];
 
-function nextAlignedDelayMs(intervalSeconds: number): number {
-  const intervalMs = Math.max(1, intervalSeconds) * 1000;
-  return intervalMs - (Date.now() % intervalMs) + REFRESH_SETTLE_MS;
-}
-
-function formatStamp(iso: string): string {
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(new Date(iso));
-}
-
-function localZone(): string {
-  try {
-    const parts = new Intl.DateTimeFormat(undefined, { timeZoneName: "short" }).formatToParts(
-      new Date(),
-    );
-    return parts.find((p) => p.type === "timeZoneName")?.value ?? "";
-  } catch {
-    return "";
-  }
-}
-
-export function DealsClient() {
-  // The canonical payload — always range "all" (full deal windows).
-  const [data, setData] = useState<TokenDealsPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [manualRefresh, setManualRefresh] = useState(0);
-
-  // Chart-only state: range + its on-demand 72h payload (cached per fetch round).
-  // "Loading" is DERIVED (72h selected but no payload yet) rather than set
-  // synchronously in the effect — react-hooks/set-state-in-effect.
-  const [chartRange, setChartRange] = useState<DealRangeKey>("all");
-  const [chart72h, setChart72h] = useState<TokenDealsPayload | null>(null);
-  const [chart72hFailed, setChart72hFailed] = useState(false);
-
-  const [sortKey, setSortKey] = useState<SortKey>("saved");
-  const [axis, setAxis] = useState<ChartAxis>("saved");
-  const [hidden, setHidden] = useState<Set<string>>(new Set());
-
-  const hasDataRef = useRef(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let live = true;
-    let timeoutId: number | null = null;
-    let refreshSeconds = DEFAULT_REFRESH_SECONDS;
-
-    const clearTimer = () => {
-      if (timeoutId != null) window.clearTimeout(timeoutId);
-      timeoutId = null;
-    };
-
-    const schedule = (delayMs: number) => {
-      if (!live) return;
-      clearTimer();
-      timeoutId = window.setTimeout(() => void run(), delayMs);
-    };
-
-    async function run(signal?: AbortSignal) {
-      clearTimer();
-      if (hasDataRef.current) setRefreshing(true);
-      try {
-        const json = await fetchDeals("all", signal);
-        if (!live) return;
-        refreshSeconds = json.refreshIntervalSeconds || DEFAULT_REFRESH_SECONDS;
-        hasDataRef.current = true;
-        setData(json);
-        setError(null);
-        setLoading(false);
-        setRefreshing(false);
-        // Degraded payloads (live=false) retry fast; healthy ones align to the
-        // refresh boundary like the token-economics LIVE view.
-        schedule(json.live ? nextAlignedDelayMs(refreshSeconds) : ERROR_BACKOFF_MS);
-      } catch (err) {
-        if (!live || signal?.aborted) return;
-        setError(err instanceof Error ? err.message : "Deals fetch failed");
-        setLoading(false);
-        setRefreshing(false);
-        schedule(ERROR_BACKOFF_MS);
-      }
-    }
-    void run(controller.signal);
-    return () => {
-      live = false;
-      controller.abort();
-      clearTimer();
-    };
-  }, [manualRefresh]);
-
-  // 72H chart payload — fetched lazily when the range is first selected, then
-  // refreshed whenever the main poll round-trips (so the two stay in step).
-  useEffect(() => {
-    if (chartRange !== "72h") return;
-    const controller = new AbortController();
-    let live = true;
-    fetchDeals("72h", controller.signal)
-      .then((json) => {
-        if (!live) return;
-        setChart72h(json);
-        setChart72hFailed(false);
-      })
-      .catch(() => {
-        if (!live) return;
-        setChart72hFailed(true);
-      });
-    return () => {
-      live = false;
-      controller.abort();
-    };
-  }, [chartRange, data?.generatedAt]);
-
-  const retry = useCallback(() => setManualRefresh((n) => n + 1), []);
-
-  const degraded = data != null && !data.live;
-  const chartPayload = chartRange === "72h" ? chart72h : data;
-
-  const active = useMemo(
-    () => sortDeals((data?.deals ?? []).filter((d) => d.status === "active"), sortKey),
-    [data?.deals, sortKey],
-  );
-  const ended = useMemo(
-    () =>
-      [...(data?.deals ?? [])]
-        .filter((d) => d.status === "ended")
-        .sort((a, b) => (b.endDate ?? "").localeCompare(a.endDate ?? "")),
-    [data?.deals],
-  );
-
-  const toggleSeries = useCallback((id: string) => {
-    setHidden((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  return (
-    <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-16 pt-6 sm:px-6">
-      {(degraded || error) && data && (
-        <DegradedBanner
-          message={error ?? "实时数据暂不可用 · Live data unavailable — 正在自动重试"}
-          lastSuccessAt={data.lastSuccessAt}
-          retrying={refreshing || loading}
-          onRetry={retry}
-        />
-      )}
-
-      {!data && loading ? (
-        <DealsSkeleton />
-      ) : !data ? (
-        <ErrorPanel message={error ?? "Failed to load token deals."} onRetry={retry} />
-      ) : (
-        <div className="space-y-10">
-          <Hero data={data} refreshing={refreshing} onRefresh={retry} />
-
-          {/* ── ③ ACTIVE ledger wall ── */}
-          <section className="space-y-3">
-            <SectionHead
-              title="ACTIVE DEALS · 进行中优惠"
-              sub={`${active.length} deals running · every card links to the model on zenmux.ai`}
-              right={
-                <SegmentedControl
-                  label="Sort deals"
-                  options={SORT_OPTIONS}
-                  value={sortKey}
-                  onChange={setSortKey}
-                />
-              }
-            />
-            {active.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {active.map((deal) => (
-                  <DealCard key={deal.id} deal={deal} live={data.live} />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* ── ④ Subsidy over time ── */}
-          {data.live && chartPayload && (
-            <section className="space-y-3">
-              <SectionHead
-                title="SUBSIDY OVER TIME · 让利累积曲线"
-                sub="Cumulative, per deal — export the PNG for the receipts"
-                right={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <SegmentedControl
-                      label="Y axis"
-                      options={AXIS_OPTIONS}
-                      value={axis}
-                      onChange={setAxis}
-                    />
-                    <SegmentedControl
-                      label="Time range"
-                      options={DEAL_RANGE_OPTIONS.map((r) => ({
-                        key: r.key,
-                        label: r.label,
-                        title:
-                          r.key === "all"
-                            ? "Every deal's full window (daily buckets)"
-                            : "Trailing 72 hours (hourly buckets)",
-                      }))}
-                      value={chartRange}
-                      onChange={setChartRange}
-                    />
-                  </div>
-                }
-              />
-              {chartRange === "72h" && !chart72h ? (
-                <div className="border border-[#141414]/35 bg-[#fbf9f4] px-4 py-16 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#6f6a5f]">
-                  {chart72hFailed
-                    ? "72H window failed to load — retrying on the next refresh"
-                    : "Loading 72H window…"}
-                </div>
-              ) : (
-                <ChartFrame filename={`subsidy-over-time-${chartRange}`}>
-                  <SubsidyChart
-                    payload={chartPayload}
-                    axis={axis}
-                    hidden={hidden}
-                    onToggle={toggleSeries}
-                  />
-                </ChartFrame>
-              )}
-            </section>
-          )}
-
-          {/* ── ⑤ ENDED archive — same public page, desaturated, still in the
-                 grand total (归档不出账). Hidden entirely until history exists. ── */}
-          {ended.length > 0 && (
-            <section className="space-y-3">
-              <SectionHead
-                title="ENDED DEALS · 已结束"
-                sub="已结束优惠的让利仍计入总账 — the story ends, the ledger doesn't"
-              />
-              <EndedList deals={ended} />
-            </section>
-          )}
-
-          {/* Freshness anchor (常驻，不只降级态)。 */}
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
-            {data.live ? (
-              <>
-                Live data · updated {formatStamp(data.generatedAt)} {localZone()} · window{" "}
-                {data.from.slice(0, 10)} → {formatStamp(data.to)} {localZone()} · refreshes every{" "}
-                {Math.round(data.refreshIntervalSeconds / 60)}m
-                {data.stale ? " · 数据截至上次成功聚合 (stale)" : ""}
-              </>
-            ) : (
-              <>Registry prices shown · live billing aggregation unavailable</>
-            )}{" "}
-            · SAVED = Σ 优惠期内用量 × (原价 − 折后价) · 按牌面价差计，非财务结算口径
-          </p>
-        </div>
-      )}
-    </main>
-  );
-}
+// The scoreboard panel palette — worldcup kick-off green, broadcast amber,
+// pitch blue, signal red. Solid blocks, same-hue deep/pale ink.
+const PANEL = {
+  green: { bg: "#0c6b33", ink: "#41f08d" },
+  amber: { bg: "#d9940a", ink: "#442c00" },
+  blue: { bg: "#1747c0", ink: "#bccbff" },
+  red: { bg: "#d7263d", ink: "#ffd6db" },
+} as const;
 
 function sortDeals(deals: DealSeries[], key: SortKey): DealSeries[] {
   const saved = (d: DealSeries) => d.stats?.saved ?? 0;
@@ -336,7 +56,6 @@ function sortDeals(deals: DealSeries[], key: SortKey): DealSeries[] {
   const sorted = [...deals];
   switch (key) {
     case "saved":
-      // Rule 6: SAVED desc; ties (all zero / degraded) fall back to deeper discount first.
       return sorted.sort((a, b) => saved(b) - saved(a) || a.discount - b.discount);
     case "discount":
       return sorted.sort((a, b) => a.discount - b.discount || saved(b) - saved(a));
@@ -349,7 +68,143 @@ function sortDeals(deals: DealSeries[], key: SortKey): DealSeries[] {
   }
 }
 
-/* ── ② Hero — the one oversized number on the page ─────────────────────────── */
+/** "Providers: KingsoftCloud x0.34, Xiaomi x0.93" — band tooltip when the
+    factor differs across providers (the band shows the deepest one). */
+function providersTitle(deal: DealSeries): string {
+  if (deal.providers.length <= 1) return "";
+  return ` · providers: ${deal.providers.map((p) => `${p.name} ${discountFactor(p.discount)}`).join(", ")}`;
+}
+
+export function DealsClient() {
+  const { data, error, loading, refreshing, degraded, retry } = useDealsFeed();
+  const [sortKey, setSortKey] = useState<SortKey>("saved");
+  const [filter, setFilter] = useState<DealFilter>("all");
+
+  const active = useMemo(
+    () =>
+      sortDeals(
+        (data?.deals ?? []).filter(
+          (d) =>
+            d.status === "active" && (filter === "all" || d.dealType === filter),
+        ),
+        sortKey,
+      ),
+    [data?.deals, sortKey, filter],
+  );
+  const ended = useMemo(
+    () =>
+      [...(data?.deals ?? [])]
+        .filter((d) => d.status === "ended")
+        .sort((a, b) => (b.endDate ?? "").localeCompare(a.endDate ?? "")),
+    [data?.deals],
+  );
+
+  return (
+    <main className="flex-1">
+      {(degraded || error) && data && (
+        <DegradedBanner
+          message={error ?? "Live billing data unavailable — retrying automatically"}
+          lastSuccessAt={data.lastSuccessAt}
+          retrying={refreshing || loading}
+          onRetry={retry}
+        />
+      )}
+
+      {!data && loading ? (
+        <BoardSkeleton />
+      ) : !data ? (
+        <ErrorPanel message={error ?? "Failed to load token deals."} onRetry={retry} />
+      ) : (
+        <>
+          <Ticker data={data} />
+          <Hero data={data} refreshing={refreshing} onRefresh={retry} />
+          <StatBlocks data={data} />
+
+          {/* ── The band wall ── */}
+          <section aria-label="Active deals">
+            <SectionStrip
+              title={`${active.length} deals live`}
+              sub="Every band links to the model on zenmux.ai"
+              right={
+                <div className="flex flex-wrap items-center gap-2">
+                  <SegmentedControl
+                    label="Filter deals"
+                    options={FILTER_OPTIONS}
+                    value={filter}
+                    onChange={setFilter}
+                  />
+                  <SegmentedControl
+                    label="Sort deals"
+                    options={SORT_OPTIONS}
+                    value={sortKey}
+                    onChange={setSortKey}
+                  />
+                </div>
+              }
+            />
+            {active.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <div className="flex flex-col gap-[3px] bg-[#0a0a0b]">
+                {active.map((deal) => (
+                  <DealBand key={deal.id} deal={deal} live={data.live} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* ── Ended archive — desaturated strips, still in the grand total ── */}
+          {ended.length > 0 && (
+            <section aria-label="Ended deals">
+              <SectionStrip
+                title={`${ended.length} deals ended`}
+                sub="The deal ends — its savings stay on the board"
+              />
+              <div className="flex flex-col gap-[3px]">
+                {ended.map((deal) => (
+                  <EndedStrip key={deal.id} deal={deal} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <FinePrint data={data} />
+        </>
+      )}
+    </main>
+  );
+}
+
+/* ── Ticker: the dateline strip under the nav ─────────────────────────────── */
+
+function Ticker({ data }: { data: TokenDealsPayload }) {
+  const today = new Intl.DateTimeFormat("en", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date());
+  return (
+    <div className="border-b border-white/15 bg-[#0a0a0b]">
+      <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center gap-x-2 px-4 py-2 font-[family-name:var(--font-deals-mono)] text-[11px] font-semibold uppercase tracking-[0.1em] text-white sm:px-8">
+        <span className="font-bold">Token deals:</span>
+        <span className="text-white/70" suppressHydrationWarning>
+          {today}
+        </span>
+        <span className="text-white/40">—</span>
+        <span>{data.activeCount} deals live</span>
+        {data.live && (
+          <span className="relative ml-1 flex size-2" title="Live — refreshes automatically">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#41f08d] opacity-60 motion-reduce:animate-none" />
+            <span className="relative inline-flex size-2 rounded-full bg-[#41f08d]" />
+            <span className="sr-only">Live</span>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Hero: the one gigantic number ────────────────────────────────────────── */
 
 function Hero({
   data,
@@ -362,399 +217,334 @@ function Hero({
 }) {
   const totals = data.totals;
   return (
-    <section className="border border-[#141414] bg-[#fbf9f4]">
-      <div className="flex flex-wrap items-start justify-between gap-4 px-5 pt-5 sm:px-6">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#6f6a5f]">
-            Total saved for developers · 累计让利
-            {data.live && (
-              <span className="relative flex size-2" title="Live — refreshes automatically">
-                <span className="absolute inline-flex size-full animate-ping bg-[#1a8a4a] opacity-60 motion-reduce:animate-none" />
-                <span className="relative inline-flex size-2 bg-[#1a8a4a]" />
-                <span className="sr-only">Live</span>
-              </span>
-            )}
+    <section style={{ backgroundColor: PANEL.green.bg }} className="border-b-[3px] border-[#0a0a0b]">
+      <div className="mx-auto w-full max-w-[1800px] px-4 py-10 sm:px-8 sm:py-14">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <p
+            className="text-[11px] font-bold uppercase tracking-[0.24em] sm:text-xs"
+            style={{ color: PANEL.green.ink }}
+          >
+            Total saved for developers
           </p>
-          {totals ? (
-            <div className="mt-2 break-all text-5xl font-bold leading-none tabular-nums text-[#1a8a4a] sm:text-7xl">
-              {usdGrouped(totals.saved)}
-            </div>
-          ) : (
-            <div className="mt-2">
-              <div className="text-3xl font-bold uppercase leading-none tracking-[0.04em] text-[#6f6a5f] sm:text-5xl">
-                — Live data unavailable
-              </div>
-              {data.lastSuccessAt && (
-                <div className="mt-2 text-[11px] font-bold text-[#6f6a5f]">
-                  上次成功更新 {formatStamp(data.lastSuccessAt)} {localZone()}
-                </div>
-              )}
-            </div>
-          )}
-          <p className="mt-3 max-w-2xl text-[11px] font-bold leading-relaxed text-[#6f6a5f]">
-            = Σ 优惠期内用量 × (原价 − 折后价) · 按牌面价差计，非财务结算口径 — list-price
-            gap, not settlement cost. Ended deals stay in this total.
-          </p>
-        </div>
-
-        <div className="flex shrink-0 flex-col items-end gap-2">
           <button
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 border border-[#141414] bg-[#fbf9f4] px-3 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-[#141414] hover:text-[#f4f1ea] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 border px-2.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            style={{ borderColor: PANEL.green.ink, color: PANEL.green.ink }}
           >
             <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
             Refresh
           </button>
-          {data.live && (
-            <span className="text-right text-[9px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
-              Updated {formatStamp(data.generatedAt)} {localZone()}
-            </span>
-          )}
         </div>
-      </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-px border-t border-[#141414] bg-[#141414] lg:grid-cols-4">
-        <StatBox
-          label="Active deals"
-          value={String(data.activeCount)}
-          sub={data.endedCount > 0 ? `${data.endedCount} ended · all in the total` : "every one on this page"}
-          className="border-0"
-        />
-        <StatBox
-          label="Avg discount"
-          value={totals?.weightedDiscount != null ? discountFactor(totals.weightedDiscount) : "x—"}
-          sub={
-            totals?.weightedDiscount != null
-              ? `≈ ${subsidyPct(totals.weightedDiscount)} subsidized · saved-weighted`
-              : "saved-weighted"
-          }
-          accent={totals?.weightedDiscount != null && isDeepDiscount(totals.weightedDiscount) ? "#1a8a4a" : undefined}
-          className="border-0"
-        />
-        <StatBox
-          label="Tokens on deal"
-          value={totals ? tokens(totals.tokens) : "—"}
-          sub="all deal windows"
-          className="border-0"
-        />
-        <StatBox
-          label="Developers paid"
-          value={totals ? usdGrouped(totals.paid) : "—"}
-          sub={
-            totals && totals.paid > 0
-              ? `you pay $1 → ZenMux adds $${(totals.saved / totals.paid).toFixed(2)}`
-              : "actual spend in deal windows"
-          }
-          className="border-0"
-        />
+        {totals ? (
+          <div
+            className="mt-3 break-all font-[family-name:var(--font-deals-display)] text-[clamp(3.5rem,11vw,10.5rem)] leading-[0.95] tracking-tight tabular-nums"
+            style={{ color: PANEL.green.ink }}
+          >
+            {usdGrouped(totals.saved)}
+          </div>
+        ) : (
+          <div
+            className="mt-4 font-[family-name:var(--font-deals-display)] text-[clamp(2rem,6vw,4.5rem)] leading-none"
+            style={{ color: PANEL.green.ink }}
+          >
+            — LIVE DATA UNAVAILABLE
+          </div>
+        )}
+
+        <p
+          className="mt-4 max-w-3xl font-[family-name:var(--font-deals-mono)] text-[11px] font-semibold uppercase tracking-[0.06em] sm:text-xs"
+          style={{ color: "rgba(255,255,255,0.75)" }}
+        >
+          {totals ? (
+            <>
+              Pay-as-you-go {usdGrouped(totals.saved - totals.subSaved)} · subscription{" "}
+              {usdGrouped(totals.subSaved)} · counted from the same billing data that produces
+              your invoices. Ended deals stay in this total.
+            </>
+          ) : data.lastSuccessAt ? (
+            <>Last successful update {formatStamp(data.lastSuccessAt)} {localZone()}</>
+          ) : (
+            <>Deal facts shown — live billing aggregation unavailable</>
+          )}
+        </p>
       </div>
     </section>
   );
 }
 
-/* ── ③ The ledger card ─────────────────────────────────────────────────────── */
+/* ── Stat blocks: four solid panels, worldcup split-screen style ──────────── */
 
-function DealCard({
-  deal,
-  live,
-  variant = "active",
-}: {
-  deal: DealSeries;
-  live: boolean;
-  variant?: "active" | "ended";
-}) {
+function StatBlocks({ data }: { data: TokenDealsPayload }) {
+  const totals = data.totals;
+  const blocks = [
+    {
+      panel: PANEL.amber,
+      label: "Avg discount",
+      value: totals?.weightedDiscount != null ? percentOff(totals.weightedDiscount) : "—",
+      sub: "saved-weighted · paid deals",
+    },
+    {
+      panel: PANEL.blue,
+      label: "Tokens on deal",
+      value: totals ? tokens(totals.tokens) : "—",
+      sub: "all deal windows",
+    },
+    {
+      panel: { bg: "#f4f1ea", ink: "#141414" },
+      label: "Developers paid",
+      value: totals ? usdGrouped(totals.paid) : "—",
+      sub: "actual spend in deal windows",
+    },
+    {
+      panel: PANEL.red,
+      label: "Deals live",
+      value: String(data.activeCount),
+      sub: data.endedCount > 0 ? `${data.endedCount} ended · all on the board` : "right now",
+    },
+  ];
+  return (
+    <section className="grid grid-cols-2 gap-[3px] border-b-[3px] border-[#0a0a0b] bg-[#0a0a0b] lg:grid-cols-4">
+      {blocks.map((b) => (
+        <div key={b.label} style={{ backgroundColor: b.panel.bg }} className="px-4 py-6 sm:px-6 sm:py-8">
+          <div
+            className="text-[10px] font-bold uppercase tracking-[0.2em]"
+            style={{ color: b.panel.ink, opacity: 0.85 }}
+          >
+            {b.label}
+          </div>
+          <div
+            className="mt-2 truncate font-[family-name:var(--font-deals-display)] text-3xl leading-none tabular-nums sm:text-5xl"
+            style={{ color: b.panel.ink }}
+          >
+            {b.value}
+          </div>
+          <div
+            className="mt-2 truncate font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.08em]"
+            style={{ color: b.panel.ink, opacity: 0.7 }}
+          >
+            {b.sub}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/* ── The deal band: one full-bleed vendor-color row ───────────────────────── */
+
+function DealBand({ deal, live }: { deal: DealSeries; live: boolean }) {
+  const theme = bandTheme(deal.vendor);
   const href = dealHref(deal.slug, deal.delisted);
-  const isEnded = variant === "ended";
-  const deep = isDeepDiscount(deal.discount);
-  const strikeColor = isEnded ? "text-[#6f6a5f]" : "text-[#cf3636]";
-  const savedColor = isEnded ? "text-[#3d3a33]" : "text-[#1a8a4a]";
+  const isFree = deal.dealType === "free";
+  const multiRate = new Set(deal.providers.map((p) => p.discount)).size > 1;
+
+  const priceLine =
+    !isFree && deal.origInput != null && deal.netInput != null && deal.origOutput != null && deal.netOutput != null ? (
+      <>
+        <span>
+          IN <s className="opacity-60">{perM(deal.origInput)}</s> {perM(deal.netInput)}
+        </span>
+        <span aria-hidden>·</span>
+        <span>
+          OUT <s className="opacity-60">{perM(deal.origOutput)}</s> {perM(deal.netOutput)}
+        </span>
+        <span aria-hidden>·</span>
+        <span>/M TOKENS</span>
+      </>
+    ) : isFree && deal.origInput != null && deal.origOutput != null ? (
+      <>
+        <span>
+          IN <s className="opacity-60">{perM(deal.origInput)}</s> $0
+        </span>
+        <span aria-hidden>·</span>
+        <span>
+          OUT <s className="opacity-60">{perM(deal.origOutput)}</s> $0
+        </span>
+        <span aria-hidden>·</span>
+        <span>/M TOKENS</span>
+      </>
+    ) : isFree ? (
+      <span>$0 / M TOKENS — INPUT &amp; OUTPUT</span>
+    ) : null;
 
   const body = (
-    <>
-      {/* Header: identity + state badge */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center border border-[#141414]/45 bg-white p-1.5">
+    <div className="mx-auto w-full max-w-[1800px] px-4 py-7 sm:px-8 sm:py-9">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <span
+            className="flex size-10 items-center justify-center rounded-full border-2 bg-white p-1.5 shadow-[0_2px_6px_rgba(0,0,0,0.25)] sm:size-12"
+            style={{ borderColor: theme.isLight ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.4)" }}
+          >
             <VendorGlyph vendor={deal.vendor} alt={deal.vendorName} className="size-full" />
           </span>
-          <span className="min-w-0">
-            <span className="block truncate text-[13px] font-bold leading-tight text-[#141414]">
-              {deal.model}
-            </span>
-            <span className="block truncate text-[9px] font-bold uppercase tracking-[0.12em] text-[#6f6a5f]">
-              {deal.vendorName}
-              {deal.delisted ? " · 已下架" : ""}
-            </span>
-          </span>
+          <h3
+            className="mt-3 flex min-w-0 items-baseline gap-3 font-[family-name:var(--font-deals-display)] text-[clamp(1.9rem,5.2vw,4.6rem)] uppercase leading-[0.95] tracking-tight"
+            style={{ color: theme.title }}
+          >
+            <span className="break-words">{deal.model}</span>
+            {href && (
+              <ArrowUpRight
+                className="hidden size-[0.55em] shrink-0 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100 sm:block"
+                aria-hidden
+              />
+            )}
+          </h3>
+          <div
+            className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 font-[family-name:var(--font-deals-mono)] text-[11px] font-semibold uppercase tracking-[0.08em] sm:text-xs"
+            style={{ color: theme.meta }}
+          >
+            <span className="font-bold">{deal.vendorName}</span>
+            {deal.delisted && <span>· delisted</span>}
+            {priceLine && <span aria-hidden>·</span>}
+            {priceLine}
+            {deal.publishTime && (
+              <>
+                <span aria-hidden>·</span>
+                <span>released {shortDate(deal.publishTime.slice(0, 10))}</span>
+              </>
+            )}
+          </div>
         </div>
-        {isEnded ? (
-          <span className="shrink-0 border border-[#6f6a5f] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#6f6a5f]">
-            Ended
-          </span>
-        ) : live ? (
-          <span className="flex shrink-0 items-center gap-1.5 border border-[#1a8a4a] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#1a8a4a]">
-            <span className="relative flex size-1.5">
-              <span className="absolute inline-flex size-full animate-ping bg-[#1a8a4a] opacity-60 motion-reduce:animate-none" />
-              <span className="relative inline-flex size-1.5 bg-[#1a8a4a]" />
-            </span>
-            Live
-          </span>
-        ) : null}
-      </div>
 
-      {/* Price ledger: list price struck out → deal price. Without the struck
-          original, the discount has no proof (设计决策：原价必须可见且被划掉). */}
-      <div className={"mt-3 space-y-1 border px-2.5 py-2 " + (isEnded ? "border-[#141414]/25 bg-[#f4f1ea]" : "border-[#141414]/35 bg-white/60")}>
-        <PriceRow
-          label="Input"
-          orig={perM(deal.origInput)}
-          net={perM(deal.netInput)}
-          strikeColor={strikeColor}
-          netColor={savedColor}
-        />
-        <PriceRow
-          label="Output"
-          orig={perM(deal.origOutput)}
-          net={perM(deal.netOutput)}
-          strikeColor={strikeColor}
-          netColor={savedColor}
-        />
+        <div className="shrink-0 text-right">
+          <div
+            className="font-[family-name:var(--font-deals-display)] leading-[0.95] tracking-tight"
+            style={{ color: theme.title }}
+            title={
+              isFree
+                ? "Free — 100% off while listed"
+                : `You pay ${discountFactor(deal.discount)} of list${providersTitle(deal)}`
+            }
+          >
+            {isFree ? (
+              <span className="text-[clamp(1.9rem,5.2vw,4.6rem)]">FREE</span>
+            ) : (
+              <>
+                <span className="text-[clamp(1.9rem,5.2vw,4.6rem)] tabular-nums">
+                  {multiRate ? <span className="text-[0.4em] align-middle">UP TO </span> : null}
+                  {subsidyPct(deal.discount)}
+                </span>{" "}
+                <span className="text-[clamp(1rem,2.4vw,2.2rem)]">OFF</span>
+              </>
+            )}
+          </div>
+          {live && deal.stats ? (
+            <div className="mt-2">
+              <div
+                className="font-[family-name:var(--font-deals-display)] text-[clamp(1.2rem,2.6vw,2.4rem)] leading-none tabular-nums"
+                style={{ color: theme.title }}
+              >
+                {usdGrouped(deal.stats.saved)}
+              </div>
+              <div
+                className="mt-1 font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] sm:text-[11px]"
+                style={{ color: theme.meta }}
+              >
+                saved · {tokens(deal.stats.tokens)} tokens
+                {!isFree && <> · you pay {discountFactor(deal.discount)}</>}
+              </div>
+            </div>
+          ) : (
+            <div
+              className="mt-2 font-[family-name:var(--font-deals-mono)] text-[11px] font-semibold uppercase tracking-[0.08em] sm:text-xs"
+              style={{ color: theme.meta }}
+            >
+              {isFree ? "100% off while listed" : <>you pay {discountFactor(deal.discount)}</>}
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* Discount badge + subsidy rate */}
-      <div className="mt-3 flex items-center gap-2.5">
-        <span
-          title={`用户支付比例 ${deal.discount.toFixed(4)} — SAVED = 期内用量 × (原价 − 折后价)`}
-          className={
-            "inline-flex items-baseline gap-1.5 border px-2 py-1 " +
-            (isEnded
-              ? "border-[#6f6a5f] text-[#3d3a33]"
-              : deep
-                ? "border-2 border-[#1a8a4a] text-[#1a8a4a]"
-                : "border-[#141414] text-[#141414]")
-          }
-        >
-          <span className="text-lg font-bold leading-none tabular-nums">
-            {discountFactor(deal.discount)}
-          </span>
-          <span className="text-[10px] font-bold">{discountZhe(deal.discount)}</span>
-        </span>
-        <span className="text-[10px] font-bold leading-tight text-[#6f6a5f]">
-          ZenMux 补贴 <span className={savedColor}>{subsidyPct(deal.discount)}</span>
-          <br />
-          of the list price
-        </span>
-      </div>
-
-      {/* In-window trio — SAVED is the card's second focal point. */}
-      <div className="mt-3 grid grid-cols-3 gap-2 border-t border-[#141414]/25 pt-2.5">
-        <CardStat label="Used" value={deal.stats ? tokens(deal.stats.tokens) : "—"} sub="tokens" />
-        <CardStat label="Paid" value={deal.stats ? usdGrouped(deal.stats.paid) : "—"} />
-        <CardStat
-          label="Saved"
-          value={deal.stats ? usdGrouped(deal.stats.saved) : "—"}
-          valueClass={"text-[15px] " + savedColor}
-        />
-      </div>
-
-      {/* Footer: window + outbound affordance */}
-      <div className="mt-3 flex items-end justify-between gap-2 text-[9px] font-bold uppercase tracking-[0.12em] text-[#6f6a5f]">
-        <span>
-          {isEnded && deal.endDate
-            ? `${shortDate(deal.startDate)} — ${shortDate(deal.endDate)}`
-            : `Since ${shortDate(deal.startDate)}`}
-        </span>
-        {href && (
-          <ArrowUpRight
-            className="size-3.5 shrink-0 text-[#141414] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-            aria-hidden
-          />
-        )}
-      </div>
-    </>
+    </div>
   );
 
-  const cardClass =
-    "group flex h-full flex-col border p-4 transition-all " +
-    (isEnded
-      ? "border-[#141414]/45 bg-[#eceae3]"
-      : "border-[#141414] bg-[#fbf9f4] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_#141414] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#141414]");
-
-  // Whole card = one outbound funnel link (rule 8) unless delisted.
+  const bandClass = "group block w-full transition-[filter] duration-150";
   if (href) {
     return (
       <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`${deal.model} — open on ZenMux`}
-        className={cardClass}
+        aria-label={`${deal.model} — ${isFree ? "free" : `${subsidyPct(deal.discount)} off`} — open on ZenMux`}
+        className={bandClass + " hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"}
+        style={{ backgroundColor: theme.bg }}
       >
         {body}
       </a>
     );
   }
-  return <div className={cardClass}>{body}</div>;
+  return (
+    <div className={bandClass} style={{ backgroundColor: theme.bg }}>
+      {body}
+    </div>
+  );
 }
 
-function PriceRow({
-  label,
-  orig,
-  net,
-  strikeColor,
-  netColor,
-}: {
-  label: string;
-  orig: string;
-  net: string;
-  strikeColor: string;
-  netColor: string;
-}) {
-  return (
-    <div className="grid grid-cols-[3.6rem_minmax(0,1fr)] items-baseline gap-2 text-[11px]">
-      <span className="font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">{label}</span>
-      <span className="min-w-0 whitespace-nowrap font-bold tabular-nums">
-        <span className={"line-through decoration-[1.5px] " + strikeColor}>{orig}</span>{" "}
-        <span className="text-[#6f6a5f]">→</span>{" "}
-        <span className={netColor + " text-[13px]"}>{net}</span>
-        <span className="text-[#6f6a5f]"> /M</span>
+/* ── Ended strip: desaturated archive row ─────────────────────────────────── */
+
+function EndedStrip({ deal }: { deal: DealSeries }) {
+  const href = dealHref(deal.slug, deal.delisted);
+  const inner = (
+    <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-4 sm:px-8">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/90 p-1 grayscale">
+        <VendorGlyph vendor={deal.vendor} alt={deal.vendorName} className="size-full" />
+      </span>
+      <span className="min-w-0 font-[family-name:var(--font-deals-display)] text-base uppercase leading-none tracking-tight text-white/70 sm:text-xl">
+        {deal.model}
+      </span>
+      <span className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
+        {deal.dealType === "free" ? "free" : percentOff(deal.discount)} ·{" "}
+        {shortDate(deal.startDate)} — {deal.endDate ? shortDate(deal.endDate) : "?"}
+        {deal.delisted ? " · delisted" : ""}
+      </span>
+      <span className="ml-auto text-right font-[family-name:var(--font-deals-mono)] text-xs font-bold uppercase tabular-nums tracking-[0.08em] text-white/70">
+        {deal.stats ? usdGrouped(deal.stats.saved) : "—"}{" "}
+        <span className="font-semibold text-white/40">saved</span>
       </span>
     </div>
   );
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${deal.model} — ended deal — open on ZenMux`}
+        className="block bg-[#1c1c1e] transition-colors hover:bg-[#28282b]"
+      >
+        {inner}
+      </a>
+    );
+  }
+  return <div className="bg-[#1c1c1e]">{inner}</div>;
 }
 
-function CardStat({
-  label,
-  value,
-  sub,
-  valueClass = "text-[13px] text-[#141414]",
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  valueClass?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <div className="text-[8px] font-bold uppercase tracking-[0.14em] text-[#6f6a5f]">{label}</div>
-      <div className={"mt-0.5 truncate font-bold tabular-nums " + valueClass}>{value}</div>
-      {sub && <div className="text-[8px] font-bold text-[#6f6a5f]">{sub}</div>}
-    </div>
-  );
-}
+/* ── Shared chrome ────────────────────────────────────────────────────────── */
 
-/* ── ⑤ Ended archive: compact row ⇄ expanded card ──────────────────────────── */
-
-function EndedList({ deals }: { deals: DealSeries[] }) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const toggle = (id: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
-  return (
-    <div className="border border-[#141414]/45">
-      {deals.map((deal, i) => {
-        const open = expanded.has(deal.id);
-        const href = dealHref(deal.slug, deal.delisted);
-        return (
-          <div key={deal.id} className={i > 0 ? "border-t border-[#141414]/25" : ""}>
-            <div className="flex items-stretch bg-[#eceae3]">
-              <button
-                type="button"
-                onClick={() => toggle(deal.id)}
-                aria-expanded={open}
-                className="grid min-h-12 flex-1 cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-[#e4e1d8] sm:gap-4"
-              >
-                <span className="flex size-7 items-center justify-center border border-[#141414]/35 bg-white p-1">
-                  <VendorGlyph vendor={deal.vendor} alt={deal.vendorName} className="size-full" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-[12px] font-bold text-[#141414]">
-                    {deal.model}
-                    {deal.delisted && (
-                      <span className="ml-1.5 text-[9px] font-bold uppercase text-[#6f6a5f]">已下架</span>
-                    )}
-                  </span>
-                  <span className="block truncate text-[9px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
-                    {deal.endDate ? `${shortDate(deal.startDate)} — ${shortDate(deal.endDate)}` : shortDate(deal.startDate)}
-                  </span>
-                </span>
-                <span className="hidden border border-[#6f6a5f] px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-[#3d3a33] sm:inline-flex">
-                  {discountFactor(deal.discount)}
-                </span>
-                <span className="text-right">
-                  <span className="block text-[8px] font-bold uppercase tracking-[0.12em] text-[#6f6a5f]">
-                    Saved
-                  </span>
-                  <span className="block text-[12px] font-bold tabular-nums text-[#3d3a33]">
-                    {deal.stats ? usdGrouped(deal.stats.saved) : "—"}
-                  </span>
-                </span>
-                <span
-                  aria-hidden
-                  className={
-                    "text-[10px] font-bold text-[#6f6a5f] transition-transform " +
-                    (open ? "rotate-90" : "")
-                  }
-                >
-                  ▸
-                </span>
-              </button>
-              {href && (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Open ${deal.model} on ZenMux`}
-                  className="flex w-9 shrink-0 items-center justify-center border-l border-[#141414]/25 text-[#6f6a5f] transition-colors hover:bg-[#141414] hover:text-[#f4f1ea]"
-                >
-                  <ArrowUpRight className="size-3.5" />
-                </a>
-              )}
-            </div>
-            {open && (
-              <div className="border-t border-[#141414]/25 bg-[#eceae3] p-3">
-                <div className="max-w-md">
-                  <DealCard deal={deal} live={false} variant="ended" />
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-      <div className="border-t border-[#141414]/25 bg-[#eceae3] px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[#6f6a5f]">
-        共 {deals.length} 条已结束优惠 · 让利已计入顶部总账
-      </div>
-    </div>
-  );
-}
-
-/* ── Shared chrome ─────────────────────────────────────────────────────────── */
-
-function SectionHead({
+function SectionStrip({
   title,
   sub,
   right,
 }: {
   title: string;
   sub: string;
-  right?: ReactNode;
+  right?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 px-1">
-      <div>
-        <h2 className="text-base font-bold uppercase leading-none tracking-[0.13em] sm:text-lg">
-          {title}
-        </h2>
-        <p className="mt-1 text-[10px] font-bold tracking-[0.02em] text-[#6f6a5f]">{sub}</p>
+    <div className="border-y-[3px] border-[#0a0a0b] bg-[#0a0a0b]">
+      <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-end justify-between gap-3 px-4 py-5 sm:px-8">
+        <div>
+          <h2 className="font-[family-name:var(--font-deals-display)] text-xl uppercase leading-none tracking-tight text-white sm:text-3xl">
+            {title}
+          </h2>
+          <p className="mt-1.5 font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
+            {sub}
+          </p>
+        </div>
+        {right}
       </div>
-      {right}
     </div>
   );
 }
@@ -771,17 +561,17 @@ function SegmentedControl<K extends string>({
   onChange: (value: K) => void;
 }) {
   return (
-    <div className="flex items-center gap-0 border border-[#141414] bg-[#fbf9f4] p-1" aria-label={label}>
+    <div className="flex items-center border border-white/30" aria-label={label}>
       {options.map((option) => (
         <button
           key={option.key}
           type="button"
           onClick={() => onChange(option.key)}
           className={
-            "min-h-8 cursor-pointer border px-2.5 text-[10px] font-bold uppercase tracking-[0.1em] transition-colors sm:px-3 " +
+            "min-h-8 cursor-pointer px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors sm:px-3 " +
             (value === option.key
-              ? "border-[#141414] bg-[#141414] text-[#f4f1ea]"
-              : "border-transparent bg-[#fbf9f4] hover:border-[#141414] hover:bg-[#ece8dd]")
+              ? "bg-white text-[#0a0a0b]"
+              : "text-white/70 hover:bg-white/15 hover:text-white")
           }
           title={option.title}
         >
@@ -804,86 +594,117 @@ function DegradedBanner({
   onRetry: () => void;
 }) {
   return (
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border border-[#b8860b] bg-[#fdf6df] px-3 py-2">
-      <div className="flex items-start gap-2 text-[11px] text-[#7a5b06]">
-        <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-        <div>
-          <span className="font-bold">{message}</span>
-          {lastSuccessAt && (
-            <span className="ml-2 text-[#8a7a3d]">
-              上次成功更新 {formatStamp(lastSuccessAt)} {localZone()}
-            </span>
-          )}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onRetry}
-        disabled={retrying}
-        className="cursor-pointer border border-[#7a5b06] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#7a5b06] transition-colors hover:bg-[#7a5b06] hover:text-[#fdf6df] disabled:cursor-not-allowed disabled:opacity-60"
+    <div style={{ backgroundColor: PANEL.amber.bg }} className="border-b-[3px] border-[#0a0a0b]">
+      <div
+        className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center justify-between gap-2 px-4 py-2.5 sm:px-8"
+        style={{ color: PANEL.amber.ink }}
       >
-        {retrying ? "Retrying…" : "Retry"}
-      </button>
+        <div className="flex items-start gap-2 font-[family-name:var(--font-deals-mono)] text-[11px] font-semibold uppercase tracking-[0.06em]">
+          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+          <div>
+            <span className="font-bold">{message}</span>
+            {lastSuccessAt && (
+              <span className="ml-2 opacity-75">
+                last success {formatStamp(lastSuccessAt)} {localZone()}
+              </span>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={retrying}
+          className="cursor-pointer border border-current px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition-opacity hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {retrying ? "Retrying…" : "Retry"}
+        </button>
+      </div>
     </div>
   );
 }
 
 function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="flex items-start justify-between gap-3 border border-[#cf3636] bg-[#fff6f2] px-3 py-2.5 text-[11px] text-[#cf3636]">
-      <div className="flex items-start gap-2">
-        <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-        <div>
-          <div className="font-bold uppercase tracking-[0.12em]">Token deals unavailable</div>
-          <div className="mt-0.5 text-[#6f6a5f]">{message}</div>
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="cursor-pointer border border-[#cf3636] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-[#cf3636] hover:text-[#fff6f2]"
+    <div style={{ backgroundColor: PANEL.red.bg }} className="border-b-[3px] border-[#0a0a0b]">
+      <div
+        className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center justify-between gap-3 px-4 py-8 sm:px-8"
+        style={{ color: PANEL.red.ink }}
       >
-        Retry
-      </button>
+        <div>
+          <div className="font-[family-name:var(--font-deals-display)] text-2xl uppercase leading-none tracking-tight sm:text-4xl">
+            Token deals unavailable
+          </div>
+          <div className="mt-2 font-[family-name:var(--font-deals-mono)] text-[11px] font-semibold uppercase tracking-[0.08em] opacity-80">
+            {message}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="cursor-pointer border-2 border-current px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] transition-opacity hover:opacity-70"
+        >
+          Retry
+        </button>
+      </div>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <div className="border border-[#141414]/35 bg-[#fbf9f4] px-4 py-14 text-center">
-      <div className="text-sm font-bold uppercase tracking-[0.14em] text-[#141414]">
-        暂无进行中的优惠
+    <div className="bg-[#1c1c1e] px-4 py-16 text-center">
+      <div className="font-[family-name:var(--font-deals-display)] text-2xl uppercase tracking-tight text-white">
+        No deals running right now
       </div>
-      <p className="mt-1.5 text-[11px] font-bold text-[#6f6a5f]">
-        No deals are running right now — history (if any) stays archived below.
+      <p className="mt-2 font-[family-name:var(--font-deals-mono)] text-[11px] font-semibold uppercase tracking-[0.1em] text-white/50">
+        History (if any) stays archived below.
       </p>
     </div>
   );
 }
 
-function DealsSkeleton() {
+function FinePrint({ data }: { data: TokenDealsPayload }) {
   return (
-    <div className="space-y-10" role="status" aria-label="Loading the subsidy ledger">
-      <LiveSkeletonStyles />
-      <span className="sr-only">Loading the subsidy ledger</span>
-      <div className="border border-[#141414] bg-[#fbf9f4] px-5 py-6">
-        <span className="te-live-skeleton-shine inline-block h-3 w-64 border border-[#141414]/15 bg-[#ece8dd]" />
-        <div className="mt-3">
-          <span className="te-live-skeleton-shine inline-block h-14 w-80 max-w-full border border-[#141414]/15 bg-[#ece8dd] sm:h-16" />
-        </div>
-        <div className="mt-3">
-          <span className="te-live-skeleton-shine inline-block h-3 w-96 max-w-full border border-[#141414]/15 bg-[#ece8dd]" />
-        </div>
-        <div className="mt-5 grid grid-cols-2 gap-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <span key={i} className="te-live-skeleton-shine block h-16 border border-[#141414]/15 bg-[#ece8dd]" />
-          ))}
+    <div className="mx-auto w-full max-w-[1800px] px-4 py-8 sm:px-8">
+      <p className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase leading-relaxed tracking-[0.08em] text-white/40">
+        {data.live ? (
+          <>
+            Live data · updated {formatStamp(data.generatedAt)} {localZone()} · window{" "}
+            {data.from.slice(0, 10)} → {formatStamp(data.to)} {localZone()} · refreshes every{" "}
+            {Math.round(data.refreshIntervalSeconds / 60)}m
+            {data.stale ? " · showing last successful aggregation (stale)" : ""}
+          </>
+        ) : (
+          <>Cached deal facts shown · live billing aggregation unavailable</>
+        )}{" "}
+        · SAVED = billed discount amounts on pay-as-you-go traffic + list price × (1 − discount)
+        on subscription traffic · free models count their full list price
+      </p>
+    </div>
+  );
+}
+
+/* ── Skeleton: pulsing dark bands ─────────────────────────────────────────── */
+
+function BoardSkeleton() {
+  return (
+    <div role="status" aria-label="Loading the discount board">
+      <span className="sr-only">Loading the discount board</span>
+      <div className="border-b-[3px] border-[#0a0a0b] bg-[#12241a] px-4 py-14 sm:px-8">
+        <div className="mx-auto w-full max-w-[1800px]">
+          <div className="h-3 w-64 animate-pulse bg-white/15" />
+          <div className="mt-5 h-24 w-[min(36rem,90%)] animate-pulse bg-white/15 sm:h-32" />
+          <div className="mt-5 h-3 w-96 max-w-full animate-pulse bg-white/10" />
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <span key={i} className="te-live-skeleton-shine block h-64 border border-[#141414]/15 bg-[#ece8dd]" />
+      <div className="grid grid-cols-2 gap-[3px] bg-[#0a0a0b] lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-32 animate-pulse bg-[#1c1c1e]" />
+        ))}
+      </div>
+      <div className="mt-[3px] flex flex-col gap-[3px]">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-40 animate-pulse bg-[#1c1c1e]" />
         ))}
       </div>
     </div>
