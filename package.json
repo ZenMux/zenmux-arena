@@ -1,6 +1,6 @@
 {
   "name": "zenmux-arena",
-  "version": "0.31.0",
+  "version": "0.34.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,6 +15,7 @@
     "study:test": "tsx research/scripts/run.ts && tsx research/scripts/extract.ts && tsx research/scripts/aggregate.ts",
     "tokenecon": "tsx research/scripts/tokenecon.ts",
     "tokenecon:precompute": "tsx research/scripts/precompute-live.ts",
+    "tokendeals:precompute": "tsx research/scripts/precompute-deals.ts",
     "tokenecon:watch": "while true; do pnpm tokenecon:precompute; sleep 300; done"
   },
   "dependencies": {

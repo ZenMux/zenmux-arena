@@ -65,6 +65,46 @@ function loadLiveStats(): LiveStats | null {
   }
 }
 
+/** Token Deals mini metrics for its hub card: active-deal count + deepest
+ *  discount from the registry (always available), plus the cumulative-saved
+ *  total from the packaged baseline cache when the deploy carries one. */
+interface DealsCardStats {
+  activeCount: number;
+  bestDiscount: number | null;
+  totalSaved: number | null;
+}
+
+function loadDealsStats(): DealsCardStats | null {
+  try {
+    const registryPath = path.join(process.cwd(), "config", "token-deals.json");
+    const registry = JSON.parse(fs.readFileSync(registryPath, "utf8")) as {
+      deals?: { discount?: number; startDate?: string; endDate?: string | null }[];
+    };
+    const today = new Date().toISOString().slice(0, 10);
+    const active = (registry.deals ?? []).filter(
+      (d) =>
+        typeof d.discount === "number" &&
+        (d.startDate ?? "") <= today &&
+        (d.endDate == null || d.endDate >= today),
+    );
+    let totalSaved: number | null = null;
+    const cachePath = path.join(process.cwd(), ".cache", "token-deals", "all.json");
+    if (fs.existsSync(cachePath)) {
+      const payload = JSON.parse(fs.readFileSync(cachePath, "utf8")) as {
+        totals?: { saved?: number } | null;
+      };
+      totalSaved = payload.totals?.saved ?? null;
+    }
+    return {
+      activeCount: active.length,
+      bestDiscount: active.length ? Math.min(...active.map((d) => d.discount!)) : null,
+      totalSaved,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /* ── Vendor logo wall ──────────────────────────────────────────────────────
    The Arena's subjects, shown as proof. Each entry is a full-colour brand mark
    under public/model-logo/<file>_color.svg. Ordered most recognisable first so
@@ -92,6 +132,7 @@ const WALL_VENDORS: { file: string; name: string }[] = [
 
 export default function Home() {
   const stats = loadLiveStats();
+  const dealsStats = loadDealsStats();
   const liveExperiments = EXPERIMENTS.filter((e) => e.status === "live");
   const liveCount = liveExperiments.length;
   // Serializable entry points handed to the client-side random CTA.
@@ -203,6 +244,7 @@ export default function Home() {
               key={exp.id}
               experiment={exp}
               stats={exp.id === PRIMARY_EXPERIMENT.id ? stats : null}
+              dealsStats={exp.id === "token-deals" ? dealsStats : null}
             />
           ))}
         </div>
@@ -422,9 +464,11 @@ const CARD_THEMES: Record<ExperimentTheme, CardThemeTokens> = {
 function ExperimentCard({
   experiment,
   stats,
+  dealsStats,
 }: {
   experiment: Experiment;
   stats: LiveStats | null;
+  dealsStats?: DealsCardStats | null;
 }) {
   const live = experiment.status === "live" && experiment.href;
   const Icon = experiment.icon;
@@ -485,11 +529,35 @@ function ExperimentCard({
           </dl>
         )}
 
-        {live && experiment.theme === "ledger" && (
+        {/* Ledger motifs are keyed by experiment id, not theme — two experiments
+            share the ledger LOOK but each card must preview its own numbers. */}
+        {live && experiment.id === "token-economics" && (
           <dl className="mt-5 space-y-1.5 border-t border-foreground/80 pt-4 font-mono text-[11px]">
             <LedgerRow label="Basket" value="100K IN · 1K OUT" />
             <LedgerRow label="Anchor" value="DeepSeek V4 Pro" accent />
             <LedgerRow label="Metric" value="Tokens ÷ Cost" accent />
+          </dl>
+        )}
+
+        {live && experiment.id === "token-deals" && dealsStats && (
+          <dl className="mt-5 space-y-1.5 border-t border-foreground/80 pt-4 font-mono text-[11px]">
+            <LedgerRow label="Deals live" value={`${dealsStats.activeCount} models`} />
+            {dealsStats.bestDiscount != null && (
+              <LedgerRow
+                label="Best cut"
+                value={`x${dealsStats.bestDiscount.toFixed(2)} · ${(dealsStats.bestDiscount * 10).toFixed(1).replace(/\.0$/, "")} 折`}
+                accent
+              />
+            )}
+            <LedgerRow
+              label="累计让利"
+              value={
+                dealsStats.totalSaved != null
+                  ? `$${Math.round(dealsStats.totalSaved).toLocaleString("en-US")}`
+                  : "LIVE ON PAGE"
+              }
+              accent
+            />
           </dl>
         )}
 

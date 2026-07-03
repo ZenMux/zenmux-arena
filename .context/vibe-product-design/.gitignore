@@ -1,0 +1,18 @@
+# vibe-product-design 运行时产物 —— 首次写入时自动生成。
+# PRD.md / 分章 / _changelog / 风格提示词等 Markdown 会随仓库提交；
+# 这里只忽略高保真原型图等大型二进制，避免把它们塞进 GitHub。
+
+# 各需求文件夹下的 AI 原型图与设计定稿切图目录（模式 B）
+*/assets/
+*/design/
+
+# 图片 / 媒体等大型二进制（无论落在哪一层）
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.mov
+
+.DS_Store

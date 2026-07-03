@@ -25,6 +25,12 @@
       "skillPath": "skills/morphe/SKILL.md",
       "computedHash": "16c001056132edfaef994ef9f6202df6519c3b47588d1a3cd5703bb75e4c330c"
     },
+    "morphe-economics": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": "skills/morphe-economics/SKILL.md",
+      "computedHash": "9b7a4e90bc9bbc84f76101f3e6d1478e21ac1af7ce5c732a7c9866410838b4e1"
+    },
     "next-best-practices": {
       "source": "vercel-labs/next-skills",
       "sourceType": "github",
@@ -61,11 +67,17 @@
       "skillPath": "skills/react-best-practices/SKILL.md",
       "computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
     },
+    "vibe-product-design": {
+      "source": "thinkthinking/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vibe-product-design/SKILL.md",
+      "computedHash": "f8f641c42e884de62c50661abd2225e13ebfe9210129e4c7b8b131178c92b3ea"
+    },
     "vibe-writing": {
       "source": "thinkthinking/skills",
       "sourceType": "github",
       "skillPath": "skills/vibe-writing/SKILL.md",
-      "computedHash": "5ea46f72134661d29d7edf9f969864b768bb13834a51c9ea834a70eba798cb58"
+      "computedHash": "5dd20c69bcb1e42af4ee7011483ea3490a8024d2580c059fadaad205c9f506da"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",
@@ -114,12 +126,6 @@
       "sourceType": "github",
       "skillPath": "skills/zenmux-usage/SKILL.md",
       "computedHash": "66b3ec9462f71148ca354f24737c537019f4fec9280dc2ec2c63289bb696dc50"
-    },
-    "morphe-economics": {
-      "source": "local",
-      "sourceType": "local",
-      "skillPath": "skills/morphe-economics/SKILL.md",
-      "computedHash": "9b7a4e90bc9bbc84f76101f3e6d1478e21ac1af7ce5c732a7c9866410838b4e1"
     }
   }
 }

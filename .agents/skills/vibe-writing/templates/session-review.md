@@ -26,7 +26,7 @@ Unclear:
 
 Final title:
 
-Final path under `results/vibe-writing`:
+Final path under `.context/vibe-writing`:
 
 What changed from the starting point:
 
