@@ -438,7 +438,7 @@
       "sourceSlug": "anthropic/claude-fable-5",
       "model": "Claude Fable 5 (Free)",
       "publishDate": "2026-06-09",
-      "online": false,
+      "online": true,
       "display": true
     },
     {
@@ -550,7 +550,7 @@
       "sourceSlug": "stepfun/step-3.7-flash",
       "model": "Step 3.7 Flash (Free)",
       "publishDate": "2026-05-29",
-      "online": false,
+      "online": true,
       "display": true
     },
     {
@@ -566,7 +566,7 @@
       "sourceSlug": "z-ai/glm-4.6v-flash",
       "model": "GLM 4.6V Flash (Free)",
       "publishDate": "2025-12-08",
-      "online": false,
+      "online": true,
       "display": true
     },
     {
@@ -574,7 +574,7 @@
       "sourceSlug": "z-ai/glm-4.7-flash",
       "model": "GLM 4.7 Flash (Free)",
       "publishDate": "2026-01-19",
-      "online": false,
+      "online": true,
       "display": true
     },
     {

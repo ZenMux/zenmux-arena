@@ -29,6 +29,7 @@ import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EXPERIMENTS } from "@/lib/experiments";
 import { TOOLS } from "@/lib/tools";
+import { SpecimenPlate } from "./specimen-plate";
 import type { GraphData } from "@research/lib/types";
 
 /* ── Live data (unchanged loaders) ────────────────────────────────────────── */
@@ -86,59 +87,9 @@ function loadDealsStats(): DealsStats | null {
 }
 
 /* ── The specimen ring ─────────────────────────────────────────────────────
-   Frontier-model marks arranged in a clean ellipse around the title, like the
-   birds around "Searching for Birds". Positions are computed from evenly
-   spaced angles (not hand-scattered), so the ring reads as one deliberate
-   composition. Hidden below md — mobile gets a compact strip instead. */
-
-interface Specimen {
-  file: string;
-  name: string;
-}
-
-/* Ordered so the most recognisable marks land at the compass points (the
-   ring starts at the top and walks clockwise). */
-const SPECIMENS: Specimen[] = [
-  { file: "chatgpt", name: "OpenAI GPT" },
-  { file: "gemini", name: "Google Gemini" },
-  { file: "grok", name: "xAI Grok" },
-  { file: "qwen", name: "Alibaba Qwen" },
-  { file: "hunyuan", name: "Tencent Hunyuan" },
-  { file: "doubao", name: "ByteDance Doubao" },
-  { file: "minimax", name: "MiniMax" },
-  { file: "moonshot", name: "Moonshot AI" },
-  { file: "kwai", name: "Kwai" },
-  { file: "zai", name: "Z.ai GLM" },
-  { file: "kimi", name: "Kimi" },
-  { file: "inclusionai", name: "inclusionAI" },
-  { file: "stepfun", name: "StepFun" },
-  { file: "xiaomi", name: "Xiaomi MiMo" },
-  { file: "deepeek", name: "DeepSeek" },
-  { file: "wenxin", name: "Baidu ERNIE" },
-  { file: "mistral", name: "Mistral" },
-  { file: "claude", name: "Anthropic Claude" },
-];
-
-/** Evenly spaced ring coordinates. The ellipse is wider than tall (the hero
- *  is landscape) and starts at 12 o'clock; sizes alternate on a gentle
- *  three-step rhythm so the ring has cadence without chaos. */
-const RING = SPECIMENS.map((s, i) => {
-  const angle = (i / SPECIMENS.length) * Math.PI * 2 - Math.PI / 2;
-  const x = 50 + 44 * Math.cos(angle);
-  const y = 50 + 42 * Math.sin(angle);
-  const size = [52, 40, 46][i % 3];
-  return {
-    ...s,
-    x: Number(x.toFixed(2)),
-    y: Number(y.toFixed(2)),
-    size,
-    driftDur: 7 + (i % 5) * 0.6,
-    driftDelay: (i % 7) * 0.45,
-  };
-});
-
-/* Compact strip for < md, where the absolute ring would collide with text. */
-const MOBILE_SPECIMENS = SPECIMENS.slice(0, 10);
+   The hero plate (ring of marks + clickable masthead + its plumage easter
+   egg) lives in ./specimen-plate.tsx as a client component — clicking the
+   title borrows a random brand's colours. Specimen data moved with it. */
 
 /* ── The index ─────────────────────────────────────────────────────────────
    Giant outlined rows, Belen-Jones style. Experiments + instruments share one
@@ -238,81 +189,9 @@ export default function Home() {
         </a>
       </header>
 
-      {/* ── Hero: the specimen plate ─────────────────────────────────────── */}
+      {/* ── Hero: the specimen plate (client — the masthead is the egg) ──── */}
       <section className="relative z-10 mx-auto w-full max-w-6xl px-6">
-        {/* Mobile specimen strip (the ring needs room). */}
-        <ul className="fg-rise mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-4 md:hidden" style={{ "--fg-delay": "0.1s" } as React.CSSProperties}>
-          {MOBILE_SPECIMENS.map((s) => (
-            <li key={s.file} title={s.name}>
-              <Image
-                src={`/model-logo/${s.file}_color.svg`}
-                alt={s.name}
-                width={30}
-                height={30}
-                unoptimized
-                className="h-7 w-7"
-              />
-            </li>
-          ))}
-        </ul>
-
-        <div className="relative flex min-h-[42vh] flex-col items-center justify-center py-14 text-center md:min-h-[78vh] md:py-0">
-          {/* The ring (md+): an even ellipse of marks, each drifting slowly. */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 hidden md:block">
-            {RING.map((s, i) => (
-              <div
-                key={s.file}
-                className="fg-rise absolute -translate-x-1/2 -translate-y-1/2"
-                style={
-                  {
-                    left: `${s.x}%`,
-                    top: `${s.y}%`,
-                    "--fg-delay": `${0.15 + i * 0.05}s`,
-                  } as React.CSSProperties
-                }
-              >
-                <div
-                  className="fg-drift"
-                  style={
-                    {
-                      "--fg-drift-dur": `${s.driftDur}s`,
-                      "--fg-drift-delay": `${s.driftDelay}s`,
-                    } as React.CSSProperties
-                  }
-                >
-                  <Image
-                    src={`/model-logo/${s.file}_color.svg`}
-                    alt=""
-                    width={s.size}
-                    height={s.size}
-                    unoptimized
-                    className="drop-shadow-[0_2px_6px_rgba(33,29,22,0.12)]"
-                    style={{ width: s.size, height: s.size }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Title block — the masthead speaks in the index's outlined voice. */}
-          <div className="relative flex max-w-3xl flex-col items-center gap-8">
-            <p
-              className="fg-rise font-(family-name:--font-jost) text-[11px] font-medium uppercase tracking-[0.42em] text-[var(--fg-ink-soft)]"
-              style={{ "--fg-delay": "0.2s" } as React.CSSProperties}
-            >
-              A field guide to frontier models
-            </p>
-
-            <h1
-              className="fg-rise fg-title-outline font-(family-name:--font-archivo-black) text-[clamp(3.2rem,9vw,7rem)] uppercase leading-[0.96] tracking-tight"
-              style={{ "--fg-delay": "0.35s" } as React.CSSProperties}
-            >
-              ZenMux
-              <br />
-              Arena
-            </h1>
-          </div>
-        </div>
+        <SpecimenPlate />
       </section>
 
       {/* ── The index: experiments in giant outlined type ────────────────── */}
