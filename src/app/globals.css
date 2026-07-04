@@ -230,120 +230,106 @@
   transform: scale(0.965);
 }
 
-/* Plumage: the brand's own mark TILED through the glyphs. Two stacked copies
-   of the title — the fill copy clips three layers to the text (translucent
-   brand-colour wash → the logo SVG tiled like wallpaper → a pale tint plate
-   derived from the brand ink) and wipes up via a mask; the stroke copy above
-   re-inks the outline instantly so letterforms stay crisp. Black-ink brands
-   read loud and clear here: you SEE the OpenAI blossom / Grok slash repeated
-   through ZENMUX ARENA, no colour needed. */
-@keyframes fg-plume-wipe {
-  from {
-    -webkit-mask-size: 100% 0%;
-    mask-size: 100% 0%;
-  }
-  to {
-    -webkit-mask-size: 100% 100%;
-    mask-size: 100% 100%;
-  }
-}
-@keyframes fg-plume-pop {
+/* ── Flight choreography ──────────────────────────────────────────────────
+   The clicked mark's clone rides a quadratic offset-path arc (set inline per
+   click) from its perch to the target letter, shrinking to letter scale with
+   a little take-off wobble. distance-based dyeing + impact FX fire on land. */
+@keyframes fg-egg-fly {
   0% {
-    transform: scale(0.97);
+    offset-distance: 0%;
+    transform: scale(1) rotate(0deg);
   }
-  45% {
-    transform: scale(1.035);
+  20% {
+    transform: scale(1.15) rotate(-10deg);
   }
   100% {
-    transform: scale(1);
+    offset-distance: 100%;
+    transform: scale(var(--fl-scale, 0.8)) rotate(8deg);
   }
 }
-.fg-plume-pop {
-  animation: fg-plume-pop 0.7s cubic-bezier(0.34, 1.3, 0.5, 1) forwards;
-}
-.fg-plume-fill {
-  color: transparent;
-  background-image: var(--egg-wash, none), var(--egg-tile, none),
-    linear-gradient(var(--egg-plate, var(--fg-paper)), var(--egg-plate, var(--fg-paper)));
-  background-size:
-    100% 100%,
-    0.55em 0.55em,
-    100% 100%;
-  background-position: bottom, center, bottom;
-  background-repeat: no-repeat, repeat, no-repeat;
-  background-clip: text;
-  -webkit-background-clip: text;
-  /* Bottom-up reveal of the whole textured fill. */
-  -webkit-mask-image: linear-gradient(#000, #000);
-  mask-image: linear-gradient(#000, #000);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: bottom;
-  mask-position: bottom;
-  animation: fg-plume-wipe 0.7s cubic-bezier(0.34, 1.3, 0.5, 1) forwards;
-}
-.fg-plume-stroke {
-  color: transparent;
-  -webkit-text-stroke: 2.5px var(--egg-ink, var(--fg-ink));
-}
-@media (max-width: 640px) {
-  .fg-plume-stroke {
-    -webkit-text-stroke-width: 1.5px;
-  }
+.fg-egg-flight {
+  animation: fg-egg-fly var(--fl-dur, 620ms) cubic-bezier(0.45, 0.05, 0.55, 1) forwards;
+  will-change: offset-distance, transform;
 }
 
-/* The chosen specimen hops on its perch… */
-@keyframes fg-egg-hop {
+/* Letters dye one by one, radiating from the crash site (--dye-delay is
+   distance × 60ms). The base title keeps the outlined voice; a dyed letter
+   fills with its assigned brand stop and re-inks its stroke to match. */
+.fg-letter {
+  display: inline-block;
+  transition:
+    color 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    -webkit-text-stroke-color 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--dye-delay, 0s);
+}
+.fg-letter-dyed {
+  color: var(--dye, var(--fg-ink));
+  -webkit-text-stroke-color: var(--dye, var(--fg-ink));
+}
+
+/* The struck letter's replacement mark drops in with a squash-and-settle. */
+@keyframes fg-perch-land {
   0% {
-    transform: translateY(0) scale(1);
+    opacity: 0;
+    transform: scale(1.6) translateY(-0.08em);
   }
-  30% {
-    transform: translateY(-14px) scale(1.22) rotate(-6deg);
+  40% {
+    opacity: 1;
+    transform: scale(0.82) translateY(0.03em);
   }
-  55% {
-    transform: translateY(0) scale(1.18) rotate(3deg);
-  }
-  75% {
-    transform: translateY(-5px) scale(1.2);
+  70% {
+    transform: scale(1.12) translateY(-0.02em);
   }
   100% {
-    transform: translateY(0) scale(1.18);
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
-.fg-egg-hot {
-  animation: fg-egg-hop 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  will-change: transform;
+.fg-letter-perch {
+  animation: fg-perch-land 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: transform, opacity;
 }
 
-/* …with a one-shot halo pulse in its own colour. */
-@keyframes fg-egg-halo {
+/* Shockwave ring expanding from the impact point. */
+@keyframes fg-egg-shock {
   from {
-    opacity: 0.55;
-    transform: scale(0.4);
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(0.2);
   }
   to {
     opacity: 0;
-    transform: scale(2.1);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
-.fg-egg-halo {
+.fg-egg-shockwave {
   position: absolute;
-  inset: -8px;
+  left: 0;
+  top: 0;
+  width: 220px;
+  height: 220px;
   border-radius: 999px;
-  border: 2px solid var(--egg-ink, var(--fg-ink));
-  animation: fg-egg-halo 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  border: 3px solid var(--egg-ink, var(--fg-ink));
+  transform: translate(-50%, -50%) scale(0.2);
+  animation: fg-egg-shock 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   pointer-events: none;
 }
 
-/* Ring marks are buttons now — invite the click with a gentle scale-up. */
+/* Ring marks are buttons — invite the click with a gentle scale-up; a mark
+   whose bird is away in the masthead sits dimmed on its perch. */
 .fg-egg-mark {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.3s ease;
 }
 .fg-egg-mark:hover {
   transform: scale(1.18);
 }
 .fg-egg-mark:active {
   transform: scale(1.05);
+}
+.fg-egg-mark[data-away] {
+  opacity: 0.25;
+  filter: grayscale(0.6);
 }
 
 /* Feathers molting off the title: scatter, tumble, fade. */
@@ -399,19 +385,25 @@
     transition: none;
     transform: none;
   }
-  /* Egg: keep the textured fill (it's the payoff), drop the motion. */
-  .fg-plume-pop,
-  .fg-plume-fill {
-    animation: none;
-  }
-  .fg-plume-fill {
-    -webkit-mask-size: 100% 100%;
-    mask-size: 100% 100%;
-  }
-  .fg-egg-hot,
-  .fg-egg-halo,
+  /* Egg: keep the letter swap + dyeing (the payoff), drop the motion.
+     The flight clone is never created under reduced motion (JS checks the
+     media query and lands instantly), so only the landed-state FX need
+     stilling here. */
+  .fg-egg-flight,
+  .fg-letter-perch,
+  .fg-egg-shockwave,
   .fg-egg-tag {
     animation: none;
+  }
+  .fg-egg-shockwave {
+    display: none;
+  }
+  .fg-letter-perch {
+    opacity: 1;
+    transform: none;
+  }
+  .fg-letter {
+    transition: none;
   }
   .fg-egg-tag {
     opacity: 1;
@@ -422,6 +414,12 @@
   }
   .fg-egg-perch,
   .fg-egg-perch:active {
+    transition: none;
+    transform: none;
+  }
+  .fg-egg-mark,
+  .fg-egg-mark:hover,
+  .fg-egg-mark:active {
     transition: none;
     transform: none;
   }
