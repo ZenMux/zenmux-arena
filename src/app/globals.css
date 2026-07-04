@@ -128,3 +128,105 @@
     @apply font-sans;
   }
 }
+
+/* ── Field-guide homepage (src/app/page.tsx) ────────────────────────────────
+   Scoped, prefixed utilities for the hub's editorial "field guide" look:
+   warm paper, specimen ring, giant outlined index type. Nothing here is used
+   outside the homepage. */
+
+.fg-paper {
+  --fg-ink: #211d16;
+  --fg-ink-soft: #6d6455;
+  --fg-paper: #f4f0e6;
+  --fg-line: #d9d2c0;
+  --fg-red: #c2492f;
+  --fg-green: #2c6e49;
+  --fg-ochre: #b07d2b;
+  background-color: var(--fg-paper);
+  color: var(--fg-ink);
+}
+
+/* Subtle paper grain: two blended radial washes + an SVG turbulence overlay. */
+.fg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* Hero title: same outlined voice as the index, but with a heavier stroke so
+   it reads as the masthead, not another row. */
+.fg-title-outline {
+  color: transparent;
+  -webkit-text-stroke: 2.5px var(--fg-ink);
+}
+@media (max-width: 640px) {
+  .fg-title-outline {
+    -webkit-text-stroke-width: 1.5px;
+  }
+}
+
+/* Giant index type: transparent fill + ink stroke, fills on hover. */
+.fg-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--fg-ink);
+  transition:
+    color 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    -webkit-text-stroke-color 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (max-width: 640px) {
+  .fg-outline {
+    -webkit-text-stroke-width: 1px;
+  }
+}
+.fg-index-row:hover .fg-outline,
+.fg-index-row:focus-visible .fg-outline {
+  color: var(--fg-row-accent, var(--fg-ink));
+  -webkit-text-stroke-color: var(--fg-row-accent, var(--fg-ink));
+  transform: translateX(0.35rem);
+}
+
+/* Entrance: rise + fade, staggered via --fg-delay. */
+@keyframes fg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fg-rise {
+  opacity: 0;
+  animation: fg-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--fg-delay, 0s);
+}
+
+/* Specimen idle drift — a slow, breathing bob so the ring feels alive. */
+@keyframes fg-drift {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--fg-tilt, 0deg));
+  }
+  50% {
+    transform: translateY(-9px) rotate(var(--fg-tilt, 0deg));
+  }
+}
+.fg-drift {
+  animation: fg-drift var(--fg-drift-dur, 7s) ease-in-out infinite;
+  animation-delay: var(--fg-drift-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fg-rise {
+    animation: none;
+    opacity: 1;
+  }
+  .fg-drift {
+    animation: none;
+  }
+  .fg-outline,
+  .fg-index-row:hover .fg-outline {
+    transition: none;
+    transform: none;
+  }
+}
