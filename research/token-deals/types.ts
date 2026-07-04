@@ -13,8 +13,11 @@ import type { VendorId } from "@research/lib/types";
     semantics. v2: deals discovered from model_discount/model tables, SAVED =
     Σ valid_usage.discount_amount. v3: subscription traffic included (origin ×
     same-period per-provider factor), PAYG/subscription split carried on every
-    point, prices from the public models API instead of a config file. */
-export const DEALS_SCHEMA_VERSION = 3;
+    point, prices from the public models API instead of a config file. v4: deal
+    facts come from the human-curated config/token-deals.json roster, the
+    ledger window opens at ZenMux's launch (2025-09-29), and free models carry
+    a manual `online` flag. */
+export const DEALS_SCHEMA_VERSION = 4;
 
 export type DealType = "discount" | "free";
 
@@ -64,6 +67,11 @@ export interface DealPeriod {
   publishTime: string | null;
   /** Model hidden or removed on the main site — keep the card, drop the link. */
   delisted: boolean;
+  /** Free models only: manually maintained "claimable right now" flag from the
+      config roster. false forces the deal to read as ended (the stats window
+      stays open — usage simply goes to zero after the model is pulled).
+      Absent/true for discount deals and legacy baselines. */
+  online?: boolean;
 }
 
 export type DealStatus = "scheduled" | "active" | "ended";
@@ -177,9 +185,15 @@ export function windowEndMs(deal: Pick<DealPeriod, "endDate">): number {
   return deal.endDate == null ? Infinity : dateStartMs(deal.endDate) + 86_400_000;
 }
 
-export function dealStatus(deal: Pick<DealPeriod, "startDate" | "endDate">, now: Date): DealStatus {
+export function dealStatus(
+  deal: Pick<DealPeriod, "startDate" | "endDate" | "online">,
+  now: Date,
+): DealStatus {
   const t = now.getTime();
   if (t < dateStartMs(deal.startDate)) return "scheduled";
+  // A free model manually flagged offline reads as ended even without an
+  // endDate — its ledger window stays open, usage just stops arriving.
+  if (deal.online === false) return "ended";
   if (t >= windowEndMs(deal)) return "ended";
   return "active";
 }

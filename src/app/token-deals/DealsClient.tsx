@@ -13,17 +13,23 @@ import { AlertTriangle, ArrowUpRight, RefreshCw } from "lucide-react";
 import type { DealSeries, TokenDealsPayload } from "@research/token-deals/types";
 import { VendorGlyph } from "../token-economics/components";
 import {
+  applyDateWindow,
   bandTheme,
+  computeWindowTotals,
   dealHref,
   discountFactor,
+  fullLedgerWindow,
+  isFullLedgerWindow,
   percentOff,
   perM,
   shortDate,
   subsidyPct,
   tokens,
   usdGrouped,
+  type DateWindow,
 } from "./lib";
 import { formatStamp, localZone, useDealsFeed } from "./useDealsFeed";
+import { WindowControl } from "./WindowControl";
 
 type SortKey = "saved" | "discount" | "used" | "newest";
 type DealFilter = "all" | "discount" | "free";
@@ -79,46 +85,68 @@ export function DealsClient() {
   const { data, error, loading, refreshing, degraded, retry } = useDealsFeed();
   const [sortKey, setSortKey] = useState<SortKey>("saved");
   const [filter, setFilter] = useState<DealFilter>("all");
+  const [win, setWin] = useState<DateWindow>(() => fullLedgerWindow());
+  const fullWindow = isFullLedgerWindow(win);
+
+  // Cut the payload to the selected window: deals sliced/re-summed client-side
+  // (the points are additive daily buckets — no refetch on window change), the
+  // full-ledger default passes the server aggregation through untouched.
+  const view = useMemo(() => {
+    if (!data) return null;
+    const deals = applyDateWindow(data.deals, win);
+    return {
+      ...data,
+      deals,
+      totals: fullWindow ? data.totals : computeWindowTotals(deals),
+      activeCount: deals.filter((d) => d.status === "active").length,
+      endedCount: deals.filter((d) => d.status === "ended").length,
+    };
+  }, [data, win, fullWindow]);
 
   const active = useMemo(
     () =>
       sortDeals(
-        (data?.deals ?? []).filter(
+        (view?.deals ?? []).filter(
           (d) =>
             d.status === "active" && (filter === "all" || d.dealType === filter),
         ),
         sortKey,
       ),
-    [data?.deals, sortKey, filter],
+    [view?.deals, sortKey, filter],
   );
   const ended = useMemo(
     () =>
-      [...(data?.deals ?? [])]
+      [...(view?.deals ?? [])]
         .filter((d) => d.status === "ended")
         .sort((a, b) => (b.endDate ?? "").localeCompare(a.endDate ?? "")),
-    [data?.deals],
+    [view?.deals],
   );
 
   return (
     <main className="flex-1">
-      {(degraded || error) && data && (
+      {(degraded || error) && view && (
         <DegradedBanner
           message={error ?? "Live billing data unavailable — retrying automatically"}
-          lastSuccessAt={data.lastSuccessAt}
+          lastSuccessAt={view.lastSuccessAt}
           retrying={refreshing || loading}
           onRetry={retry}
         />
       )}
 
-      {!data && loading ? (
+      {!view && loading ? (
         <BoardSkeleton />
-      ) : !data ? (
+      ) : !view ? (
         <ErrorPanel message={error ?? "Failed to load token deals."} onRetry={retry} />
       ) : (
         <>
-          <Ticker data={data} />
-          <Hero data={data} refreshing={refreshing} onRefresh={retry} />
-          <StatBlocks data={data} />
+          <Ticker data={view} />
+          <div className="border-b-[3px] border-[#0a0a0b] bg-[#141416]">
+            <div className="mx-auto w-full max-w-[1800px] px-4 py-3 sm:px-8">
+              <WindowControl value={win} onChange={setWin} />
+            </div>
+          </div>
+          <Hero data={view} refreshing={refreshing} onRefresh={retry} />
+          <StatBlocks data={view} />
 
           {/* ── The band wall ── */}
           <section aria-label="Active deals">
@@ -147,7 +175,7 @@ export function DealsClient() {
             ) : (
               <div className="flex flex-col gap-[3px] bg-[#0a0a0b]">
                 {active.map((deal) => (
-                  <DealBand key={deal.id} deal={deal} live={data.live} />
+                  <DealBand key={deal.id} deal={deal} live={view.live} />
                 ))}
               </div>
             )}
@@ -168,7 +196,7 @@ export function DealsClient() {
             </section>
           )}
 
-          <FinePrint data={data} />
+          <FinePrint data={view} win={win} fullWindow={fullWindow} />
         </>
       )}
     </main>
@@ -496,7 +524,8 @@ function EndedStrip({ deal }: { deal: DealSeries }) {
       </span>
       <span className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-white/40">
         {deal.dealType === "free" ? "free" : percentOff(deal.discount)} ·{" "}
-        {shortDate(deal.startDate)} — {deal.endDate ? shortDate(deal.endDate) : "?"}
+        {shortDate(deal.startDate)} —{" "}
+        {deal.endDate ? shortDate(deal.endDate) : deal.online === false ? "offline" : "?"}
         {deal.delisted ? " · delisted" : ""}
       </span>
       <span className="ml-auto text-right font-[family-name:var(--font-deals-mono)] text-xs font-bold uppercase tabular-nums tracking-[0.08em] text-white/70">
@@ -663,15 +692,31 @@ function EmptyState() {
   );
 }
 
-function FinePrint({ data }: { data: TokenDealsPayload }) {
+function FinePrint({
+  data,
+  win,
+  fullWindow,
+}: {
+  data: TokenDealsPayload;
+  win: DateWindow;
+  fullWindow: boolean;
+}) {
   return (
     <div className="mx-auto w-full max-w-[1800px] px-4 py-8 sm:px-8">
       <p className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase leading-relaxed tracking-[0.08em] text-white/40">
         {data.live ? (
           <>
             Live data · updated {formatStamp(data.generatedAt)} {localZone()} · window{" "}
-            {data.from.slice(0, 10)} → {formatStamp(data.to)} {localZone()} · refreshes every{" "}
-            {Math.round(data.refreshIntervalSeconds / 60)}m
+            {fullWindow ? (
+              <>
+                {data.from.slice(0, 10)} → {formatStamp(data.to)} {localZone()} (full ledger)
+              </>
+            ) : (
+              <>
+                {win.from} → {win.to} (custom · UTC days)
+              </>
+            )}{" "}
+            · refreshes every {Math.round(data.refreshIntervalSeconds / 60)}m
             {data.stale ? " · showing last successful aggregation (stale)" : ""}
           </>
         ) : (

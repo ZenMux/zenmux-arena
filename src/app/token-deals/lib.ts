@@ -8,9 +8,136 @@
 // "what does 0.31 mean" question has exactly one home.
 
 import type { VendorId } from "@research/lib/types";
+import {
+  dateStartMs,
+  windowEndMs,
+  type DealSeries,
+  type DealStats,
+  type DealUsagePoint,
+  type DealsTotals,
+} from "@research/token-deals/types";
 import { vendorColor } from "../token-economics/lib";
 
 export { usd, perM, tokens, logoPath, vendorColor } from "../token-economics/lib";
+
+// ---------------------------------------------------------------------------
+// Date-window slicing — the client-side date filter. The payload's points are
+// additive daily buckets, so any [from, to] sub-window's stats are just the
+// in-window points summed: no extra API round-trip, ever (serverless-friendly).
+// ---------------------------------------------------------------------------
+
+/** The ledger opens at ZenMux's launch (mirror of DEALS_LAUNCH_ISO in
+    research/token-deals/db.ts — that module is server-only, this constant is
+    the client-safe copy). */
+export const DEALS_LAUNCH_DATE = "2025-09-29";
+
+const DAY_MS = 86_400_000;
+
+/** Inclusive UTC date window, as the two <input type="date"> values. */
+export interface DateWindow {
+  from: string; // YYYY-MM-DD
+  to: string; // YYYY-MM-DD
+}
+
+export function todayUtcDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function fullLedgerWindow(): DateWindow {
+  return { from: DEALS_LAUNCH_DATE, to: todayUtcDate() };
+}
+
+export function isFullLedgerWindow(win: DateWindow): boolean {
+  return win.from <= DEALS_LAUNCH_DATE && win.to >= todayUtcDate();
+}
+
+function windowBounds(win: DateWindow): { fromMs: number; toExclMs: number } {
+  return { fromMs: dateStartMs(win.from), toExclMs: dateStartMs(win.to) + DAY_MS };
+}
+
+/** Does the deal's own period overlap the selected window at all? Deals that
+    don't are hidden entirely (their money is outside the view). */
+export function dealIntersectsWindow(
+  deal: Pick<DealSeries, "startDate" | "endDate">,
+  win: DateWindow,
+): boolean {
+  const { fromMs, toExclMs } = windowBounds(win);
+  return dateStartMs(deal.startDate) < toExclMs && windowEndMs(deal) > fromMs;
+}
+
+function sumPoints(points: DealUsagePoint[]): DealStats {
+  const stats: DealStats = {
+    tokens: 0,
+    promptTokens: 0,
+    outputTokens: 0,
+    requests: 0,
+    paid: 0,
+    saved: 0,
+    subPaid: 0,
+    subSaved: 0,
+  };
+  for (const p of points) {
+    stats.tokens += p.tokens;
+    stats.promptTokens += p.promptTokens;
+    stats.outputTokens += p.outputTokens;
+    stats.requests += p.requests;
+    stats.paid += p.paid;
+    stats.saved += p.saved;
+    stats.subPaid += p.subPaid;
+    stats.subSaved += p.subSaved;
+  }
+  return stats;
+}
+
+/** Re-cut every deal to the window: drop non-intersecting deals, slice each
+    survivor's points, and re-sum its stats. The full-ledger window passes the
+    payload through untouched so the board's default numbers are bit-identical
+    to the server aggregation. Degraded payloads (points null) keep stats null. */
+export function applyDateWindow(deals: DealSeries[], win: DateWindow): DealSeries[] {
+  if (isFullLedgerWindow(win)) return deals;
+  const { fromMs, toExclMs } = windowBounds(win);
+  const out: DealSeries[] = [];
+  for (const deal of deals) {
+    if (!dealIntersectsWindow(deal, win)) continue;
+    if (!deal.points) {
+      out.push(deal);
+      continue;
+    }
+    const points = deal.points.filter((p) => {
+      const t = Date.parse(p.t);
+      return t >= fromMs && t < toExclMs;
+    });
+    out.push({ ...deal, points, stats: sumPoints(points) });
+  }
+  return out;
+}
+
+/** Window totals over the (already sliced) deals — mirrors assemble() +
+    weightedDiscount() in research/token-deals/query.ts. Null when nothing has
+    live stats (degraded). */
+export function computeWindowTotals(deals: DealSeries[]): DealsTotals | null {
+  const withStats = deals.filter((d) => d.stats != null);
+  if (withStats.length === 0) return null;
+  const sum = (f: (s: DealStats) => number) =>
+    withStats.reduce((acc, d) => acc + f(d.stats as DealStats), 0);
+  const activePaid = deals.filter((d) => d.status === "active" && d.dealType !== "free");
+  let weightedDiscount: number | null = null;
+  if (activePaid.length > 0) {
+    const totalSaved = activePaid.reduce((acc, d) => acc + (d.stats?.saved ?? 0), 0);
+    weightedDiscount =
+      totalSaved <= 0
+        ? activePaid.reduce((acc, d) => acc + d.discount, 0) / activePaid.length
+        : activePaid.reduce((acc, d) => acc + d.discount * (d.stats?.saved ?? 0), 0) / totalSaved;
+  }
+  return {
+    saved: sum((s) => s.saved),
+    paid: sum((s) => s.paid),
+    tokens: sum((s) => s.tokens),
+    subSaved: sum((s) => s.subSaved),
+    subPaid: sum((s) => s.subPaid),
+    weightedDiscount,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Discount semantics — pricing_discount is the USER-PAYS fraction

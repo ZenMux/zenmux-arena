@@ -43,6 +43,7 @@ import {
   DAY,
   HOUR,
   REFRESH_INTERVAL_SECONDS,
+  dealsStartMs,
   floorTo,
   queryRows,
   sqlDate,
@@ -74,7 +75,7 @@ const OVERLAP_BUCKETS: Record<number, number> = { [DAY]: 3, [HOUR]: 12 };
 
 const CACHE_DIR_ENV = "TOKEN_DEALS_CACHE_DIR";
 
-function cacheDir(): string {
+export function cacheDir(): string {
   return (
     process.env[CACHE_DIR_ENV]?.trim() ||
     path.join(process.cwd(), ".cache", "token-deals")
@@ -407,7 +408,16 @@ function rangeWindow(range: DealRangeKey, deals: DealPeriod[], dataAsOfMs: numbe
   const earliest = Math.min(...deals.map((d) => dateStartMs(d.startDate)), dataAsOfMs);
   const hours = dealRangeOption(range).hours;
   const rawFrom = hours == null ? earliest : Math.max(earliest, dataAsOfMs - hours * 3_600_000);
-  return { bucketSeconds, fromMs: floorTo(rawFrom, bucketSeconds), toMs: dataAsOfMs };
+  // Nothing before the ledger opened (ZenMux launch) is ever windowed in.
+  const clampedFrom = Math.max(rawFrom, dealsStartMs());
+  return { bucketSeconds, fromMs: floorTo(clampedFrom, bucketSeconds), toMs: dataAsOfMs };
+}
+
+/** Slugs whose deal windows actually intersect [fromMs, toMs) — the DB is only
+    ever asked about registered deal periods (a discount model's history outside
+    its window is deliberately never pulled). */
+function slugsInWindow(deals: DealPeriod[], fromMs: number, toMs: number, bucketSeconds: number): string[] {
+  return uniqueSlugs(deals.filter((d) => dealBucketRange(d, fromMs, toMs, bucketSeconds) != null));
 }
 
 function paygRowsToMap(rows: UsageRow[], into?: Map<string, Map<string, RawBucket>>): Map<string, Map<string, RawBucket>> {
@@ -467,7 +477,7 @@ export async function fetchTokenDeals(
   const deals = await discoverDeals();
   const dataAsOfMs = currentDataAsOf(now);
   const { bucketSeconds, fromMs, toMs } = rangeWindow(range, deals, dataAsOfMs);
-  const slugs = uniqueSlugs(deals);
+  const slugs = slugsInWindow(deals, fromMs, toMs, bucketSeconds);
 
   const [paygRows, subRows] = await Promise.all([
     queryPaygRows({ slugs, fromMs, toMs, bucketSeconds }),
@@ -490,19 +500,35 @@ export async function fetchTokenDeals(
   return payload;
 }
 
+export interface IncrementalOptions {
+  persist?: boolean;
+  /** Cap on how far back a deal that's missing from the baseline may be
+      queried. The serverless runtime keeps the default (a long-history entry
+      newly added to the config must be backfilled on a writable machine, not
+      cold-queried in a request); scripts pass Infinity. */
+  maxNewDealLookbackMs?: number;
+  /** Skip the "tail > 50% of the window" bail-out. Only the backfill script
+      sets this — it advances a young baseline chunk by chunk, where the tail
+      legitimately dwarfs the window. */
+  allowLargeTail?: boolean;
+}
+
+/** Runtime default: a brand-new deal's cold query never reaches back more
+    than ~5 weeks inside a serverless request. */
+const DEFAULT_NEW_DEAL_LOOKBACK_MS = 35 * DAY * 1000;
+
 /** Baseline + incremental merge: reuse the packaged payload's old buckets and
     query the DB only for the tail (baseline.to − overlap → now). Deals that
-    appeared AFTER the baseline was packaged (new discount rows / new free
-    models) get their full window fetched — they're young by definition, so
-    that query is small. Returns null when the baseline isn't usable and a
-    full fetch should run instead. Exported for the precompute script. */
+    appeared AFTER the baseline was packaged (new config entries) get their
+    window fetched up to the lookback cap. Returns null when the baseline isn't
+    usable. Exported for the precompute + backfill scripts. */
 export async function incrementallyUpdate(
   range: DealRangeKey,
   baseline: TokenDealsPayload,
   now = new Date(),
-  options: { persist?: boolean } = {},
+  options: IncrementalOptions = {},
 ): Promise<TokenDealsPayload | null> {
-  // Older-schema baselines carry different money semantics — full refetch once.
+  // Older-schema baselines carry different money semantics — not extendable.
   if (baseline.schema !== DEALS_SCHEMA_VERSION) return null;
 
   const deals = await discoverDeals();
@@ -521,25 +547,29 @@ export async function incrementallyUpdate(
   const overlapMs = (OVERLAP_BUCKETS[bucketSeconds] ?? 3) * bucketSeconds * 1000;
   const incFromMs = Math.max(fromMs, floorTo(baselineTo, bucketSeconds) - overlapMs);
   // A tail bigger than half the window buys nothing over a full fetch.
-  if (toMs - incFromMs > (toMs - fromMs) * 0.5) return null;
+  if (!options.allowLargeTail && toMs - incFromMs > (toMs - fromMs) * 0.5) return null;
 
   // Split slugs: ones the baseline has buckets for get a tail query; brand-new
-  // ones (no baseline series) need their whole clipped window.
+  // ones (no baseline series) need their window (capped by the lookback).
+  // Either way only slugs whose deal windows intersect the queried span are
+  // sent to the DB — deal periods are the only spans ever pulled.
   const baselineSlugs = new Set(baseline.deals.map((d) => d.slug));
-  const knownSlugs: string[] = [];
+  const knownDeals: DealPeriod[] = [];
   const newDeals: DealPeriod[] = [];
   for (const deal of deals) {
-    if (baselineSlugs.has(deal.slug)) {
-      if (!knownSlugs.includes(deal.slug)) knownSlugs.push(deal.slug);
-    } else {
-      newDeals.push(deal);
-    }
+    (baselineSlugs.has(deal.slug) ? knownDeals : newDeals).push(deal);
   }
-  const newSlugs = uniqueSlugs(newDeals);
+  const knownSlugs = slugsInWindow(knownDeals, incFromMs, toMs, bucketSeconds);
+  const lookbackMs = options.maxNewDealLookbackMs ?? DEFAULT_NEW_DEAL_LOOKBACK_MS;
   const newFromMs =
     newDeals.length > 0
-      ? Math.max(fromMs, floorTo(Math.min(...newDeals.map((d) => dateStartMs(d.startDate))), bucketSeconds))
+      ? Math.max(
+          fromMs,
+          Number.isFinite(lookbackMs) ? floorTo(toMs - lookbackMs, bucketSeconds) : fromMs,
+          floorTo(Math.min(...newDeals.map((d) => dateStartMs(d.startDate))), bucketSeconds),
+        )
       : incFromMs;
+  const newSlugs = slugsInWindow(newDeals, newFromMs, toMs, bucketSeconds);
 
   const [tailPayg, tailSub, newPayg, newSub] = await Promise.all([
     queryPaygRows({ slugs: knownSlugs, fromMs: incFromMs, toMs, bucketSeconds }),
@@ -647,6 +677,7 @@ export type DealsFetchSource =
   | "single-flight"
   | "incremental-db"
   | "stale-baseline"
+  | "degraded-no-baseline"
   | "full-db";
 
 const responseCache = new Map<string, { data: TokenDealsPayload; expiresAt: number }>();
@@ -702,6 +733,16 @@ export async function getTokenDealsWithMeta(
         );
         return { payload: { ...baseline, stale: true }, source: "stale-baseline" };
       }
+    }
+    // Cold fallback. The "all" window spans the whole ledger (2025-09-29 →
+    // now) — a full aggregation of it must never run inside a serverless
+    // request. No usable baseline ⇒ degrade and let a writable machine rebuild
+    // via tokendeals:backfill / the predeploy precompute.
+    if (range === "all") {
+      console.warn(
+        "[token-deals] No usable 'all' baseline — serving degraded payload. Run `pnpm tokendeals:backfill` on a writable machine.",
+      );
+      return { payload: await buildDegradedPayload(now), source: "degraded-no-baseline" };
     }
     return { payload: await fetchTokenDeals(range, now), source: "full-db" };
   })();

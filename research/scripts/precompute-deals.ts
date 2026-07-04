@@ -48,7 +48,12 @@ async function precomputeRange(range: DealRangeKey, index: number, total: number
   const existing = await readJsonCache(range);
   if (existing) {
     console.log(`${prefix} Found existing cache (data → ${existing.to}), attempting incremental update...`);
-    const merged = await incrementallyUpdate(range, existing, new Date(), { persist: true });
+    // Writable machine: no lookback cap — a newly-configured deal gets its
+    // whole window (the serverless runtime caps this instead).
+    const merged = await incrementallyUpdate(range, existing, new Date(), {
+      persist: true,
+      maxNewDealLookbackMs: Infinity,
+    });
     if (merged) {
       const newBuckets = Math.max(
         0,
@@ -57,9 +62,16 @@ async function precomputeRange(range: DealRangeKey, index: number, total: number
       console.log(`${prefix} ✅ Incremental update done (+${newBuckets} new buckets): ${summarize(merged)} (${Date.now() - started}ms)`);
       return;
     }
-    console.log(`${prefix} Incremental update not possible (schema/bucket change), falling back to full refetch...`);
+    console.log(`${prefix} Incremental update not possible (schema/bucket change).`);
   }
 
+  // The "all" range spans the whole ledger (2025-09-29 → now); rebuilding it
+  // is the chunked backfill script's job, never a single monster query.
+  if (range === "all") {
+    throw new Error(
+      "no usable 'all' baseline — run `pnpm tokendeals:backfill` to (re)build it in chunks",
+    );
+  }
   const payload = await fetchTokenDeals(range, new Date(), { persist: true });
   console.log(`${prefix} ✅ Full fetch done: ${summarize(payload)} (${Date.now() - started}ms)`);
 }

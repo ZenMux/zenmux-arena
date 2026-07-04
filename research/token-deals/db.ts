@@ -20,11 +20,13 @@ const DB_ENV = {
   database: "TOKEN_ECON_LIVE_DB_DATABASE",
 } as const;
 
-/** Shared live-window start (same env var as token-economics). Deal windows and
-    free-model ledgers are clamped to this instant — discount rows fully
-    reverted before it (e.g. the 2026-06-18 test batch) never surface. */
-export const LIVE_START_ENV = "TOKEN_ECON_LIVE_START_ISO";
-export const DEFAULT_DEALS_START_ISO = "2026-06-23T06:00:00.000Z";
+/** Ledger start: ZenMux's launch day. Deal windows and free-model ledgers are
+    clamped to this instant — discount rows fully reverted before it never
+    surface. Deliberately NOT the shared TOKEN_ECON_LIVE_START_ISO env var:
+    token-economics keeps its own (much later) live window, and widening that
+    one would silently drag the econ pipeline back to 2025. */
+export const DEALS_START_ENV = "TOKEN_DEALS_START_ISO";
+export const DEALS_LAUNCH_ISO = "2025-09-29T00:00:00.000Z";
 
 export class DealsDbConfigError extends Error {
   constructor(readonly missing: string[]) {
@@ -33,11 +35,11 @@ export class DealsDbConfigError extends Error {
   }
 }
 
-export function liveStartMs(): number {
-  const raw = process.env[LIVE_START_ENV]?.trim() || DEFAULT_DEALS_START_ISO;
+export function dealsStartMs(): number {
+  const raw = process.env[DEALS_START_ENV]?.trim() || DEALS_LAUNCH_ISO;
   const ms = Date.parse(raw);
   if (Number.isNaN(ms)) {
-    throw new DealsDbConfigError([`${LIVE_START_ENV} (invalid ISO date: ${JSON.stringify(raw)})`]);
+    throw new DealsDbConfigError([`${DEALS_START_ENV} (invalid ISO date: ${JSON.stringify(raw)})`]);
   }
   return ms;
 }

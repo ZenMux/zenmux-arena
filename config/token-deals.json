@@ -1,0 +1,589 @@
+{
+  "schema": 1,
+  "syncedAt": "2026-07-04T05:26:15.028Z",
+  "discounts": [
+    {
+      "slug": "anthropic/claude-3.5-sonnet",
+      "model": "Claude 3.5 Sonnet",
+      "publishDate": "2024-10-22",
+      "startDate": "2026-06-18",
+      "endDate": "2026-06-23",
+      "discount": 0.5,
+      "providers": [
+        {
+          "slug": "amazon-bedrock",
+          "name": "Amazon Bedrock",
+          "discount": 0.5
+        },
+        {
+          "slug": "anthropic",
+          "name": "Anthropic",
+          "discount": 0.5
+        }
+      ],
+      "delisted": true,
+      "display": false
+    },
+    {
+      "slug": "anthropic/claude-3.7-sonnet",
+      "model": "Claude 3.7 Sonnet",
+      "publishDate": "2025-02-24",
+      "startDate": "2026-06-18",
+      "endDate": "2026-06-23",
+      "discount": 0.5,
+      "providers": [
+        {
+          "slug": "amazon-bedrock",
+          "name": "Amazon Bedrock",
+          "discount": 0.5
+        },
+        {
+          "slug": "anthropic",
+          "name": "Anthropic",
+          "discount": 0.5
+        },
+        {
+          "slug": "google-vertex",
+          "name": "Google Vertex",
+          "discount": 0.5
+        }
+      ],
+      "delisted": true,
+      "display": false
+    },
+    {
+      "slug": "baidu/ernie-5.1",
+      "model": "ERNIE 5.1",
+      "publishDate": "2026-05-09",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.722097,
+      "providers": [
+        {
+          "slug": "baidu",
+          "name": "Baidu",
+          "discount": 0.722097
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "bytedance/doubao-seed-2.1-pro",
+      "model": "Doubao-Seed-2.1-pro",
+      "publishDate": "2026-06-23",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.47759,
+      "providers": [
+        {
+          "slug": "volcengine",
+          "name": "Volcengine",
+          "discount": 0.47759
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "bytedance/doubao-seed-2.1-turbo",
+      "model": "Doubao-Seed-2.1-turbo",
+      "publishDate": "2026-06-23",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.95518,
+      "providers": [
+        {
+          "slug": "volcengine",
+          "name": "Volcengine",
+          "discount": 0.95518
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "bytedance/doubao-seed-evolving",
+      "model": "Doubao-Seed-Evolving",
+      "publishDate": "2026-06-23",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.47759,
+      "providers": [
+        {
+          "slug": "volcengine",
+          "name": "Volcengine",
+          "discount": 0.47759
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "inclusionai/ling-2.6-1t",
+      "model": "Ling-2.6-1T",
+      "publishDate": "2026-04-23",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.439385,
+      "providers": [
+        {
+          "slug": "novita",
+          "name": "NovitaAI",
+          "discount": 0.439385
+        },
+        {
+          "slug": "theta",
+          "name": "Tbox",
+          "discount": 0.439385
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "inclusionai/ring-2.6-1t",
+      "model": "Ring-2.6-1T",
+      "publishDate": "2026-05-09",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.439385,
+      "providers": [
+        {
+          "slug": "novita",
+          "name": "NovitaAI",
+          "discount": 0.439385
+        },
+        {
+          "slug": "theta",
+          "name": "Tbox",
+          "discount": 0.439385
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "kuaishou/kat-coder-pro-v2",
+      "model": "KAT-Coder-Pro-V2",
+      "publishDate": "2026-03-30",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.457692,
+      "providers": [
+        {
+          "slug": "streamlake",
+          "name": "Streamlake",
+          "discount": 0.457692
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "meituan/longcat-2.0",
+      "model": "LongCat-2.0",
+      "publishDate": "2026-06-30",
+      "startDate": "2026-06-30",
+      "endDate": "2026-07-07",
+      "discount": 0.4,
+      "providers": [
+        {
+          "slug": "longcat",
+          "name": "LongCat",
+          "discount": 0.4
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "minimax/minimax-m3",
+      "model": "MiniMax M3",
+      "publishDate": "2026-06-01",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.457692,
+      "providers": [
+        {
+          "slug": "minimax",
+          "name": "MiniMax",
+          "discount": 0.457692
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "moonshotai/kimi-k2.7-code",
+      "model": "Kimi K2.7 Code",
+      "publishDate": "2026-06-12",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.448182,
+      "providers": [
+        {
+          "slug": "moonshotai",
+          "name": "Moonshot AI",
+          "discount": 0.448182
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "qwen/qwen3.6-flash",
+      "model": "Qwen3.6 Flash",
+      "publishDate": "2026-02-25",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.538868,
+      "providers": [
+        {
+          "slug": "alibaba",
+          "name": "Alibaba Cloud",
+          "discount": 0.538868
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "qwen/qwen3.7-max",
+      "model": "Qwen3.7-Max",
+      "publishDate": "2026-05-22",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.172311,
+      "providers": [
+        {
+          "slug": "alibaba",
+          "name": "Alibaba Cloud",
+          "discount": 0.172311
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "qwen/qwen3.7-plus",
+      "model": "Qwen3.7-Plus",
+      "publishDate": "2026-06-02",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.343269,
+      "providers": [
+        {
+          "slug": "alibaba",
+          "name": "Alibaba Cloud",
+          "discount": 0.343269
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "stepfun/step-3.7-flash",
+      "model": "Step 3.7 Flash",
+      "publishDate": "2026-05-29",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.675177,
+      "providers": [
+        {
+          "slug": "stepfun",
+          "name": "StepFun",
+          "discount": 0.675177
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "tencent/hy3-preview",
+      "model": "Hy3 preview",
+      "publishDate": "2026-04-23",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.803511,
+      "providers": [
+        {
+          "slug": "tencent-cloud",
+          "name": "TencentCloud",
+          "discount": 0.803511
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "x-ai/grok-4.1-fast",
+      "model": "Grok 4.1 Fast",
+      "publishDate": "2025-11-20",
+      "startDate": "2026-06-18",
+      "endDate": "2026-06-23",
+      "discount": 0.2,
+      "providers": [
+        {
+          "slug": "x-ai",
+          "name": "xAI",
+          "discount": 0.2
+        }
+      ],
+      "delisted": true,
+      "display": false
+    },
+    {
+      "slug": "x-ai/grok-4.1-fast-non-reasoning",
+      "model": "Grok 4.1 Fast Non Reasoning",
+      "publishDate": "2025-11-20",
+      "startDate": "2026-06-18",
+      "endDate": "2026-06-23",
+      "discount": 0.3,
+      "providers": [
+        {
+          "slug": "x-ai",
+          "name": "xAI",
+          "discount": 0.3
+        }
+      ],
+      "delisted": true,
+      "display": false
+    },
+    {
+      "slug": "xiaomi/mimo-v2.5",
+      "model": "MiMo-V2.5",
+      "publishDate": "2026-04-23",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.34,
+      "providers": [
+        {
+          "slug": "kingsoftcloud",
+          "name": "KingsoftCloud",
+          "discount": 0.34
+        },
+        {
+          "slug": "xiaomi",
+          "name": "Xiaomi",
+          "discount": 0.933944
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "xiaomi/mimo-v2.5-pro",
+      "model": "MiMo-V2.5-Pro",
+      "publishDate": "2026-04-23",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.430777,
+      "providers": [
+        {
+          "slug": "kingsoftcloud",
+          "name": "KingsoftCloud",
+          "discount": 0.430777
+        },
+        {
+          "slug": "streamlake",
+          "name": "Streamlake",
+          "discount": 0.430777
+        },
+        {
+          "slug": "xiaomi",
+          "name": "Xiaomi",
+          "discount": 0.988636
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
+      "slug": "z-ai/glm-5.2",
+      "model": "GLM 5.2",
+      "publishDate": "2026-06-17",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31",
+      "discount": 0.307271,
+      "providers": [
+        {
+          "slug": "alibaba",
+          "name": "Alibaba Cloud",
+          "discount": 0.307271
+        },
+        {
+          "slug": "baidu",
+          "name": "Baidu",
+          "discount": 0.307271
+        },
+        {
+          "slug": "bigmodel",
+          "name": "BigModel",
+          "discount": 0.307271
+        },
+        {
+          "slug": "streamlake",
+          "name": "Streamlake",
+          "discount": 0.307271
+        }
+      ],
+      "delisted": false,
+      "display": true
+    }
+  ],
+  "freeModels": [
+    {
+      "slug": "anthropic/claude-fable-5-free",
+      "sourceSlug": "anthropic/claude-fable-5",
+      "model": "Claude Fable 5 (Free)",
+      "publishDate": "2026-06-09",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "anthropic/claude-sonnet-5-free",
+      "sourceSlug": "anthropic/claude-sonnet-5",
+      "model": "Claude Sonnet 5 (Free)",
+      "publishDate": "2026-06-30",
+      "online": true,
+      "display": true
+    },
+    {
+      "slug": "deepseek/deepseek-v4-flash-free",
+      "sourceSlug": "deepseek/deepseek-v4-flash",
+      "model": "DeepSeek V4 Flash (Free)",
+      "publishDate": "2026-04-24",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "deepseek/deepseek-v4-pro-free",
+      "sourceSlug": "deepseek/deepseek-v4-pro",
+      "model": "DeepSeek V4 Pro (Free)",
+      "publishDate": "2026-04-24",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "google/gemini-2.5-flash-image-free",
+      "sourceSlug": "google/gemini-2.5-flash-image",
+      "model": "Gemini 2.5 Flash Image (Nano Banana) Free",
+      "publishDate": "2025-10-07",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "google/gemini-2.5-pro-free",
+      "sourceSlug": "google/gemini-2.5-pro",
+      "model": "Gemini 2.5 Pro Free",
+      "publishDate": "2025-06-17",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "google/gemini-3-flash-preview-free",
+      "sourceSlug": "google/gemini-3-flash-preview",
+      "model": "Gemini 3 Flash Preview Free",
+      "publishDate": "2025-12-17",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "google/gemini-3-pro-image-preview-free",
+      "sourceSlug": "google/gemini-3-pro-image-preview",
+      "model": "Gemini 3 Pro Image (Nano Banana Pro) Free",
+      "publishDate": "2025-11-20",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "google/gemini-3-pro-preview-free",
+      "sourceSlug": "google/gemini-3-pro-preview",
+      "model": "Gemini 3 Pro Preview Free",
+      "publishDate": "2025-11-18",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "google/gemini-3.1-flash-lite-image-free",
+      "sourceSlug": "google/gemini-3.1-flash-lite-image",
+      "model": "Nano Banana 2 Lite (Gemini 3.1 Flash-Lite Image) Free",
+      "publishDate": "2026-07-01",
+      "online": true,
+      "display": true
+    },
+    {
+      "slug": "google/gemini-3.5-flash-free",
+      "sourceSlug": "google/gemini-3.5-flash",
+      "model": "Gemini 3.5 Flash Free",
+      "publishDate": "2026-05-19",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "kuaishou/kat-coder-pro-v1-free",
+      "sourceSlug": "kuaishou/kat-coder-pro-v1",
+      "model": "KAT-Coder-Pro-V1 Free",
+      "publishDate": "2025-10-23",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "moonshotai/kimi-k2.7-code-free",
+      "sourceSlug": "moonshotai/kimi-k2.7-code",
+      "model": "Kimi K2.7 Code Free",
+      "publishDate": "2026-06-12",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "stepfun/step-3.5-flash-free",
+      "sourceSlug": "stepfun/step-3.5-flash",
+      "model": "Step 3.5 Flash (Free)",
+      "publishDate": "2026-02-02",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "stepfun/step-3.7-flash-free",
+      "sourceSlug": "stepfun/step-3.7-flash",
+      "model": "Step 3.7 Flash (Free)",
+      "publishDate": "2026-05-29",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "xiaomi/mimo-v2-flash-free",
+      "sourceSlug": "xiaomi/mimo-v2-flash",
+      "model": "MiMo-V2-Flash Free",
+      "publishDate": "2025-12-17",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "z-ai/glm-4.6v-flash-free",
+      "sourceSlug": "z-ai/glm-4.6v-flash",
+      "model": "GLM 4.6V Flash (Free)",
+      "publishDate": "2025-12-08",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "z-ai/glm-4.7-flash-free",
+      "sourceSlug": "z-ai/glm-4.7-flash",
+      "model": "GLM 4.7 Flash (Free)",
+      "publishDate": "2026-01-19",
+      "online": false,
+      "display": true
+    },
+    {
+      "slug": "z-ai/glm-5.2-free",
+      "sourceSlug": "z-ai/glm-5.2",
+      "model": "GLM 5.2  (Free)",
+      "publishDate": "2026-06-17",
+      "online": false,
+      "display": true
+    }
+  ]
+}

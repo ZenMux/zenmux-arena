@@ -10,16 +10,20 @@ import { AlertTriangle, ArrowUpRight } from "lucide-react";
 import type { DealSeries } from "@research/token-deals/types";
 import { VendorGlyph } from "../../token-economics/components";
 import {
+  applyDateWindow,
   bandTheme,
   dealHref,
   discountFactor,
+  fullLedgerWindow,
   percentOff,
   shortDate,
   subsidyPct,
   tokens,
   usdGrouped,
+  type DateWindow,
 } from "../lib";
 import { formatStamp, localZone, useDealsFeed } from "../useDealsFeed";
+import { WindowControl } from "../WindowControl";
 
 type Metric = "saved" | "tokens" | "off";
 
@@ -44,15 +48,18 @@ function metricLabel(deal: DealSeries, metric: Metric): string {
 export function LadderClient() {
   const { data, error, loading, refreshing, degraded, retry } = useDealsFeed();
   const [metric, setMetric] = useState<Metric>("saved");
+  const [win, setWin] = useState<DateWindow>(() => fullLedgerWindow());
 
   const ranked = useMemo(() => {
-    const deals = (data?.deals ?? []).filter(
+    // Window slicing happens client-side (additive daily points, see lib.ts) —
+    // stats, bars, and sparklines all re-cut without a refetch.
+    const deals = applyDateWindow(data?.deals ?? [], win).filter(
       (d) => d.status === "active" || d.status === "ended",
     );
     return [...deals].sort(
       (a, b) => metricValue(b, metric) - metricValue(a, metric) || a.discount - b.discount,
     );
-  }, [data?.deals, metric]);
+  }, [data?.deals, metric, win]);
   const max = Math.max(1e-9, ...ranked.map((d) => metricValue(d, metric)));
 
   return (
@@ -119,23 +126,26 @@ export function LadderClient() {
                   the model
                 </p>
               </div>
-              <div className="flex items-center border border-white/30" aria-label="Ranking metric">
-                {METRIC_OPTIONS.map((option) => (
-                  <button
-                    key={option.key}
-                    type="button"
-                    onClick={() => setMetric(option.key)}
-                    className={
-                      "min-h-8 cursor-pointer px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors sm:px-3 " +
-                      (metric === option.key
-                        ? "bg-white text-[#0a0a0b]"
-                        : "text-white/70 hover:bg-white/15 hover:text-white")
-                    }
-                    title={option.title}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <WindowControl value={win} onChange={setWin} />
+                <div className="flex items-center border border-white/30" aria-label="Ranking metric">
+                  {METRIC_OPTIONS.map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => setMetric(option.key)}
+                      className={
+                        "min-h-8 cursor-pointer px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors sm:px-3 " +
+                        (metric === option.key
+                          ? "bg-white text-[#0a0a0b]"
+                          : "text-white/70 hover:bg-white/15 hover:text-white")
+                      }
+                      title={option.title}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
