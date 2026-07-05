@@ -16,6 +16,7 @@ import {
   percentOff,
   shortDate,
   tokens,
+  trimEndedTail,
   usdCompact,
   usdGrouped,
 } from "../lib";
@@ -35,9 +36,12 @@ interface TrendPoint {
 }
 
 function buildTrend(deal: DealSeries): TrendPoint[] {
-  if (!deal.points || deal.points.length === 0) return [];
+  // Ended deals stop charting at their last active day — no flat tail out to
+  // "now" for a model that's been offline for weeks (see trimEndedTail).
+  const points = deal.points ? trimEndedTail(deal) : [];
+  if (points.length === 0) return [];
   let total = 0;
-  return deal.points.map((p) => ({
+  return points.map((p) => ({
     date: p.t.slice(0, 10),
     day: p.saved,
     cum: (total += p.saved),

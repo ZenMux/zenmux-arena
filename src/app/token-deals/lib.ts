@@ -140,6 +140,25 @@ export function computeWindowTotals(deals: DealSeries[]): DealsTotals | null {
 }
 
 // ---------------------------------------------------------------------------
+// Ended-deal tail trimming — an `online:false` free deal has no `endDate`
+// (windowEndMs stays Infinity, per research/token-deals/types.ts), so its
+// ledger window is queried all the way to "now": real usage stops the day the
+// model was pulled, then every point after that is a flat zero. Charting that
+// tail is charting nothing — clip to the last day with any activity so the
+// curve ends where the deal's story actually ends.
+// ---------------------------------------------------------------------------
+
+export function trimEndedTail(deal: Pick<DealSeries, "points" | "status">): DealUsagePoint[] {
+  const points = deal.points ?? [];
+  if (deal.status !== "ended") return points;
+  let lastActive = -1;
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].requests > 0 || points[i].tokens > 0) lastActive = i;
+  }
+  return lastActive < 0 ? [] : points.slice(0, lastActive + 1);
+}
+
+// ---------------------------------------------------------------------------
 // Deal-type filter — shared by the board and the ladder so the two surfaces
 // slice the same way (ALL / DISCOUNTED / FREE).
 // ---------------------------------------------------------------------------

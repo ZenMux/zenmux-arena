@@ -9,7 +9,7 @@
 // via useDealsFeed — the trend charts live on /token-deals/ladder.
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowUpRight, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowUpRight } from "lucide-react";
 import type { DealSeries, TokenDealsPayload } from "@research/token-deals/types";
 import { VendorGlyph } from "../token-economics/components";
 import {
@@ -34,6 +34,7 @@ import {
 import { formatStamp, localZone, useDealsFeed } from "./useDealsFeed";
 import { WindowControl } from "./WindowControl";
 import { SegmentedControl } from "./SegmentedControl";
+import { FreshnessBar } from "./FreshnessBar";
 
 type SortKey = "saved" | "discount" | "used" | "newest";
 
@@ -137,11 +138,17 @@ export function DealsClient({ initialData = null }: { initialData?: TokenDealsPa
         <>
           <Ticker data={view} />
           <div className="border-b-[3px] border-[#0a0a0b] bg-[#141416]">
-            <div className="mx-auto w-full max-w-[1800px] px-4 py-3 sm:px-8">
+            <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-8">
               <WindowControl value={win} onChange={setWin} />
+              <FreshnessBar
+                generatedAt={view.generatedAt}
+                refreshIntervalSeconds={view.refreshIntervalSeconds}
+                refreshing={refreshing || loading}
+                onRefresh={retry}
+              />
             </div>
           </div>
-          <Hero data={view} refreshing={refreshing} onRefresh={retry} />
+          <Hero data={view} />
           <StatBlocks data={view} />
 
           {/* ── The band wall ── */}
@@ -230,37 +237,17 @@ function Ticker({ data }: { data: TokenDealsPayload }) {
 
 /* ── Hero: the one gigantic number ────────────────────────────────────────── */
 
-function Hero({
-  data,
-  refreshing,
-  onRefresh,
-}: {
-  data: TokenDealsPayload;
-  refreshing: boolean;
-  onRefresh: () => void;
-}) {
+function Hero({ data }: { data: TokenDealsPayload }) {
   const totals = data.totals;
   return (
     <section style={{ backgroundColor: PANEL.green.bg }} className="border-b-[3px] border-[#0a0a0b]">
       <div className="mx-auto w-full max-w-[1800px] px-4 py-10 sm:px-8 sm:py-14">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <p
-            className="text-[11px] font-bold uppercase tracking-[0.24em] sm:text-xs"
-            style={{ color: PANEL.green.ink }}
-          >
-            Total saved for developers
-          </p>
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={refreshing}
-            className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 border px-2.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-            style={{ borderColor: PANEL.green.ink, color: PANEL.green.ink }}
-          >
-            <RefreshCw className={"size-3 " + (refreshing ? "animate-spin" : "")} />
-            Refresh
-          </button>
-        </div>
+        <p
+          className="text-[11px] font-bold uppercase tracking-[0.24em] sm:text-xs"
+          style={{ color: PANEL.green.ink }}
+        >
+          Total saved for developers
+        </p>
 
         {totals ? (
           <div
@@ -674,7 +661,7 @@ function FinePrint({
       >
         {data.live ? (
           <>
-            Live data · updated {formatStamp(data.generatedAt)} {localZone()} · window{" "}
+            Live data · window{" "}
             {fullWindow ? (
               <>
                 {data.from.slice(0, 10)} → {formatStamp(data.to)} {localZone()} (full ledger)
@@ -683,8 +670,7 @@ function FinePrint({
               <>
                 {win.from} → {win.to} (custom · UTC days)
               </>
-            )}{" "}
-            · refreshes every {Math.round(data.refreshIntervalSeconds / 60)}m
+            )}
             {data.stale ? " · showing last successful aggregation (stale)" : ""}
           </>
         ) : (

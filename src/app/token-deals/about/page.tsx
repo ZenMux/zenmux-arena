@@ -9,7 +9,6 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import { ArrowRight } from "lucide-react";
 import { AuthorCard } from "../../token-economics/about/AuthorCard";
-import { dealHref } from "../lib";
 
 export const metadata: Metadata = {
   title: "About — Token Deals · ZenMux Arena",
@@ -37,20 +36,6 @@ const PANEL = {
   blue: { bg: "#1747c0", ink: "#bccbff" },
   red: { bg: "#d7263d", ink: "#ffd6db" },
 } as const;
-
-/** Inline model mention → detail-page funnel link (rule 8 applies here too). */
-function ModelLink({ slug, children }: { slug: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={dealHref(slug, false)!}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="font-bold text-white underline decoration-white/40 underline-offset-4 transition-colors hover:decoration-white"
-    >
-      {children}
-    </a>
-  );
-}
 
 /** Numbered chapter header — the section strip, About edition. */
 function Chapter({ no, title, color }: { no: string; title: string; color: string }) {
@@ -95,10 +80,10 @@ export default async function TokenDealsAboutPage() {
             <Chapter no="01" title="The receipt nobody printed" color={PANEL.green.ink} />
             <div className="mt-6 space-y-5 text-[15px] leading-[1.85] text-white/80">
               <p>
-                ZenMux is subsidizing a batch of flagship models right now — when you run{" "}
-                <ModelLink slug="z-ai/glm-5.2">GLM&nbsp;5.2</ModelLink> at 69% off or{" "}
-                <ModelLink slug="qwen/qwen3.7-max">Qwen3.7-Max</ModelLink> at 83% off, the gap
-                between the list price and what you pay is money ZenMux puts on the table.
+                ZenMux is almost always subsidizing a batch of flagship models — the gap
+                between a model&apos;s list price and the deal price you actually pay is money
+                ZenMux puts on the table. Which models, and how deep, changes as deals start,
+                roll back, or get replaced by the next one.
               </p>
               <p>
                 But that fact lived nowhere. You&apos;d see a low price on the model list and
@@ -108,13 +93,20 @@ export default async function TokenDealsAboutPage() {
                 far?&rdquo;
               </p>
               <p>
-                So we made the ledger public. One board, one honest number, updated live from
-                the same billing data that produces your invoices — plus every deal&apos;s
-                original price, deal price, and what it has saved developers so far. Ended
-                deals don&apos;t disappear:{" "}
+                So we made the ledger public: every model currently on a deal, in one place, so
+                you can see at a glance what&apos;s discounted right now instead of hunting
+                through the model list. One board, one honest number, updated live from the
+                same billing data that produces your invoices — plus every deal&apos;s original
+                price, deal price, and what it has saved developers so far. Ended deals
+                don&apos;t disappear:{" "}
                 <span className="font-bold text-white">
                   the story ends, the ledger doesn&apos;t.
                 </span>
+              </p>
+              <p>
+                It&apos;s also a transparency commitment: publishing the real numbers — not just
+                the deals, but the money behind them — so anyone can independently judge how
+                much ZenMux is actually giving away.
               </p>
             </div>
           </section>

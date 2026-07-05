@@ -22,6 +22,7 @@ import {
   shortDate,
   subsidyPct,
   tokens,
+  trimEndedTail,
   usdGrouped,
   type DateWindow,
   type DealFilter,
@@ -29,6 +30,7 @@ import {
 import { formatStamp, localZone, useDealsFeed } from "../useDealsFeed";
 import { WindowControl } from "../WindowControl";
 import { SegmentedControl } from "../SegmentedControl";
+import { FreshnessBar } from "../FreshnessBar";
 import { DealTrendPanel } from "./DealTrendPanel";
 
 type Metric = "saved" | "tokens" | "off";
@@ -125,6 +127,16 @@ export function LadderClient({ initialData = null }: { initialData?: TokenDealsP
         <>
           {/* ── The ladder ── */}
           <section aria-label="Deal ranking">
+            <div className="border-b border-white/10 bg-[#141416]">
+              <div className="mx-auto flex w-full max-w-[1800px] justify-end px-4 py-2.5 sm:px-8">
+                <FreshnessBar
+                  generatedAt={data.generatedAt}
+                  refreshIntervalSeconds={data.refreshIntervalSeconds}
+                  refreshing={refreshing || loading}
+                  onRefresh={retry}
+                />
+              </div>
+            </div>
             <div className="mx-auto flex w-full max-w-[1800px] flex-wrap items-end justify-between gap-3 px-4 py-5 sm:px-8">
               <div>
                 <h2 className="font-[family-name:var(--font-deals-display)] text-xl uppercase leading-none tracking-tight text-white sm:text-3xl">
@@ -170,21 +182,10 @@ export function LadderClient({ initialData = null }: { initialData?: TokenDealsP
           </section>
 
           <div className="mx-auto w-full max-w-[1800px] px-4 py-8 sm:px-8">
-            {/* suppressHydrationWarning: formatStamp/localZone render in the
-                server's timezone during SSR of the packaged initialData. */}
-            <p
-              suppressHydrationWarning
-              className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase leading-relaxed tracking-[0.08em] text-white/40"
-            >
-              {data.live ? (
-                <>
-                  Live data · updated {formatStamp(data.generatedAt)} {localZone()} · refreshes
-                  every {Math.round(data.refreshIntervalSeconds / 60)}m
-                </>
-              ) : (
-                <>Cached deal facts shown · live billing aggregation unavailable</>
-              )}{" "}
-              · ended deals keep their rank — the ladder measures the whole window
+            <p className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase leading-relaxed tracking-[0.08em] text-white/40">
+              {data.live ? "Live data" : "Cached deal facts shown · live billing aggregation unavailable"}{" "}
+              · ended deals keep their rank — the ladder measures the whole window · an ended
+              deal&apos;s curve stops at its last active day
             </p>
           </div>
         </>
@@ -318,8 +319,10 @@ function LadderRow({
 function Sparkline({ deal, color }: { deal: DealSeries; color: string }) {
   const W = 96;
   const H = 30;
-  const points = deal.points;
   const spark = useMemo(() => {
+    // Ended deals stop charting at their last active day — no flat tail out
+    // to "now" for a model that's been offline for weeks (trimEndedTail).
+    const points = deal.points ? trimEndedTail(deal) : null;
     if (!points || points.length === 0) return null;
     let total = 0;
     const cum = points.map((p) => (total += p.saved));
@@ -333,7 +336,7 @@ function Sparkline({ deal, color }: { deal: DealSeries; color: string }) {
       })
       .join(" ");
     return { d, endY: yFor(cum[n - 1]) };
-  }, [points]);
+  }, [deal]);
 
   if (!spark) {
     return <div className="h-[30px] w-24 border-b border-dashed border-white/15" aria-hidden />;

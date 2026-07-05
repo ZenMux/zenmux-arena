@@ -73,7 +73,7 @@ export const EXPERIMENTS: Experiment[] = [
   {
     id: "token-deals",
     title: "Token Deals",
-    tagline: "让利账本 — the subsidy receipt, live.",
+    tagline: "The subsidy receipt, live.",
     description:
       "ZenMux is paying part of your token bill on a batch of flagship models. This ledger shows every deal's list price → deal price, and a live running total of the money left on the table — for developers.",
     status: "live",

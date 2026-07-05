@@ -31,6 +31,7 @@ import { EXPERIMENTS } from "@/lib/experiments";
 import { TOOLS } from "@/lib/tools";
 import { SpecimenPlate } from "./specimen-plate";
 import type { GraphData } from "@research/lib/types";
+import { GITHUB_MARK_PATH } from "@research/lib/branding";
 
 /* ── Live data (unchanged loaders) ────────────────────────────────────────── */
 
@@ -178,15 +179,27 @@ export default function Home() {
           priority
           className="h-6 w-auto opacity-90"
         />
-        <a
-          href="https://zenmux.ai"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group inline-flex items-center gap-1.5 rounded-full border border-[var(--fg-ink)]/25 bg-white/40 px-4 py-1.5 font-(family-name:--font-jost) text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--fg-ink)] backdrop-blur transition-colors hover:border-[var(--fg-ink)] hover:bg-[var(--fg-ink)] hover:text-[var(--fg-paper)]"
-        >
-          zenmux.ai
-          <ArrowUpRight className="size-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-        </a>
+        <div className="flex items-center gap-2.5">
+          <a
+            href="https://github.com/ZenMux/zenmux-arena"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub — ZenMux/zenmux-arena"
+            title="github.com/ZenMux/zenmux-arena"
+            className="inline-flex size-8 items-center justify-center rounded-full border border-[var(--fg-ink)]/25 bg-white/40 text-[var(--fg-ink)] backdrop-blur transition-colors hover:border-[var(--fg-ink)] hover:bg-[var(--fg-ink)] hover:text-[var(--fg-paper)]"
+          >
+            <GithubMark className="size-3.5" />
+          </a>
+          <a
+            href="https://zenmux.ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-1.5 rounded-full border border-[var(--fg-ink)]/25 bg-white/40 px-4 py-1.5 font-(family-name:--font-jost) text-[11px] font-medium uppercase tracking-[0.18em] text-[var(--fg-ink)] backdrop-blur transition-colors hover:border-[var(--fg-ink)] hover:bg-[var(--fg-ink)] hover:text-[var(--fg-paper)]"
+          >
+            zenmux.ai
+            <ArrowUpRight className="size-3 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </a>
+        </div>
       </header>
 
       {/* ── Hero: the specimen plate (client — the masthead is the egg) ──── */}
@@ -213,25 +226,29 @@ export default function Home() {
 
       {/* ── Colophon ─────────────────────────────────────────────────────── */}
       <footer className="relative z-10 mx-auto mt-28 w-full max-w-6xl px-6 pb-16 sm:px-10">
-        <div className="flex flex-col items-start justify-between gap-6 border-t border-[var(--fg-ink)]/20 pt-8 sm:flex-row sm:items-end">
-          <div className="flex flex-col gap-2">
-            <p className="font-(family-name:--font-fraunces) text-[15px] italic text-[var(--fg-ink-soft)]">
-              Observed in the wild, one API call at a time.
-            </p>
-            <p className="font-(family-name:--font-jost) text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--fg-ink-soft)]">
-              Built by thinkthinking · the open research arena by{" "}
-              <a
-                href="https://zenmux.ai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--fg-ink)]"
-              >
-                ZenMux.ai
-              </a>
-            </p>
-          </div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--fg-ink-soft)]">
-            Hangzhou, China · ZenMux Observatory
+        <div className="flex flex-col gap-2 border-t border-[var(--fg-ink)]/20 pt-8">
+          <p className="font-(family-name:--font-fraunces) text-[15px] italic text-[var(--fg-ink-soft)]">
+            Observed in the wild, one API call at a time.
+          </p>
+          <p className="font-(family-name:--font-jost) text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--fg-ink-soft)]">
+            Built by{" "}
+            <a
+              href="https://x.com/thinkthinking_"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--fg-ink)]"
+            >
+              thinkthinking
+            </a>{" "}
+            · the open research arena by{" "}
+            <a
+              href="https://zenmux.ai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--fg-ink)]"
+            >
+              ZenMux.ai
+            </a>
           </p>
         </div>
       </footer>
@@ -339,5 +356,17 @@ function RowNumber({ n }: { n: number }) {
     <span className="hidden w-10 shrink-0 pt-2 font-mono text-xs tracking-widest text-[var(--fg-ink-soft)] sm:block">
       {String(n).padStart(2, "0")}
     </span>
+  );
+}
+
+/* ── GitHub mark — lucide-react ships none, drawn from the shared branding
+   path (research/lib/branding.ts) so it matches the icon used elsewhere
+   (StudyBadge, AuthorCard). ────────────────────────────────────────────── */
+
+function GithubMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className={className} fill="currentColor">
+      <path d={GITHUB_MARK_PATH} />
+    </svg>
   );
 }
