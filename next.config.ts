@@ -80,8 +80,23 @@ const nextConfig: NextConfig = {
   // resolve the same way they do in local dev.
   outputFileTracingIncludes: {
     "/*": ["./public/**/*", "./config/token-economics-live-models.json"],
-    "/api/token-economics/live/**": ["./.cache/**"],
-    "/api/token-deals/live/**": ["./.cache/**", "./config/token-deals.json"],
+    "/api/token-economics/live/**": ["./.cache/token-economics/**"],
+    // Baselines listed by exact name: the tracer expands `*` like `**`, which
+    // would drag .cache/token-deals/backups/ (backfill safety copies) into the
+    // deploy artifact.
+    "/api/token-deals/live/**": [
+      "./.cache/token-deals/all.json",
+      "./.cache/token-deals/72h.json",
+      "./config/token-deals.json",
+    ],
+    // The board/ladder pages read the packaged baseline server-side for their
+    // first-paint initialData (src/app/token-deals/initial-deals.ts).
+    "/token-deals/**": ["./.cache/token-deals/all.json"],
+  },
+  // The tracer's static analysis of readJsonCache's fs.readFile drags the whole
+  // .cache/token-deals/ dir in, backups included — exclude them everywhere.
+  outputFileTracingExcludes: {
+    "*": ["./.cache/token-deals/backups/**"],
   },
   // @resvg/resvg-js loads a platform-native .node binary at runtime; it must not
   // be bundled by Turbopack/webpack. Keep it external so the export route can

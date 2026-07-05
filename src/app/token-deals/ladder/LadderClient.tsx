@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from "react";
 import { AlertTriangle, ArrowUpRight } from "lucide-react";
-import type { DealSeries } from "@research/token-deals/types";
+import type { DealSeries, TokenDealsPayload } from "@research/token-deals/types";
 import { VendorGlyph } from "../../token-economics/components";
 import {
   applyDateWindow,
@@ -45,8 +45,8 @@ function metricLabel(deal: DealSeries, metric: Metric): string {
   return deal.dealType === "free" ? "100%" : subsidyPct(deal.discount);
 }
 
-export function LadderClient() {
-  const { data, error, loading, refreshing, degraded, retry } = useDealsFeed();
+export function LadderClient({ initialData = null }: { initialData?: TokenDealsPayload | null }) {
+  const { data, error, loading, refreshing, degraded, retry } = useDealsFeed(initialData);
   const [metric, setMetric] = useState<Metric>("saved");
   const [win, setWin] = useState<DateWindow>(() => fullLedgerWindow());
 
@@ -165,7 +165,12 @@ export function LadderClient() {
           </section>
 
           <div className="mx-auto w-full max-w-[1800px] px-4 py-8 sm:px-8">
-            <p className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase leading-relaxed tracking-[0.08em] text-white/40">
+            {/* suppressHydrationWarning: formatStamp/localZone render in the
+                server's timezone during SSR of the packaged initialData. */}
+            <p
+              suppressHydrationWarning
+              className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase leading-relaxed tracking-[0.08em] text-white/40"
+            >
               {data.live ? (
                 <>
                   Live data · updated {formatStamp(data.generatedAt)} {localZone()} · refreshes

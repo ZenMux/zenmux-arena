@@ -8,11 +8,19 @@
 // State machine per the PRD: loading (skeleton) → ready → refreshing (silent) →
 // degraded (fetch failed OR payload.live=false: deal facts stay, money shows
 // "—", auto-retry with 10s backoff).
+//
+// initialData comes from the server component (the packaged baseline read off
+// the local filesystem), so first paint already has the full board. It may be
+// hours stale — the hook fetches the live payload immediately on mount and the
+// numbers settle in place (never a skeleton).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DealRangeKey, TokenDealsPayload } from "@research/token-deals/types";
 
 const ERROR_BACKOFF_MS = 10_000;
+// A `stale: true` payload means the server answered from an expired baseline
+// while its DB refresh was still running — re-poll soon to pick up the result.
+const STALE_RETRY_MS = 20_000;
 const REFRESH_SETTLE_MS = 750;
 const DEFAULT_REFRESH_SECONDS = 300;
 
@@ -38,13 +46,13 @@ export interface DealsFeed {
   retry: () => void;
 }
 
-export function useDealsFeed(): DealsFeed {
-  const [data, setData] = useState<TokenDealsPayload | null>(null);
+export function useDealsFeed(initialData: TokenDealsPayload | null = null): DealsFeed {
+  const [data, setData] = useState<TokenDealsPayload | null>(initialData);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialData == null);
   const [refreshing, setRefreshing] = useState(false);
   const [manualRefresh, setManualRefresh] = useState(0);
-  const hasDataRef = useRef(false);
+  const hasDataRef = useRef(initialData != null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -75,9 +83,17 @@ export function useDealsFeed(): DealsFeed {
         setError(null);
         setLoading(false);
         setRefreshing(false);
-        // Degraded payloads (live=false) retry fast; healthy ones align to the
-        // refresh boundary like the token-economics LIVE view.
-        schedule(json.live ? nextAlignedDelayMs(refreshSeconds) : ERROR_BACKOFF_MS);
+        // Degraded payloads (live=false) retry fast; stale ones (the server's
+        // DB refresh was still in flight) re-poll shortly to catch its result;
+        // healthy ones align to the refresh boundary like the token-economics
+        // LIVE view.
+        schedule(
+          !json.live
+            ? ERROR_BACKOFF_MS
+            : json.stale
+              ? STALE_RETRY_MS
+              : nextAlignedDelayMs(refreshSeconds),
+        );
       } catch (err) {
         if (!live || signal?.aborted) return;
         setError(err instanceof Error ? err.message : "Deals fetch failed");

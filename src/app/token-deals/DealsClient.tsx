@@ -81,8 +81,8 @@ function providersTitle(deal: DealSeries): string {
   return ` · providers: ${deal.providers.map((p) => `${p.name} ${discountFactor(p.discount)}`).join(", ")}`;
 }
 
-export function DealsClient() {
-  const { data, error, loading, refreshing, degraded, retry } = useDealsFeed();
+export function DealsClient({ initialData = null }: { initialData?: TokenDealsPayload | null }) {
+  const { data, error, loading, refreshing, degraded, retry } = useDealsFeed(initialData);
   const [sortKey, setSortKey] = useState<SortKey>("saved");
   const [filter, setFilter] = useState<DealFilter>("all");
   const [win, setWin] = useState<DateWindow>(() => fullLedgerWindow());
@@ -703,7 +703,12 @@ function FinePrint({
 }) {
   return (
     <div className="mx-auto w-full max-w-[1800px] px-4 py-8 sm:px-8">
-      <p className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase leading-relaxed tracking-[0.08em] text-white/40">
+      {/* suppressHydrationWarning: formatStamp/localZone render in the server's
+          timezone during SSR of the packaged initialData. */}
+      <p
+        suppressHydrationWarning
+        className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase leading-relaxed tracking-[0.08em] text-white/40"
+      >
         {data.live ? (
           <>
             Live data · updated {formatStamp(data.generatedAt)} {localZone()} · window{" "}

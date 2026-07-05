@@ -1,10 +1,13 @@
 // Token Deals — THE LADDER. Server shell (ticker nav + amber masthead band);
-// the ranked bars + trend charts live in LadderClient, which polls the same
-// /api/token-deals/live feed as the board.
+// the ranked bars + trend charts live in LadderClient. Like the board, the
+// packaged baseline is read server-side and passed as initialData so the
+// ladder is ranked on first paint; LadderClient polls /api/token-deals/live
+// to settle the numbers.
 
 import type { Metadata } from "next";
 import { TokenDealsNav } from "../TokenDealsNav";
 import { LadderClient } from "./LadderClient";
+import { loadInitialDeals } from "../initial-deals";
 
 export const metadata: Metadata = {
   title: "The Discount Ladder — Token Deals · ZenMux Arena",
@@ -12,7 +15,10 @@ export const metadata: Metadata = {
     "Every ZenMux model deal ranked: subsidy dollars, in-deal tokens, and discount depth — bars for the glance, cumulative curves for the trend.",
 };
 
-export default function TokenDealsLadderPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TokenDealsLadderPage() {
+  const initialData = await loadInitialDeals();
   return (
     <>
       <TokenDealsNav active="ladder" />
@@ -26,7 +32,7 @@ export default function TokenDealsLadderPage() {
           </p>
         </div>
       </div>
-      <LadderClient />
+      <LadderClient initialData={initialData} />
     </>
   );
 }

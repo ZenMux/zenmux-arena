@@ -14,15 +14,32 @@ export const revalidate = 0;
 // function gateway, so we compress here explicitly whenever the client accepts
 // gzip. JSON is highly repetitive, so even gzip level 6 is a huge win for ~tens
 // of ms of CPU on an in-memory buffer.
+
+// CDN caching (mirrors /api/token-deals/live): the data only advances every
+// 5 minutes (refresh boundary), so a short shared-cache TTL is lossless for
+// freshness but lets the edge absorb repeat traffic. Browsers still always
+// revalidate (max-age=0) — the client polls on its own schedule.
+//   healthy → 60s at the edge + 4min serve-stale-while-revalidating
+//   stale   → 15s (the origin is mid-refresh; let the edge retry soon)
+//   error   → never cached
+export type CachePolicy = "healthy" | "stale" | "error";
+
+const CACHE_CONTROL: Record<CachePolicy, string> = {
+  healthy: "public, max-age=0, s-maxage=60, stale-while-revalidate=240",
+  stale: "public, max-age=0, s-maxage=15, stale-while-revalidate=60",
+  error: "no-store, max-age=0",
+};
+
 function jsonResponse(
   data: unknown,
   acceptEncoding: string,
   extraHeaders: Record<string, string>,
+  cachePolicy: CachePolicy = "error",
   status = 200,
 ): Response {
   const headers: Record<string, string> = {
     "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store, max-age=0",
+    "Cache-Control": CACHE_CONTROL[cachePolicy],
     // Caches must key on Accept-Encoding since we vary the body by it.
     Vary: "Accept-Encoding",
     ...extraHeaders,
@@ -48,15 +65,21 @@ export async function GET(request: Request) {
       searchParams.get("range"),
       new Date(),
     );
-    return jsonResponse(payload, acceptEncoding, {
-      // Diagnostics: inspect these in the browser Network panel to see which
-      // layer served the request and how long the server spent on it.
-      // l1-memory / baseline-fresh / single-flight = no DB; incremental-db = one
-      // DB round-trip; full-db = full re-aggregation (slow); stale-baseline = DB failed.
-      "X-Cache-Source": source,
-      "X-Server-Time": `${elapsedMs}ms`,
-      "Server-Timing": `live;desc=${source};dur=${elapsedMs}`,
-    });
+    return jsonResponse(
+      payload,
+      acceptEncoding,
+      {
+        // Diagnostics: inspect these in the browser Network panel to see which
+        // layer served the request and how long the server spent on it.
+        // l1-memory / baseline-fresh / single-flight = no DB; incremental-db =
+        // one DB round-trip; full-db = full re-aggregation (slow); stale-swr =
+        // refresh still running, stale served; stale-baseline = DB failed.
+        "X-Cache-Source": source,
+        "X-Server-Time": `${elapsedMs}ms`,
+        "Server-Timing": `live;desc=${source};dur=${elapsedMs}`,
+      },
+      payload.stale ? "stale" : "healthy",
+    );
   } catch (error) {
     if (error instanceof LiveDbConfigError) {
       return Response.json(

@@ -45,6 +45,9 @@ const LIVE_COLORS = [
 const LINE_DASHES = ["", "7 4", "2 4", "10 4 2 4", "1 5"] as const;
 const REFRESH_SETTLE_MS = 750;
 const ERROR_BACKOFF_MS = 10_000; // Backoff 10s on error to avoid hammering server
+// A `stale: true` payload means the server answered from an expired baseline
+// while its DB refresh was still running — re-poll soon to pick up the result.
+const STALE_RETRY_MS = 20_000;
 
 const METRIC_OPTIONS = [
   { key: "live", label: "LIVE", title: "Real-time token usage per bucket" },
@@ -322,10 +325,11 @@ async function fetchLivePayload(
   range: LiveRangeKey,
   signal?: AbortSignal,
 ): Promise<LiveTokenEconomicsPayload> {
-  const res = await fetch(`/api/token-economics/live?range=${range}`, {
-    cache: "no-store",
-    signal,
-  });
+  // Default cache mode ON PURPOSE (no `cache: "no-store"`): the page.tsx server
+  // component preloads this URL with the HTML, and the browser only matches a
+  // preloaded response to a same-mode fetch. The API sends `max-age=0`, so the
+  // browser revalidates on every poll anyway — no staleness risk.
+  const res = await fetch(`/api/token-economics/live?range=${range}`, { signal });
   const json = (await res.json()) as LiveTokenEconomicsPayload | { error?: string };
   if (!res.ok) throw new Error("error" in json && json.error ? json.error : "Live usage failed");
   return json as LiveTokenEconomicsPayload;
@@ -376,12 +380,12 @@ export function LiveLeaderboard() {
       timeoutId = null;
     };
 
-    const scheduleNext = () => {
+    const scheduleNext = (delayMs?: number) => {
       if (!live) return;
       clearTimer();
       timeoutId = window.setTimeout(() => {
         void run();
-      }, nextAlignedRefreshDelayMs(refreshIntervalSeconds));
+      }, delayMs ?? nextAlignedRefreshDelayMs(refreshIntervalSeconds));
     };
 
     async function run(signal?: AbortSignal) {
@@ -400,7 +404,9 @@ export function LiveLeaderboard() {
         setError(null);
         setLoading(false);
         setRefreshing(false);
-        scheduleNext();
+        // Stale payloads (server's DB refresh was still in flight) re-poll
+        // shortly to catch its result; healthy ones align to the boundary.
+        scheduleNext(json.stale ? STALE_RETRY_MS : undefined);
       } catch (err) {
         if (!live || signal?.aborted) return;
         // Keep any on-screen data; just surface the error and stop spinners.

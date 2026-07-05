@@ -12,11 +12,14 @@
 //     the baseline's `to`.
 //
 // CACHE PROTECTION — this script never deletes anything:
-//   · a pre-v4 all.json/72h.json is COPIED to <range>.v<schema>.bak.json
+//   · a pre-v4 all.json/72h.json is COPIED to backups/<range>.v<schema>.bak.json
 //     before the new baseline overwrites the live filename;
-//   · on completion all.json is COPIED to all.snapshot-<date>.json so the
-//     expensive full-history ledger survives even if the live file is ever
+//   · on completion all.json is COPIED to backups/all.snapshot-<date>.json so
+//     the expensive full-history ledger survives even if the live file is ever
 //     clobbered.
+// Backups live in the backups/ SUBDIR on purpose: the runtime only ever reads
+// <range>.json, and the deploy packaging globs .cache/token-deals/*.json —
+// keeping backups out of the top level keeps them out of the shipped artifact.
 //
 //   pnpm tokendeals:backfill
 
@@ -49,34 +52,40 @@ function summarize(payload: TokenDealsPayload): string {
   return `${payload.deals.length} deals, saved $${(t?.saved ?? 0).toFixed(2)}, paid $${(t?.paid ?? 0).toFixed(2)}`;
 }
 
+function backupsDir(): string {
+  return path.join(cacheDir(), "backups");
+}
+
 /** Copy (never move/delete) a legacy-schema cache aside before it gets
     superseded. Idempotent: an existing backup is left alone. */
 async function backupLegacyCache(range: "all" | "72h"): Promise<void> {
   const existing = await readJsonCache(range);
   if (!existing || existing.schema === DEALS_SCHEMA_VERSION) return;
   const src = path.join(cacheDir(), `${range}.json`);
-  const dest = path.join(cacheDir(), `${range}.v${existing.schema ?? 1}.bak.json`);
+  const dest = path.join(backupsDir(), `${range}.v${existing.schema ?? 1}.bak.json`);
   try {
     await fs.access(dest);
     return; // backup already there
   } catch {
     /* fall through */
   }
+  await fs.mkdir(backupsDir(), { recursive: true });
   await fs.copyFile(src, dest);
-  console.log(`[tokendeals:backfill] 🛟 Backed up legacy ${range}.json (schema ${existing.schema ?? "none"}) → ${path.basename(dest)}`);
+  console.log(`[tokendeals:backfill] 🛟 Backed up legacy ${range}.json (schema ${existing.schema ?? "none"}) → backups/${path.basename(dest)}`);
 }
 
 async function snapshotLedger(): Promise<void> {
   const src = path.join(cacheDir(), "all.json");
-  const dest = path.join(cacheDir(), `all.snapshot-${new Date().toISOString().slice(0, 10)}.json`);
+  const dest = path.join(backupsDir(), `all.snapshot-${new Date().toISOString().slice(0, 10)}.json`);
   try {
     await fs.access(dest);
     return;
   } catch {
     /* fall through */
   }
+  await fs.mkdir(backupsDir(), { recursive: true });
   await fs.copyFile(src, dest);
-  console.log(`[tokendeals:backfill] 🛟 Ledger snapshot written: ${path.basename(dest)}`);
+  console.log(`[tokendeals:backfill] 🛟 Ledger snapshot written: backups/${path.basename(dest)}`);
 }
 
 async function main() {

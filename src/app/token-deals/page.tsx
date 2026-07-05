@@ -1,10 +1,14 @@
-// Token Deals — THE BOARD landing surface. The shell (ticker nav + the
-// server-rendered opener headline) is static-fast; everything money-related
-// lives in DealsClient, which polls /api/token-deals/live.
+// Token Deals — THE BOARD landing surface. A server component: the shell
+// (ticker nav + opener headline) renders statically, and the packaged baseline
+// (.cache/token-deals/all.json) is read off the local filesystem and passed to
+// DealsClient as initialData — so the first paint already carries the full
+// board, no skeleton. DealsClient then polls /api/token-deals/live to settle
+// the numbers live.
 
 import type { Metadata } from "next";
 import { TokenDealsNav } from "./TokenDealsNav";
 import { DealsClient } from "./DealsClient";
+import { loadInitialDeals } from "./initial-deals";
 
 export const metadata: Metadata = {
   title: "Token Deals — the live discount board · ZenMux Arena",
@@ -12,7 +16,12 @@ export const metadata: Metadata = {
     "A live public ledger of ZenMux's model subsidies: list price → deal price for every discounted model, and the running total saved for developers.",
 };
 
-export default function TokenDealsPage() {
+// Read the baseline per request, not once at build: the packaged file is
+// deploy-frozen, but a writable deployment (or local dev) may refresh it.
+export const dynamic = "force-dynamic";
+
+export default async function TokenDealsPage() {
+  const initialData = await loadInitialDeals();
   return (
     <>
       <TokenDealsNav active="board" />
@@ -28,7 +37,7 @@ export default function TokenDealsPage() {
           </p>
         </div>
       </div>
-      <DealsClient />
+      <DealsClient initialData={initialData} />
     </>
   );
 }
