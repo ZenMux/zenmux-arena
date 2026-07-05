@@ -3,27 +3,33 @@
 // THE LADDER — the at-a-glance ranking the board deliberately doesn't do.
 // One row per deal, ranked by the selected metric (SAVED $ / TOKENS / % OFF),
 // a full-width vendor-color bar for the glance, and a cumulative-saved
-// sparkline so the trend rides inside the ranking.
+// sparkline so the trend rides inside the ranking. Clicking a row expands it
+// in place into the full trend chart (DealTrendPanel) — the outbound ZenMux
+// link lives inside the panel now, not on the row.
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowUpRight } from "lucide-react";
+import { AlertTriangle, ChevronDown } from "lucide-react";
 import type { DealSeries, TokenDealsPayload } from "@research/token-deals/types";
 import { VendorGlyph } from "../../token-economics/components";
 import {
   applyDateWindow,
   bandTheme,
-  dealHref,
+  DEAL_FILTER_OPTIONS,
   discountFactor,
   fullLedgerWindow,
+  matchesDealFilter,
   percentOff,
   shortDate,
   subsidyPct,
   tokens,
   usdGrouped,
   type DateWindow,
+  type DealFilter,
 } from "../lib";
 import { formatStamp, localZone, useDealsFeed } from "../useDealsFeed";
 import { WindowControl } from "../WindowControl";
+import { SegmentedControl } from "../SegmentedControl";
+import { DealTrendPanel } from "./DealTrendPanel";
 
 type Metric = "saved" | "tokens" | "off";
 
@@ -48,18 +54,21 @@ function metricLabel(deal: DealSeries, metric: Metric): string {
 export function LadderClient({ initialData = null }: { initialData?: TokenDealsPayload | null }) {
   const { data, error, loading, refreshing, degraded, retry } = useDealsFeed(initialData);
   const [metric, setMetric] = useState<Metric>("saved");
+  const [filter, setFilter] = useState<DealFilter>("all");
   const [win, setWin] = useState<DateWindow>(() => fullLedgerWindow());
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const ranked = useMemo(() => {
     // Window slicing happens client-side (additive daily points, see lib.ts) —
     // stats, bars, and sparklines all re-cut without a refetch.
     const deals = applyDateWindow(data?.deals ?? [], win).filter(
-      (d) => d.status === "active" || d.status === "ended",
+      (d) =>
+        (d.status === "active" || d.status === "ended") && matchesDealFilter(d, filter),
     );
     return [...deals].sort(
       (a, b) => metricValue(b, metric) - metricValue(a, metric) || a.discount - b.discount,
     );
-  }, [data?.deals, metric, win]);
+  }, [data?.deals, metric, win, filter]);
   const max = Math.max(1e-9, ...ranked.map((d) => metricValue(d, metric)));
 
   return (
@@ -122,30 +131,24 @@ export function LadderClient({ initialData = null }: { initialData?: TokenDealsP
                   {ranked.length} deals ranked
                 </h2>
                 <p className="mt-1.5 font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-white/50">
-                  Bar = share of the #1 deal · sparkline = cumulative saved · click a row to open
-                  the model
+                  Bar = share of the #1 deal · sparkline = cumulative saved · click a row for the
+                  full trend
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <WindowControl value={win} onChange={setWin} />
-                <div className="flex items-center border border-white/30" aria-label="Ranking metric">
-                  {METRIC_OPTIONS.map((option) => (
-                    <button
-                      key={option.key}
-                      type="button"
-                      onClick={() => setMetric(option.key)}
-                      className={
-                        "min-h-8 cursor-pointer px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors sm:px-3 " +
-                        (metric === option.key
-                          ? "bg-white text-[#0a0a0b]"
-                          : "text-white/70 hover:bg-white/15 hover:text-white")
-                      }
-                      title={option.title}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+                <SegmentedControl
+                  label="Filter deals"
+                  options={DEAL_FILTER_OPTIONS}
+                  value={filter}
+                  onChange={setFilter}
+                />
+                <SegmentedControl
+                  label="Ranking metric"
+                  options={METRIC_OPTIONS}
+                  value={metric}
+                  onChange={setMetric}
+                />
               </div>
             </div>
 
@@ -158,6 +161,8 @@ export function LadderClient({ initialData = null }: { initialData?: TokenDealsP
                     rank={i + 1}
                     ratio={metricValue(deal, metric) / max}
                     label={metricLabel(deal, metric)}
+                    open={openId === deal.id}
+                    onToggle={() => setOpenId((cur) => (cur === deal.id ? null : deal.id))}
                   />
                 ))}
               </div>
@@ -195,22 +200,26 @@ function LadderRow({
   rank,
   ratio,
   label,
+  open,
+  onToggle,
 }: {
   deal: DealSeries;
   rank: number;
   ratio: number;
   label: string;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const theme = bandTheme(deal.vendor);
-  const href = dealHref(deal.slug, deal.delisted);
   const isFree = deal.dealType === "free";
   const ended = deal.status === "ended";
+  const panelId = `deal-panel-${deal.id.replace(/[^a-zA-Z0-9-]/g, "")}`;
 
   const inner = (
     <div
       className={
-        "grid grid-cols-[2rem_2.25rem_minmax(0,1fr)] items-center gap-x-3 border-b border-white/10 py-3 sm:grid-cols-[2.5rem_2.5rem_minmax(0,16rem)_minmax(0,1fr)_5.5rem] sm:gap-x-4 " +
-        (ended ? "opacity-55" : "")
+        "grid grid-cols-[2rem_2.25rem_minmax(0,1fr)] items-center gap-x-3 py-3 sm:grid-cols-[2.5rem_2.5rem_minmax(0,16rem)_minmax(0,1fr)_5.5rem] sm:gap-x-4 " +
+        (ended && !open ? "opacity-55" : "")
       }
     >
       <span className="text-right font-[family-name:var(--font-deals-mono)] text-sm font-bold tabular-nums text-white/40">
@@ -225,12 +234,13 @@ function LadderRow({
           <span className="truncate font-[family-name:var(--font-deals-display)] text-base uppercase leading-tight tracking-tight text-white sm:text-xl">
             {deal.model}
           </span>
-          {href && (
-            <ArrowUpRight
-              className="hidden size-3.5 shrink-0 text-white/40 transition-all group-hover:translate-x-0.5 group-hover:text-white sm:block"
-              aria-hidden
-            />
-          )}
+          <ChevronDown
+            className={
+              "hidden size-3.5 shrink-0 text-white/40 transition-transform duration-200 group-hover:text-white sm:block " +
+              (open ? "rotate-180" : "")
+            }
+            aria-hidden
+          />
         </div>
         <div className="mt-0.5 truncate font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-white/45">
           {deal.vendorName} ·{" "}
@@ -277,20 +287,31 @@ function LadderRow({
     </div>
   );
 
-  if (href) {
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`#${rank} ${deal.model} — open on ZenMux`}
-        className="group block px-1 transition-colors hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
+  return (
+    <div className={"border-b border-white/10 " + (open ? "bg-white/[0.03]" : "")}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={panelId}
+        aria-label={`#${rank} ${deal.model} — ${open ? "collapse" : "expand"} trend details`}
+        className="group block w-full cursor-pointer px-1 text-left transition-colors hover:bg-white/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white"
       >
         {inner}
-      </a>
-    );
-  }
-  return <div className="px-1">{inner}</div>;
+      </button>
+      {/* Grid-rows height animation: 0fr → 1fr keeps the collapse smooth
+          without measuring content height in JS. */}
+      <div
+        id={panelId}
+        className={
+          "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none " +
+          (open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")
+        }
+      >
+        <div className="overflow-hidden">{open && <DealTrendPanel deal={deal} />}</div>
+      </div>
+    </div>
+  );
 }
 
 /** Tiny cumulative-saved curve (or flat line when degraded / no points). */

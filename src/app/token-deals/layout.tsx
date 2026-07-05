@@ -7,6 +7,7 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Archivo, Archivo_Black, IBM_Plex_Mono } from "next/font/google";
+import { TokenDealsNav } from "./TokenDealsNav";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -39,6 +40,9 @@ export default function TokenDealsLayout({ children }: { children: ReactNode }) 
     <div
       className={`${archivo.variable} ${archivoBlack.variable} ${plexMono.variable} flex min-h-dvh flex-col bg-[#0a0a0b] font-[family-name:var(--font-deals-body)] text-white antialiased selection:bg-[#3dff8e] selection:text-[#0a0a0b]`}
     >
+      {/* Nav lives in the layout: it never re-renders on Board↔Ladder↔About
+          navigation, so tab clicks feel instant while the page streams in. */}
+      <TokenDealsNav />
       {children}
     </div>
   );

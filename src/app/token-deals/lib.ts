@@ -140,6 +140,26 @@ export function computeWindowTotals(deals: DealSeries[]): DealsTotals | null {
 }
 
 // ---------------------------------------------------------------------------
+// Deal-type filter — shared by the board and the ladder so the two surfaces
+// slice the same way (ALL / DISCOUNTED / FREE).
+// ---------------------------------------------------------------------------
+
+export type DealFilter = "all" | "discount" | "free";
+
+export const DEAL_FILTER_OPTIONS = [
+  { key: "all", label: "ALL", title: "Every deal" },
+  { key: "discount", label: "DISCOUNTED", title: "Percentage-off deals only" },
+  { key: "free", label: "FREE", title: "Free (100% off) models only" },
+] as const satisfies { key: DealFilter; label: string; title: string }[];
+
+export function matchesDealFilter(
+  deal: Pick<DealSeries, "dealType">,
+  filter: DealFilter,
+): boolean {
+  return filter === "all" || deal.dealType === filter;
+}
+
+// ---------------------------------------------------------------------------
 // Discount semantics — pricing_discount is the USER-PAYS fraction
 // (0.31 = you pay 31%, ZenMux covers 69%). Confirmed direction per PRD §2.3.
 // ---------------------------------------------------------------------------

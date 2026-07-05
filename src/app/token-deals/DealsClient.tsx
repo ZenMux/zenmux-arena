@@ -17,9 +17,11 @@ import {
   bandTheme,
   computeWindowTotals,
   dealHref,
+  DEAL_FILTER_OPTIONS,
   discountFactor,
   fullLedgerWindow,
   isFullLedgerWindow,
+  matchesDealFilter,
   percentOff,
   perM,
   shortDate,
@@ -27,12 +29,13 @@ import {
   tokens,
   usdGrouped,
   type DateWindow,
+  type DealFilter,
 } from "./lib";
 import { formatStamp, localZone, useDealsFeed } from "./useDealsFeed";
 import { WindowControl } from "./WindowControl";
+import { SegmentedControl } from "./SegmentedControl";
 
 type SortKey = "saved" | "discount" | "used" | "newest";
-type DealFilter = "all" | "discount" | "free";
 
 const SORT_OPTIONS = [
   { key: "saved", label: "SAVED", title: "Most subsidy dollars first" },
@@ -40,12 +43,6 @@ const SORT_OPTIONS = [
   { key: "used", label: "USED", title: "Most in-deal tokens first" },
   { key: "newest", label: "NEWEST", title: "Most recently started first" },
 ] as const satisfies { key: SortKey; label: string; title: string }[];
-
-const FILTER_OPTIONS = [
-  { key: "all", label: "ALL", title: "Every live deal" },
-  { key: "discount", label: "DISCOUNTED", title: "Percentage-off deals only" },
-  { key: "free", label: "FREE", title: "Free (100% off) models only" },
-] as const satisfies { key: DealFilter; label: string; title: string }[];
 
 // The scoreboard panel palette — worldcup kick-off green, broadcast amber,
 // pitch blue, signal red. Solid blocks, same-hue deep/pale ink.
@@ -107,8 +104,7 @@ export function DealsClient({ initialData = null }: { initialData?: TokenDealsPa
     () =>
       sortDeals(
         (view?.deals ?? []).filter(
-          (d) =>
-            d.status === "active" && (filter === "all" || d.dealType === filter),
+          (d) => d.status === "active" && matchesDealFilter(d, filter),
         ),
         sortKey,
       ),
@@ -157,7 +153,7 @@ export function DealsClient({ initialData = null }: { initialData?: TokenDealsPa
                 <div className="flex flex-wrap items-center gap-2">
                   <SegmentedControl
                     label="Filter deals"
-                    options={FILTER_OPTIONS}
+                    options={DEAL_FILTER_OPTIONS}
                     value={filter}
                     onChange={setFilter}
                   />
@@ -574,39 +570,6 @@ function SectionStrip({
         </div>
         {right}
       </div>
-    </div>
-  );
-}
-
-function SegmentedControl<K extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: readonly { key: K; label: string; title: string }[];
-  value: K;
-  onChange: (value: K) => void;
-}) {
-  return (
-    <div className="flex items-center border border-white/30" aria-label={label}>
-      {options.map((option) => (
-        <button
-          key={option.key}
-          type="button"
-          onClick={() => onChange(option.key)}
-          className={
-            "min-h-8 cursor-pointer px-2.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors sm:px-3 " +
-            (value === option.key
-              ? "bg-white text-[#0a0a0b]"
-              : "text-white/70 hover:bg-white/15 hover:text-white")
-          }
-          title={option.title}
-        >
-          {option.label}
-        </button>
-      ))}
     </div>
   );
 }

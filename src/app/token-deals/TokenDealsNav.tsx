@@ -1,9 +1,14 @@
+"use client";
+
 // The Token Deals ticker bar — the black strip that frames the scoreboard
-// (worldcupnext's "WORLD CUP NEXT: Friday, July 3rd — 3 matches" bar). Server
-// component: tabs are real routes (BOARD · LADDER · ABOUT), no client state.
+// (worldcupnext's "WORLD CUP NEXT: Friday, July 3rd — 3 matches" bar). Lives in
+// the route layout so it PERSISTS across Board/Ladder/About navigations — the
+// tab highlight comes from usePathname, and the rest of the page can stream in
+// behind it (see loading.tsx) instead of blocking the whole click.
 
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { GITHUB_MARK_PATH, REPO_URL } from "@research/lib/branding";
 
@@ -21,7 +26,17 @@ const TAB_CLASS = (isActive: boolean) =>
     ? "bg-white text-[#0a0a0b]"
     : "text-white/70 hover:bg-white/15 hover:text-white");
 
-export function TokenDealsNav({ active }: { active: "board" | "ladder" | "about" }) {
+const TABS = [
+  { href: "/token-deals", label: "Board" },
+  { href: "/token-deals/ladder", label: "Ladder" },
+  { href: "/token-deals/about", label: "About" },
+] as const;
+
+export function TokenDealsNav() {
+  const pathname = usePathname();
+  const isActive = (href: string) =>
+    href === "/token-deals" ? pathname === href : pathname.startsWith(href);
+
   return (
     <header className="sticky top-0 z-30 border-b border-white/15 bg-[#0a0a0b]">
       <div className="mx-auto flex h-14 w-full max-w-[1800px] items-center justify-between gap-3 px-4 sm:px-8">
@@ -43,27 +58,16 @@ export function TokenDealsNav({ active }: { active: "board" | "ladder" | "about"
 
         <div className="flex items-center gap-2 sm:gap-4">
           <nav className="flex items-center gap-0.5 sm:gap-1">
-            <Link
-              href="/token-deals"
-              aria-current={active === "board" ? "page" : undefined}
-              className={TAB_CLASS(active === "board")}
-            >
-              Board
-            </Link>
-            <Link
-              href="/token-deals/ladder"
-              aria-current={active === "ladder" ? "page" : undefined}
-              className={TAB_CLASS(active === "ladder")}
-            >
-              Ladder
-            </Link>
-            <Link
-              href="/token-deals/about"
-              aria-current={active === "about" ? "page" : undefined}
-              className={TAB_CLASS(active === "about")}
-            >
-              About
-            </Link>
+            {TABS.map((tab) => (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={isActive(tab.href) ? "page" : undefined}
+                className={TAB_CLASS(isActive(tab.href))}
+              >
+                {tab.label}
+              </Link>
+            ))}
           </nav>
 
           <span className="hidden h-5 w-px bg-white/25 sm:inline-block" aria-hidden />

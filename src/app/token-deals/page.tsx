@@ -6,7 +6,6 @@
 // the numbers live.
 
 import type { Metadata } from "next";
-import { TokenDealsNav } from "./TokenDealsNav";
 import { DealsClient } from "./DealsClient";
 import { loadInitialDeals } from "./initial-deals";
 
@@ -24,7 +23,6 @@ export default async function TokenDealsPage() {
   const initialData = await loadInitialDeals();
   return (
     <>
-      <TokenDealsNav active="board" />
       <div className="border-b-[3px] border-[#0a0a0b] bg-white">
         <div className="mx-auto w-full max-w-[1800px] px-4 py-8 sm:px-8 sm:py-10">
           <h1 className="max-w-6xl font-[family-name:var(--font-deals-display)] text-[clamp(1.8rem,4.6vw,4.2rem)] uppercase leading-[0.95] tracking-tight text-[#0a0a0b]">
