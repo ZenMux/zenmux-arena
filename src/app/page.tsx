@@ -233,7 +233,7 @@ export default function Home() {
           <p className="font-(family-name:--font-jost) text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--fg-ink-soft)]">
             Built by{" "}
             <a
-              href="https://x.com/thinkthinking_"
+              href="https://thinkthinking.ai"
               target="_blank"
               rel="noopener noreferrer"
               className="underline decoration-dotted underline-offset-4 transition-colors hover:text-[var(--fg-ink)]"

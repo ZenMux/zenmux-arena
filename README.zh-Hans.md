@@ -348,7 +348,7 @@ Arena 就是为持续扩充而设计的。大致步骤：
 
 <br/><br/>
 
-**研究作者 [thinkthinking](https://github.com/thinkthinking) · 技术支持 [ZenMux.ai](https://zenmux.ai)**
+**研究作者 [thinkthinking](https://thinkthinking.ai) · 技术支持 [ZenMux.ai](https://zenmux.ai)**
 
 线上地址 **[arena.zenmux.ai](https://arena.zenmux.ai)** · 所有模型调用均通过 ZenMux 的 Anthropic Messages API 路由——一把密钥，触达每个厂商。
 

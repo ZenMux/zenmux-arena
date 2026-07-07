@@ -41,6 +41,14 @@ There is **no test runner** — `study:test` is the data pipeline, not a unit-te
 - `study:extract`/`study:aggregate`: `--force` to bypass the completeness gate; `study:extract --re-extract` to redo all extractions
 - `study:mix`: `--runs <stamp,stamp,…>` (comma-separated source stamps) **or** `--all` (every native run, skipping prior `mix-*` dirs). Writes a new `mix-<stamp>/` dir; never resumes/overwrites.
 
+## Commit conventions
+
+- Commit messages must be written in English, even when the user discusses the change in Chinese. Keep Chinese for chat summaries or commit bodies only when it adds necessary context.
+- Use Conventional Commits for the subject line: `<type>(optional-scope): <summary>`.
+- Prefer these types: `feat` for user-facing capability/model additions, `fix` for bug fixes, `docs` for documentation/paper-only changes, `refactor` for behavior-preserving code cleanup, `style` for visual-only UI polish, `chore` for repo/config maintenance, and `test` for validation tooling.
+- Keep the subject concise, imperative, and specific. Example: `feat(token-economics): add Hy3 model`.
+- Before committing, inspect the staged diff, make sure unrelated user changes are not accidentally included, and run the lightest relevant validation (`pnpm lint`, `npx tsc --noEmit`, or a narrower command when appropriate).
+
 ## Use the installed skills — don't hand-roll what a skill owns
 
 This repo vendors a set of agent skills (`.Codex/skills/` → symlinks into `.agents/skills/`, pinned in `skills-lock.json`). They are not optional reading — for the matching task, **invoke the skill first** rather than writing UI/animation/Next.js code from memory. The skill carries the current, version-correct conventions; your training data may be stale.

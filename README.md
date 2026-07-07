@@ -348,7 +348,7 @@ Issues and PRs are welcome — new experiments, more vendors, viewer polish, or 
 
 <br/><br/>
 
-**Research by [thinkthinking](https://x.com/thinkthinking_) · powered by [ZenMux.ai](https://zenmux.ai)**
+**Research by [thinkthinking](https://thinkthinking.ai) · powered by [ZenMux.ai](https://zenmux.ai)**
 
 Live at **[arena.zenmux.ai](https://arena.zenmux.ai)** · all model calls route through the ZenMux Anthropic Messages API — one key, every vendor.
 

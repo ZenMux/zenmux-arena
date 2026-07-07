@@ -14,7 +14,7 @@ export const REPO_LABEL = "github.com/ZenMux/zenmux-arena";
 export const ZENMUX_URL = "https://zenmux.ai";
 
 /** The study author — where the "thinkthinking" attribution links to. */
-export const AUTHOR_URL = "https://github.com/thinkthinking";
+export const AUTHOR_URL = "https://thinkthinking.ai";
 
 /**
  * Attribution text shown before the ZenMux wordmark on the badge's first line:

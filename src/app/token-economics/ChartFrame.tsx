@@ -20,6 +20,7 @@ import { Download, Loader2 } from "lucide-react";
 
 /** Canonical public URL stamped into every exported image. */
 const SITE_URL = "arena.zenmux.ai/token-economics";
+const AUTHOR_URL = "https://thinkthinking.ai";
 
 /** The author's contact QR, baked into every exported image's footer. Served
  *  with `access-control-allow-origin: *`, so it embeds cleanly in the canvas
@@ -111,9 +112,8 @@ export function ChartFrame({
       <div ref={frameRef} className="bg-[#f4f1ea] p-6">
         {children}
 
-        {/* Attribution footer — author QR + name + canonical site URL, baked into
-            the export. Author name stays lowercase ("thinkthinking"), so it's set
-            apart from the uppercase metadata line rather than tracking-uppercased. */}
+        {/* Attribution footer — author QR + site + canonical chart URL, baked into
+            the export. */}
         <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#141414] pt-2.5">
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -124,9 +124,14 @@ export function ChartFrame({
               className="size-11 shrink-0 border border-[#141414] bg-white object-contain p-0.5"
             />
             <div className="leading-tight">
-              <div className="text-[11px] font-bold lowercase text-[#141414]">
-                thinkthinking
-              </div>
+              <a
+                href={AUTHOR_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-bold lowercase text-[#141414] underline decoration-[#141414]/30 underline-offset-2 transition-colors hover:decoration-[#141414]"
+              >
+                thinkthinking.ai
+              </a>
               <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-[#6f6a5f]">
                 ZenMux Arena · Token Economics
               </div>
