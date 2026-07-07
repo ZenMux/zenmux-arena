@@ -30,8 +30,10 @@ interface Specimen {
 }
 
 /* Ordered so the most recognisable marks land at the compass points (the
-   ring starts at the top and walks clockwise). */
-const SPECIMENS: Specimen[] = [
+   ring starts at the top and walks clockwise).
+   `as const` keeps the `file` literals so PLUMAGE below is checked against
+   this list at compile time — add a specimen and tsc demands its colours. */
+const SPECIMENS = [
   { file: "chatgpt", name: "OpenAI GPT" },
   { file: "gemini", name: "Google Gemini" },
   { file: "grok", name: "xAI Grok" },
@@ -50,7 +52,9 @@ const SPECIMENS: Specimen[] = [
   { file: "wenxin", name: "Baidu ERNIE" },
   { file: "mistral", name: "Mistral" },
   { file: "claude", name: "Anthropic Claude" },
-];
+] as const satisfies readonly Specimen[];
+
+type SpecimenFile = (typeof SPECIMENS)[number]["file"];
 
 /* ── Plumage: colours extracted from each mark's _color.svg ────────────────
    `stops` are the actual fill/stop-color values found in the SVG (whites
@@ -58,7 +62,14 @@ const SPECIMENS: Specimen[] = [
    drives the letter stroke, shockwave, and field-note accent. Multi-colour
    brands dye the letters by cycling their stops outward from the impact;
    single-colour brands dye everything in their one true ink. */
-const PLUMAGE: Record<string, { ink: string; stops: string[] }> = {
+interface Plumage {
+  ink: string;
+  stops: string[];
+}
+
+/* `satisfies Record<SpecimenFile, …>` = every specimen MUST have plumage;
+   a missing (or misspelled) entry is a compile error, not a click-time crash. */
+const PLUMAGE = {
   chatgpt: { ink: "#191919", stops: ["#191919"] }, // black-ink mark
   gemini: { ink: "#3186FF", stops: ["#3186FF", "#08B962", "#FABC12", "#F94543"] },
   grok: { ink: "#131418", stops: ["#131418"] }, // black-ink mark
@@ -77,7 +88,16 @@ const PLUMAGE: Record<string, { ink: string; stops: string[] }> = {
   wenxin: { ink: "#0A51C3", stops: ["#012F8D", "#0A51C3", "#23A4FB"] },
   mistral: { ink: "#FA500F", stops: ["#E10500", "#FA500F", "#FF8205", "#FFAF00", "#FFD700"] },
   claude: { ink: "#D97757", stops: ["#D97757"] },
-};
+} satisfies Record<SpecimenFile, Plumage>;
+
+/* Runtime belt-and-braces under the compile-time check: if plumage is ever
+   absent anyway (type assertion, future remote data), degrade to the page's
+   own ink instead of crashing on destructure. */
+const FALLBACK_PLUMAGE: Plumage = { ink: "var(--fg-ink)", stops: ["#211d16"] };
+
+function plumageOf(file: string): Plumage {
+  return (PLUMAGE as Record<string, Plumage>)[file] ?? FALLBACK_PLUMAGE;
+}
 
 /** Mix a hex colour toward white (0..1) — derives a lighter feather tint for
  *  single-colour brands from their own extracted colour. */
@@ -91,14 +111,14 @@ function lighten(hex: string, amt: number): string {
 /** Feather-burst palette: every extracted stop, plus a lighter tint for
  *  one-colour brands so the burst still sparkles. */
 function featherStops(file: string): string[] {
-  const { stops } = PLUMAGE[file];
+  const { stops } = plumageOf(file);
   return stops.length > 1 ? stops : [stops[0], lighten(stops[0], 0.4)];
 }
 
 /** Dye for the letter `dist` steps away from the crash site: multi-colour
  *  brands ripple through their stops; single-colour brands stay pure. */
 function dyeAt(file: string, dist: number): string {
-  const { stops, ink } = PLUMAGE[file];
+  const { stops, ink } = plumageOf(file);
   return stops.length > 1 ? stops[dist % stops.length] : ink;
 }
 
@@ -119,8 +139,9 @@ const RING = SPECIMENS.map((s, i) => {
   };
 });
 
-/* Compact strip for < md, where the absolute ring would collide with text. */
-const MOBILE_SPECIMENS = SPECIMENS.slice(0, 10);
+/* Compact strip for < md, where the absolute ring would collide with text.
+   ALL specimens appear (a missing mark also breaks its flight — no launch
+   pad); wrapping is balanced by sizing each button so rows fill evenly. */
 
 /* ── The masthead as letters ──────────────────────────────────────────────── */
 
@@ -209,7 +230,7 @@ export function SpecimenPlate() {
     if (landTimer.current) clearTimeout(landTimer.current);
   }, []);
 
-  const plumage = egg ? PLUMAGE[egg.file] : null;
+  const plumage = egg ? plumageOf(egg.file) : null;
   const specimen = egg ? SPECIMENS.find((s) => s.file === egg.file) : null;
   const specimenNo = egg
     ? String(SPECIMENS.findIndex((s) => s.file === egg.file) + 1).padStart(2, "0")
@@ -299,13 +320,17 @@ export function SpecimenPlate() {
 
   return (
     <>
-      {/* Mobile specimen strip (the ring needs room). */}
-      <ul
-        className="fg-rise mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-4 md:hidden"
-        style={{ "--fg-delay": "0.1s" } as React.CSSProperties}
-      >
-        {MOBILE_SPECIMENS.map((s) => (
-          <li key={s.file}>
+      {/* Mobile specimen strip (the ring needs room). Every specimen is here —
+          each is also the launch pad for its flight, so none may be dropped.
+          Buttons are 44px touch targets around 26px marks; rows of six fill a
+          375px viewport evenly (18 marks → 3 balanced rows). */}
+      <ul className="mt-8 flex max-w-[19.5rem] flex-wrap items-center justify-center gap-1 min-[420px]:max-w-none md:hidden">
+        {SPECIMENS.map((s, i) => (
+          <li
+            key={s.file}
+            className="fg-rise"
+            style={{ "--fg-delay": `${0.08 + i * 0.03}s` } as React.CSSProperties}
+          >
             <button
               type="button"
               title={s.name}
@@ -314,7 +339,7 @@ export function SpecimenPlate() {
                 if (el) stripRefs.current.set(s.file, el);
                 else stripRefs.current.delete(s.file);
               }}
-              className="fg-egg-mark cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--fg-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fg-paper)]"
+              className="fg-egg-mark flex size-11 cursor-pointer touch-manipulation items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--fg-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fg-paper)]"
             >
               <Image
                 src={`/model-logo/${s.file}_color.svg`}
@@ -322,7 +347,7 @@ export function SpecimenPlate() {
                 width={30}
                 height={30}
                 unoptimized
-                className="h-7 w-7"
+                className="h-[26px] w-[26px] drop-shadow-[0_1px_4px_rgba(33,29,22,0.12)]"
               />
             </button>
           </li>
@@ -502,7 +527,9 @@ export function SpecimenPlate() {
                 № {specimenNo}
               </span>
               <span className="font-(family-name:--font-fraunces) text-[13px] italic" style={{ color: plumage.ink }}>
-                {specimen.name} landed in the masthead
+                {specimen.name}
+                {/* The long tail overflows narrow phones — keep it for sm+. */}
+                <span className="hidden sm:inline"> landed in the masthead</span>
               </span>
             </p>
           )}

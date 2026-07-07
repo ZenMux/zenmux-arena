@@ -21,6 +21,8 @@ interface RawModel {
   output: number;
   origBlended: number;
   anchorRef: string | null;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 interface RawAnchor {
@@ -119,6 +121,15 @@ function normalizeAnchorRef(value: string | null): string | null {
   return normalized;
 }
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function readOptionalDate(obj: JsonRecord, key: string, ctx: string): string | null {
+  const value = readOptionalString(obj, [key]);
+  if (value == null) return null;
+  if (!DATE_RE.test(value)) fail(`${ctx}.${key} must be a YYYY-MM-DD date or null.`);
+  return value;
+}
+
 function parseModel(value: unknown, index: number): RawModel {
   const ctx = context("models", index);
   if (!isRecord(value)) fail(`${ctx} must be an object.`);
@@ -126,6 +137,11 @@ function parseModel(value: unknown, index: number): RawModel {
   const slug = readRequiredString(value, ["slug"], ctx);
   const input = readRequiredNumber(value, ["inputPrice", "input", "origInput"], ctx);
   const output = readRequiredNumber(value, ["outputPrice", "output", "origOutput"], ctx);
+  const startDate = readOptionalDate(value, "startDate", ctx);
+  const endDate = readOptionalDate(value, "endDate", ctx);
+  if (startDate && endDate && endDate < startDate) {
+    fail(`${ctx}.endDate must not be before startDate.`);
+  }
 
   return {
     model,
@@ -134,6 +150,8 @@ function parseModel(value: unknown, index: number): RawModel {
     output,
     origBlended: rounded(blendedCost(input, output)),
     anchorRef: normalizeAnchorRef(readOptionalString(value, ["anchor", "anchorId"])),
+    startDate,
+    endDate,
   };
 }
 
@@ -296,6 +314,8 @@ function resolveModels(models: RawModel[], anchors: LiveAnchorConfig[]): LiveMod
         newInput: model.input,
         newOutput: model.output,
         newBlended: model.origBlended,
+        startDate: model.startDate,
+        endDate: model.endDate,
       };
     }
     if (model.origBlended <= 0 && anchor.targetBlended > 0) {
@@ -316,6 +336,8 @@ function resolveModels(models: RawModel[], anchors: LiveAnchorConfig[]): LiveMod
       newInput: rounded(model.input * rawDiscountFactor),
       newOutput: rounded(model.output * rawDiscountFactor),
       newBlended: anchor.targetBlended,
+      startDate: model.startDate,
+      endDate: model.endDate,
     };
   });
 }

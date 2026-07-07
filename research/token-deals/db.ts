@@ -10,7 +10,20 @@ import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
 export const REFRESH_INTERVAL_SECONDS = 300;
 export const HOUR = 3600;
 export const DAY = 86400;
-export const QUERY_TIMEOUT_MS = 120_000;
+
+/** Per-query timeout. Overridable so the writable scripts (precompute /
+    backfill), which don't care about first-byte latency, can run with a much
+    larger budget than the serverless runtime — a chunk that needs 150s should
+    succeed on the build machine, not die at 120s. */
+const QUERY_TIMEOUT_ENV = "TOKEN_DEALS_QUERY_TIMEOUT_MS";
+const DEFAULT_QUERY_TIMEOUT_MS = 120_000;
+
+export function queryTimeoutMs(): number {
+  const raw = process.env[QUERY_TIMEOUT_ENV]?.trim();
+  if (!raw) return DEFAULT_QUERY_TIMEOUT_MS;
+  const n = Number(raw);
+  return Number.isSafeInteger(n) && n > 0 ? n : DEFAULT_QUERY_TIMEOUT_MS;
+}
 
 const DB_ENV = {
   host: "TOKEN_ECON_LIVE_DB_HOST",
@@ -92,13 +105,14 @@ export async function queryRows<T extends RowDataPacket>(
   sql: string,
   values: unknown[],
 ): Promise<T[]> {
+  const timeoutMs = queryTimeoutMs();
   let retries = 2;
   for (;;) {
     const conn = await getPool().getConnection();
     try {
       await conn.query("SET SESSION time_zone = '+00:00'");
-      await conn.query(`SET SESSION ob_query_timeout = ${QUERY_TIMEOUT_MS * 1000}`).catch(() => {});
-      const [rows] = await conn.query<T[]>({ sql, values, timeout: QUERY_TIMEOUT_MS });
+      await conn.query(`SET SESSION ob_query_timeout = ${timeoutMs * 1000}`).catch(() => {});
+      const [rows] = await conn.query<T[]>({ sql, values, timeout: timeoutMs });
       conn.release();
       return rows;
     } catch (err) {

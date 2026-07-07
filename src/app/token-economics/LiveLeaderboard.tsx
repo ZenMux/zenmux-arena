@@ -14,6 +14,8 @@ import {
   DEFAULT_LIVE_RANGE,
   DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS,
   LIVE_RANGE_OPTIONS,
+  dealWindowEndMs,
+  isDealEnded,
   type LiveAnchorSeries,
   type LiveMetricKey,
   type LiveModelSeries,
@@ -93,6 +95,58 @@ function precisePerM(n: number): string {
 function discount(n: number): string {
   if (!Number.isFinite(n)) return "—";
   return `x${n.toFixed(3).replace(/\.?0+$/, "")}`;
+}
+
+// ── Campaign (deal window) helpers ───────────────────────────────────────────
+// Config dates are UTC calendar days with endDate INCLUSIVE (token-deals.json
+// convention), so the campaign truly ends at 00:00 UTC of the following day.
+// "Ended" is judged against the payload's generatedAt — a stable clock shared
+// by every consumer of one payload — never against render-time Date.now().
+const ENDED_INK = "#6f6a5f";
+
+function modelEnded(m: LiveModelSeries, nowMs: number): boolean {
+  return isDealEnded(m.endDate ?? null, nowMs);
+}
+
+/** Index of the last in-campaign point (bucket starting before the campaign's
+    end instant), or null when the model never ends inside this window. */
+function campaignEndIndex(m: LiveModelSeries, nowMs: number): number | null {
+  if (!modelEnded(m, nowMs) || !m.endDate) return null;
+  const endMs = dealWindowEndMs(m.endDate);
+  let idx = -1;
+  for (let i = 0; i < m.points.length; i++) {
+    if (Date.parse(m.points[i].t) < endMs) idx = i;
+    else break;
+  }
+  return idx < 0 ? 0 : idx;
+}
+
+function formatDealDate(date: string): string {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
+}
+
+function dealWindowLabel(m: LiveModelSeries): string | null {
+  if (!m.startDate && !m.endDate) return null;
+  const from = m.startDate ? formatDealDate(m.startDate) : "…";
+  const to = m.endDate ? formatDealDate(m.endDate) : "ongoing";
+  return `${from} → ${to}`;
+}
+
+function EndedTag({ endDate, className = "" }: { endDate?: string | null; className?: string }) {
+  return (
+    <span
+      className={
+        "inline-flex shrink-0 items-center whitespace-nowrap border border-[#6f6a5f] px-1 py-px text-[7px] font-bold uppercase tracking-[0.14em] text-[#6f6a5f] " +
+        className
+      }
+    >
+      Ended{endDate ? ` ${formatDealDate(endDate)}` : ""}
+    </span>
+  );
 }
 
 function formatAxisValue(n: number, axis: LiveYAxisKey): string {
@@ -254,6 +308,26 @@ function pathForValues(values: number[], maxY: number, box: ChartBox): string {
   return values
     .map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(v).toFixed(2)}`)
     .join(" ");
+}
+
+/** Path over an index sub-range [from, to] of `values`, keeping the X scale of
+    the FULL series so campaign/tail segments of one line join seamlessly. */
+function pathForIndexRange(
+  values: number[],
+  from: number,
+  to: number,
+  maxY: number,
+  box: ChartBox,
+): string {
+  if (to < from || values.length === 0) return "";
+  const x = (i: number) =>
+    box.left + (values.length === 1 ? 0 : (i / (values.length - 1)) * box.plotW);
+  const y = (v: number) => box.top + (1 - v / maxY) * box.plotH;
+  const parts: string[] = [];
+  for (let i = from; i <= to; i++) {
+    parts.push(`${i === from ? "M" : "L"} ${x(i).toFixed(2)} ${y(values[i] ?? 0).toFixed(2)}`);
+  }
+  return parts.join(" ");
 }
 
 function pointValue(point: LiveUsagePoint, axis: LiveYAxisKey): number {
@@ -547,6 +621,7 @@ export function LiveLeaderboard() {
               bucketSeconds={data.bucketSeconds}
               metric={metric}
               axis={axis}
+              nowMs={Date.parse(data.generatedAt)}
             />
           ))}
         </div>
@@ -620,12 +695,14 @@ function AnchorBoard({
   bucketSeconds,
   metric,
   axis,
+  nowMs,
 }: {
   anchor: LiveAnchorSeries;
   bucket: string;
   bucketSeconds: number;
   metric: LiveMetricKey;
   axis: LiveYAxisKey;
+  nowMs: number;
 }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [chartRef, chartHeight] = useElementHeight<HTMLDivElement>();
@@ -676,11 +753,12 @@ function AnchorBoard({
             bucketSeconds={bucketSeconds}
             metric={metric}
             axis={axis}
+            nowMs={nowMs}
           />
         </div>
-        <PriceAdjustmentPanel anchor={anchor} chartHeight={chartHeight} />
+        <PriceAdjustmentPanel anchor={anchor} chartHeight={chartHeight} nowMs={nowMs} />
       </div>
-      <SeriesToggles models={anchor.models} hidden={hidden} onToggle={toggle} />
+      <SeriesToggles models={anchor.models} hidden={hidden} onToggle={toggle} nowMs={nowMs} />
     </section>
   );
 }
@@ -688,15 +766,17 @@ function AnchorBoard({
 function PriceAdjustmentPanel({
   anchor,
   chartHeight,
+  nowMs,
 }: {
   anchor: LiveAnchorSeries;
   chartHeight: number | null;
+  nowMs: number;
 }) {
   const anchorPrice = anchor.price;
+  // Anchor first, live campaigns next, concluded campaigns sink to the bottom.
   const ledgerModels = [...anchor.models].sort((a, b) => {
-    const ad = a.isAnchor ? 0 : 1;
-    const bd = b.isAnchor ? 0 : 1;
-    return ad - bd || a.model.localeCompare(b.model);
+    const rank = (m: LiveModelSeries) => (m.isAnchor ? 0 : modelEnded(m, nowMs) ? 2 : 1);
+    return rank(a) - rank(b) || a.model.localeCompare(b.model);
   });
   const targetBasket = anchor.targetBlended;
 
@@ -728,7 +808,12 @@ function PriceAdjustmentPanel({
       <div className={`mt-2 min-h-0 flex-1 overflow-y-auto pr-1 ${PANEL_SCROLLBAR}`}>
         <div className="grid gap-1.5">
           {ledgerModels.map((m) => (
-            <PriceLedgerRow key={m.slug} model={m} anchorPrice={anchorPrice} />
+            <PriceLedgerRow
+              key={m.slug}
+              model={m}
+              anchorPrice={anchorPrice}
+              ended={modelEnded(m, nowMs)}
+            />
           ))}
         </div>
       </div>
@@ -739,39 +824,78 @@ function PriceAdjustmentPanel({
 function PriceLedgerRow({
   model,
   anchorPrice,
+  ended,
 }: {
   model: LiveModelSeries;
   anchorPrice: { input: number; output: number };
+  ended: boolean;
 }) {
   const beforeInput = model.isAnchor ? anchorPrice.input : model.origInput;
   const afterInput = model.isAnchor ? anchorPrice.input : model.newInput;
   const beforeOutput = model.isAnchor ? anchorPrice.output : model.origOutput;
   const afterOutput = model.isAnchor ? anchorPrice.output : model.newOutput;
+  const window = dealWindowLabel(model);
+  const endedNote = ended ? " (campaign ended — pricing reverted to list)" : "";
 
   return (
     <div
-      className="grid gap-1 border border-[#141414]/35 bg-[#fbf9f4] px-2 py-1.5 text-[9px]"
-      title={`${model.model}: input ${precisePerM(beforeInput)} -> ${precisePerM(afterInput)}, output ${precisePerM(beforeOutput)} -> ${precisePerM(afterOutput)}, basket ${preciseUsd(model.origBlended)} -> ${preciseUsd(model.newBlended)}`}
+      className={
+        "grid gap-1 border px-2 py-1.5 text-[9px] " +
+        (ended
+          ? "border-dashed border-[#141414]/30 bg-[#f4f1ea]"
+          : "border-[#141414]/35 bg-[#fbf9f4]")
+      }
+      title={`${model.model}: input ${precisePerM(beforeInput)} -> ${precisePerM(afterInput)}, output ${precisePerM(beforeOutput)} -> ${precisePerM(afterOutput)}, basket ${preciseUsd(model.origBlended)} -> ${preciseUsd(model.newBlended)}${window ? `, deal window ${window}` : ""}${endedNote}`}
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
-          <span className="flex size-4 shrink-0 items-center justify-center border border-[#141414]/35 bg-white p-0.5">
+          <span
+            className={
+              "flex size-4 shrink-0 items-center justify-center border border-[#141414]/35 bg-white p-0.5 " +
+              (ended ? "grayscale opacity-70" : "")
+            }
+          >
             <VendorGlyph vendor={model.vendor} alt={model.vendorName} className="size-full" />
           </span>
-          <span className="truncate text-[10px] font-bold text-[#141414]">{model.model}</span>
+          <span
+            className={
+              "truncate text-[10px] font-bold " + (ended ? "text-[#6f6a5f]" : "text-[#141414]")
+            }
+          >
+            {model.model}
+          </span>
         </span>
-        <span className="shrink-0 font-bold tabular-nums text-[#1a8a4a]">
-          {model.isAnchor ? "ANCHOR" : discount(model.discountFactor)}
+        <span className="flex shrink-0 items-center gap-1.5">
+          {ended && <EndedTag endDate={model.endDate} />}
+          <span
+            className={
+              "font-bold tabular-nums " +
+              (ended ? "text-[#6f6a5f] line-through decoration-[#6f6a5f]/60" : "text-[#1a8a4a]")
+            }
+          >
+            {model.isAnchor ? "ANCHOR" : discount(model.discountFactor)}
+          </span>
         </span>
       </div>
-      <PriceMove label="Input" before={precisePerM(beforeInput)} after={precisePerM(afterInput)} />
-      <PriceMove label="Output" before={precisePerM(beforeOutput)} after={precisePerM(afterOutput)} />
+      <PriceMove
+        label="Input"
+        before={precisePerM(beforeInput)}
+        after={precisePerM(afterInput)}
+        ended={ended}
+      />
+      <PriceMove
+        label="Output"
+        before={precisePerM(beforeOutput)}
+        after={precisePerM(afterOutput)}
+        ended={ended}
+      />
       <div className="flex min-w-0 items-end justify-between gap-2">
         <div className="min-w-0 flex-1">
           <PriceMove
             label="Basket"
             before={preciseUsd(model.origBlended)}
             after={preciseUsd(model.newBlended)}
+            ended={ended}
           />
         </div>
         <a
@@ -785,6 +909,11 @@ function PriceLedgerRow({
           <ArrowUpRight className="size-2.5" />
         </a>
       </div>
+      {ended && (
+        <p className="text-[8px] font-bold uppercase tracking-[0.08em] text-[#6f6a5f]">
+          Deal window {window} · pricing reverted to list
+        </p>
+      )}
     </div>
   );
 }
@@ -793,17 +922,26 @@ function PriceMove({
   label,
   before,
   after,
+  ended = false,
 }: {
   label: string;
   before: string;
   after: string;
+  ended?: boolean;
 }) {
   return (
     <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-baseline gap-2">
       <span className="font-bold uppercase tracking-[0.08em] text-[#6f6a5f]">{label}</span>
-      <span className="min-w-0 whitespace-nowrap font-bold tabular-nums text-[#141414]">
+      <span
+        className={
+          "min-w-0 whitespace-nowrap font-bold tabular-nums " +
+          (ended ? "text-[#6f6a5f]" : "text-[#141414]")
+        }
+      >
         {before} <span className="text-[#6f6a5f]">-&gt;</span>{" "}
-        <span className="text-[#1a8a4a]">{after}</span>
+        <span className={ended ? "text-[#6f6a5f] line-through decoration-[#6f6a5f]/60" : "text-[#1a8a4a]"}>
+          {after}
+        </span>
       </span>
     </div>
   );
@@ -826,15 +964,18 @@ function SeriesToggles({
   models,
   hidden,
   onToggle,
+  nowMs,
 }: {
   models: LiveModelSeries[];
   hidden: Set<string>;
   onToggle: (slug: string) => void;
+  nowMs: number;
 }) {
   return (
     <div className="flex gap-2 overflow-x-auto px-1 pb-1 pt-1">
       {models.map((m, i) => {
         const off = hidden.has(m.slug);
+        const ended = modelEnded(m, nowMs);
         return (
           <button
             key={m.slug}
@@ -844,11 +985,18 @@ function SeriesToggles({
               "grid min-h-[58px] min-w-[148px] cursor-pointer grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 border px-2 py-1.5 text-left transition-colors " +
               (off
                 ? "border-[#141414]/25 bg-[#f4f1ea] text-[#6f6a5f] opacity-45"
-                : "border-[#141414]/55 bg-[#fbf9f4] text-[#141414] hover:border-[#141414] hover:bg-[#ece8dd]")
+                : ended
+                  ? "border-dashed border-[#141414]/40 bg-[#f4f1ea] text-[#141414] hover:border-[#141414] hover:bg-[#ece8dd]"
+                  : "border-[#141414]/55 bg-[#fbf9f4] text-[#141414] hover:border-[#141414] hover:bg-[#ece8dd]")
             }
-            title={`${m.model}: ${tokens(m.totalTokens)} in selected window`}
+            title={`${m.model}: ${tokens(m.totalTokens)} in selected window${ended && m.endDate ? ` · campaign ended ${formatDealDate(m.endDate)}` : ""}`}
           >
-            <span className="relative row-span-2 size-8 border border-[#141414]/45 bg-white p-1">
+            <span
+              className={
+                "relative row-span-2 size-8 border border-[#141414]/45 bg-white p-1 " +
+                (ended && !off ? "grayscale opacity-80" : "")
+              }
+            >
               <VendorGlyph vendor={m.vendor} alt={m.vendorName} className="size-full" />
               <span
                 className="absolute -bottom-1 -right-1 size-2.5 border border-[#141414]"
@@ -856,8 +1004,9 @@ function SeriesToggles({
                 aria-hidden
               />
             </span>
-            <span className="truncate text-[10px] font-bold leading-tight">
-              {m.model}
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate text-[10px] font-bold leading-tight">{m.model}</span>
+              {ended && <EndedTag />}
             </span>
             <span className="truncate text-[9px] font-bold uppercase tracking-[0.06em] text-[#6f6a5f]">
               {tokens(m.totalTokens)} · {compactUsd(m.totalCost)}
@@ -875,18 +1024,28 @@ function TimeSeriesChart({
   bucketSeconds,
   metric,
   axis,
+  nowMs,
 }: {
   anchor: LiveAnchorSeries;
   visible: LiveModelSeries[];
   bucketSeconds: number;
   metric: LiveMetricKey;
   axis: LiveYAxisKey;
+  nowMs: number;
 }) {
   const [hover, setHover] = useState<HoverTarget | null>(null);
   const points = anchor.models[0]?.points ?? [];
+  // `endIndex` marks the last in-campaign bucket for concluded deals; the line
+  // beyond it is drawn as a muted "afterlife" tail so the campaign's shape stays
+  // readable while post-campaign usage remains honest.
   const plotted = useMemo(
-    () => visible.map((m) => ({ m, values: valuesForModel(m, metric, axis) })),
-    [visible, metric, axis],
+    () =>
+      visible.map((m) => ({
+        m,
+        values: valuesForModel(m, metric, axis),
+        endIndex: campaignEndIndex(m, nowMs),
+      })),
+    [visible, metric, axis, nowMs],
   );
   const maxRaw = Math.max(1, ...plotted.flatMap((s) => s.values));
   const maxY = maxRaw * 1.08;
@@ -909,6 +1068,7 @@ function TimeSeriesChart({
       .map((s) => ({
         slug: s.m.slug,
         model: s.m,
+        ended: s.endIndex != null,
         value: s.values[lastIndex] ?? 0,
         y: yForValue(s.values[lastIndex] ?? 0),
       }))
@@ -1119,15 +1279,73 @@ function TimeSeriesChart({
             );
           })}
 
-          {plotted.map(({ m, values }) => {
+          {plotted.map(({ m, values, endIndex }) => {
             const index = indexBySlug.get(m.slug) ?? 0;
-            const path = pathForValues(values, maxY, CHART);
             const x = CHART.left + CHART.plotW;
             const y = yForValue(values[lastIndex] ?? 0);
+            const seriesTitle = (
+              <title>
+                {m.model}: {formatAxisValue(metricValue(m, metric, axis), axis)} {metric === "live" ? "latest bucket" : "cumulative"}
+                {endIndex != null && m.endDate ? ` · campaign ended ${formatDealDate(m.endDate)}` : ""}
+              </title>
+            );
+
+            // Concluded campaign: solid line up to the end date, then a muted
+            // ink tail; the terminal square replaces the live pulse — the deal
+            // is a closed chapter, not a live edge.
+            if (endIndex != null) {
+              const endX = xForIndex(endIndex);
+              const endY = yForValue(values[endIndex] ?? 0);
+              return (
+                <g key={m.slug}>
+                  <path
+                    d={pathForIndexRange(values, 0, endIndex, maxY, CHART)}
+                    fill="none"
+                    stroke={modelColor(index)}
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeDasharray={modelDash(index)}
+                    vectorEffect="non-scaling-stroke"
+                  >
+                    {seriesTitle}
+                  </path>
+                  {endIndex < lastIndex && (
+                    <path
+                      d={pathForIndexRange(values, endIndex, lastIndex, maxY, CHART)}
+                      fill="none"
+                      stroke={ENDED_INK}
+                      strokeWidth="1.4"
+                      strokeOpacity="0.55"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeDasharray="2 4"
+                      vectorEffect="non-scaling-stroke"
+                    >
+                      {seriesTitle}
+                    </path>
+                  )}
+                  <rect
+                    x={endX - 3.5}
+                    y={endY - 3.5}
+                    width="7"
+                    height="7"
+                    fill="#fbf9f4"
+                    stroke={modelColor(index)}
+                    strokeWidth="2"
+                  >
+                    <title>
+                      {m.model}: campaign ended{m.endDate ? ` ${formatDealDate(m.endDate)}` : ""}
+                    </title>
+                  </rect>
+                </g>
+              );
+            }
+
             return (
               <g key={m.slug}>
                 <path
-                  d={path}
+                  d={pathForValues(values, maxY, CHART)}
                   fill="none"
                   stroke={modelColor(index)}
                   strokeWidth="2.2"
@@ -1136,9 +1354,7 @@ function TimeSeriesChart({
                   strokeDasharray={modelDash(index)}
                   vectorEffect="non-scaling-stroke"
                 >
-                  <title>
-                    {m.model}: {formatAxisValue(metricValue(m, metric, axis), axis)} {metric === "live" ? "latest bucket" : "cumulative"}
-                  </title>
+                  {seriesTitle}
                 </path>
                 <circle
                   className="te-live-pulse"
@@ -1178,25 +1394,32 @@ function TimeSeriesChart({
             const index = indexBySlug.get(row.slug) ?? 0;
             const x = CHART.left + CHART.plotW;
             const logo = logoPath(row.model.vendor);
+            // Ended campaigns invert the pill: paper fill, muted ink text, and
+            // a dashed leader — the value is now a record, not a live reading.
+            const ended = row.ended;
+            const pillFill = ended ? "#f4f1ea" : modelColor(index);
+            const pillStroke = ended ? ENDED_INK : "#141414";
             return (
-              <g key={`${row.slug}-end-label`}>
+              <g key={`${row.slug}-end-label`} opacity={ended ? 0.85 : 1}>
                 <line
                   x1={x + 2}
                   x2={x + 12}
                   y1={row.y}
                   y2={row.labelY}
-                  stroke={modelColor(index)}
+                  stroke={ended ? ENDED_INK : modelColor(index)}
                   strokeWidth="1"
                   strokeOpacity="0.55"
+                  strokeDasharray={ended ? "2 3" : undefined}
                 />
                 <rect
                   x={x + 12}
                   y={row.labelY - 11}
                   width="154"
                   height="22"
-                  fill={modelColor(index)}
-                  stroke="#141414"
+                  fill={pillFill}
+                  stroke={pillStroke}
                   strokeWidth="1"
+                  strokeDasharray={ended ? "3 3" : undefined}
                   rx="0"
                 />
                 <circle
@@ -1204,7 +1427,7 @@ function TimeSeriesChart({
                   cy={row.labelY}
                   r="10"
                   fill="#fbf9f4"
-                  stroke="#141414"
+                  stroke={pillStroke}
                   strokeWidth="1"
                 />
                 {logo && (
@@ -1214,15 +1437,20 @@ function TimeSeriesChart({
                     y={row.labelY - 7}
                     width="14"
                     height="14"
+                    opacity={ended ? 0.65 : 1}
                     preserveAspectRatio="xMidYMid meet"
                   />
                 )}
                 <text
                   x={x + 38}
                   y={row.labelY + 4}
-                  className="fill-white text-[10px] font-bold tabular-nums"
+                  className={
+                    (ended ? "fill-[#6f6a5f]" : "fill-white") +
+                    " text-[10px] font-bold tabular-nums"
+                  }
                 >
                   {formatAxisValue(row.value, axis)}
+                  {ended ? " · ENDED" : ""}
                 </text>
               </g>
             );

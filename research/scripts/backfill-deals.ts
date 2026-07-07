@@ -38,6 +38,11 @@ import {
 
 loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
 
+// A build machine doesn't care about first-byte latency — give each chunk a
+// 300s budget instead of the runtime's 120s (a busy month's chunk was measured
+// at ~110s, too close to the line). Explicit env still wins.
+process.env.TOKEN_DEALS_QUERY_TIMEOUT_MS ||= "300000";
+
 const CHUNK_MS = 30 * DAY * 1000;
 // High-traffic months can blow the 120s DB query timeout on a 30-day chunk —
 // halve the step on failure down to this floor, grow back on success.

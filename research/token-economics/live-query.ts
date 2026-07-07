@@ -469,6 +469,42 @@ function compactModelSeries(m: LiveModelSeries): LiveModelSeries {
   };
 }
 
+/**
+ * Overlay the CURRENT live-model config's price/campaign fields onto a cached
+ * payload. Baselines are packaged at deploy time, so a payload served from the
+ * `baseline-fresh`/`stale` paths carries whatever config existed when it was
+ * built — without this overlay, an edited `endDate` (or price) in
+ * `config/token-economics-live-models.json` would not take effect until the
+ * cache is rebuilt. Usage stats/points stay untouched; only per-model config
+ * fields (prices, discountFactor, start/endDate…) are refreshed, matching what
+ * the incremental merge already does via `...price`. Models missing from the
+ * config are left as-is.
+ */
+export async function overlayLiveModelConfig(
+  payload: LiveTokenEconomicsPayload,
+): Promise<LiveTokenEconomicsPayload> {
+  let config;
+  try {
+    config = await loadLiveModelConfig();
+  } catch (err) {
+    console.warn(
+      "[token-economics/live] Config overlay skipped (config unreadable):",
+      err instanceof Error ? err.message : err,
+    );
+    return payload;
+  }
+  const bySlug = new Map(config.models.map((m) => [m.slug, m]));
+  const overlay = (m: LiveModelSeries): LiveModelSeries => {
+    const price = bySlug.get(m.slug);
+    return price ? { ...m, ...price } : m;
+  };
+  return {
+    ...payload,
+    anchors: payload.anchors.map((a) => ({ ...a, models: a.models.map(overlay) })),
+    unanchored: payload.unanchored.map(overlay),
+  };
+}
+
 /** Round every cost field in the payload to COST_DECIMALS. Idempotent. */
 export function compactLivePayload(payload: LiveTokenEconomicsPayload): LiveTokenEconomicsPayload {
   return {
@@ -933,26 +969,46 @@ export async function getLiveTokenEconomicsWithMeta(
   const range = liveRangeOption(requestedRange);
   const cacheKey = range.key;
 
-  // 1. L1 in-memory cache.
+  // 1. L1 in-memory cache. Config fields are re-overlaid on every serve so an
+  // edit to config/token-economics-live-models.json (price, endDate…) shows up
+  // on the next request instead of waiting out the TTL / a cache rebuild.
   const cached = responseCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
     return {
-      payload: { ...cached.data, generatedAt: now.toISOString() },
+      payload: await overlayLiveModelConfig({ ...cached.data, generatedAt: now.toISOString() }),
       source: "l1-memory",
       elapsedMs: Date.now() - startedAt,
     };
   }
 
-  // 2. Read the packaged JSON cache as the historical baseline.
+  // 2. Read the packaged JSON cache as the historical baseline — but prefer
+  // the last successful in-memory merge when it's fresher. The packaged file
+  // never advances on the read-only FS, so merging from disk alone re-queries
+  // a `disk.to → now` window that grows with deploy age until it times out;
+  // the expired L1 entry (never evicted from the map, only past its TTL) lets
+  // each refresh continue from the LAST merge instead. Lost on instance
+  // recycle — that just falls back to the disk baseline.
   const raw = await readJsonCache(cacheKey);
-  const baseline =
+  const diskBaseline =
     raw?.bucketSeconds && !Number.isNaN(Date.parse(raw.to)) ? compactLivePayload(raw) : null;
+  const expired = responseCache.get(cacheKey)?.data;
+  const memBaseline =
+    expired && !expired.stale && expired.bucketSeconds && !Number.isNaN(Date.parse(expired.to))
+      ? expired
+      : null;
+  const baseline =
+    memBaseline && (!diskBaseline || Date.parse(memBaseline.to) > Date.parse(diskBaseline.to))
+      ? memBaseline
+      : diskBaseline;
 
   // 2a. BOUNDARY CHECK: if the baseline already reaches the current data-as-of
-  // boundary, no new bucket has closed since it was built — no DB needed.
+  // boundary, no new bucket has closed since it was built — no DB needed. The
+  // packaged baseline still carries deploy-time config, so overlay the current
+  // config before serving.
   if (baseline && new Date(baseline.to) >= currentDataAsOf(now, baseline.bucketSeconds)) {
-    cachePayload(cacheKey, baseline);
-    return { payload: baseline, source: "baseline-fresh", elapsedMs: Date.now() - startedAt };
+    const overlaid = await overlayLiveModelConfig(baseline);
+    cachePayload(cacheKey, overlaid);
+    return { payload: overlaid, source: "baseline-fresh", elapsedMs: Date.now() - startedAt };
   }
 
   // 3. Start (or join) the single-flight refresh. Completion always lands in
@@ -1002,7 +1058,10 @@ export async function getLiveTokenEconomicsWithMeta(
         `[token-economics/live] Refresh for ${cacheKey} failed, serving stale baseline.`,
       );
     }
-    const stalePayload: LiveTokenEconomicsPayload = { ...baseline, stale: true };
+    const stalePayload: LiveTokenEconomicsPayload = await overlayLiveModelConfig({
+      ...baseline,
+      stale: true,
+    });
     cachePayload(cacheKey, stalePayload);
     return {
       payload: stalePayload,

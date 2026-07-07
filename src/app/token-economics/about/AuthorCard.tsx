@@ -12,6 +12,7 @@ import { useId, useState } from "react";
 import { Mail } from "lucide-react";
 import { GITHUB_MARK_PATH } from "@research/lib/branding";
 
+const HOME_URL = "https://thinkthinking.ai";
 const TWITTER_URL = "https://x.com/thinkthinking_";
 const GITHUB_URL = "https://github.com/thinkthinking";
 const REDNOTE_URL = "https://www.xiaohongshu.com/user/profile/6401506e0000000029017abc";
@@ -122,7 +123,14 @@ export function AuthorCard({ qrSvg }: { qrSvg: string }) {
             className="size-14 shrink-0 border border-[#141414] object-cover"
           />
           <div>
-            <div className="text-base font-bold leading-tight">thinkthinking</div>
+            <a
+              href={HOME_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-base font-bold leading-tight underline decoration-[#141414]/30 underline-offset-2 transition-colors hover:decoration-[#141414]"
+            >
+              thinkthinking
+            </a>
             <div className="mt-0.5 text-[12px] leading-snug text-[#6f6a5f]">
               ZenMux.ai Co-founder &amp; Product Lead
             </div>

@@ -39,12 +39,16 @@ report_freshness() {
   ' "$dir"
 }
 
-# refresh_module <label> <cache-dir> <pnpm-script>
-# Runs one module's incremental precompute; on failure prints the loud banner
-# with the (unchanged, stale) baseline being shipped and returns 0 — precompute
-# is a performance optimization, never a deploy blocker.
+# refresh_module <label> <cache-dir> <pnpm-script> [fallback-pnpm-script]
+# Runs one module's incremental precompute; on failure tries the fallback
+# script (if given) before giving up — token-deals passes its chunked backfill
+# here, which halves the query window on timeout and so succeeds where the
+# one-shot incremental can't (an old baseline's tail query blowing the DB
+# timeout). Only after BOTH fail does the loud stale-baseline banner print,
+# and even then deploy continues — precompute is a performance optimization,
+# never a deploy blocker.
 refresh_module() {
-  local label="$1" cache_dir="$2" script="$3"
+  local label="$1" cache_dir="$2" script="$3" fallback="${4:-}"
 
   echo ""
   echo "--- [$label] Baseline BEFORE refresh ---"
@@ -53,6 +57,16 @@ refresh_module() {
   echo ""
   echo "=== [morphe-economics] Incrementally pre-aggregating $label ==="
   if ! pnpm "$script"; then
+    if [ -n "$fallback" ]; then
+      echo ""
+      echo "⚠️  [$label] Incremental precompute failed — falling back to chunked $fallback"
+      if pnpm "$fallback"; then
+        echo ""
+        echo "✅ [$label] Baseline recovered via $fallback. Shipping this data:"
+        report_freshness "$cache_dir"
+        return 0
+      fi
+    fi
     echo ""
     echo "############################################################"
     echo "⚠️  [$label] PRE-AGGREGATION FAILED — baseline NOT refreshed."
@@ -87,7 +101,11 @@ fi
 
 if [ -f "research/scripts/precompute-deals.ts" ] && grep -q "tokendeals:precompute" package.json; then
   FOUND_ANY=1
-  refresh_module "token-deals" ".cache/token-deals" "tokendeals:precompute"
+  DEALS_FALLBACK=""
+  if grep -q "tokendeals:backfill" package.json; then
+    DEALS_FALLBACK="tokendeals:backfill"
+  fi
+  refresh_module "token-deals" ".cache/token-deals" "tokendeals:precompute" "$DEALS_FALLBACK"
 else
   echo "ℹ️ No token-deals precompute script found, skipping"
 fi

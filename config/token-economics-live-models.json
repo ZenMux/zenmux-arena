@@ -35,42 +35,54 @@
       "slug": "z-ai/glm-5.2",
       "inputPrice": 1.4,
       "outputPrice": 4.4,
-      "anchor": "deepseek-v4-pro"
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-05"
     },
     {
       "model": "Kimi K2.7 Code",
       "slug": "moonshotai/kimi-k2.7-code",
       "inputPrice": 0.95,
       "outputPrice": 4,
-      "anchor": "deepseek-v4-pro"
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Qwen3.7-Plus",
       "slug": "qwen/qwen3.7-plus",
       "inputPrice": 0.4,
       "outputPrice": 1.6,
-      "anchor": "deepseek-v4-flash"
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "MiniMax M3",
       "slug": "minimax/minimax-m3",
       "inputPrice": 0.3,
       "outputPrice": 1.2,
-      "anchor": "deepseek-v4-flash"
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Step 3.7 Flash",
       "slug": "stepfun/step-3.7-flash",
       "inputPrice": 0.2,
       "outputPrice": 1.15,
-      "anchor": "deepseek-v4-flash"
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Qwen3.7-Max",
       "slug": "qwen/qwen3.7-max",
       "inputPrice": 2.5,
       "outputPrice": 7.5,
-      "anchor": "deepseek-v4-pro"
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Agnes-2.0-Flash",
@@ -84,42 +96,54 @@
       "slug": "baidu/ernie-5.1",
       "inputPrice": 0.588,
       "outputPrice": 2.646,
-      "anchor": "deepseek-v4-pro"
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Ring-2.6-1T",
       "slug": "inclusionai/ring-2.6-1t",
       "inputPrice": 0.3,
       "outputPrice": 2.5,
-      "anchor": "deepseek-v4-flash"
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Ling-2.6-1T",
       "slug": "inclusionai/ling-2.6-1t",
       "inputPrice": 0.3,
       "outputPrice": 2.5,
-      "anchor": "deepseek-v4-flash"
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Hy3 preview",
       "slug": "tencent/hy3-preview",
       "inputPrice": 0.172,
       "outputPrice": 0.572,
-      "anchor": "deepseek-v4-flash"
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "MiMo-V2.5",
       "slug": "xiaomi/mimo-v2.5",
       "inputPrice": 0.15,
       "outputPrice": 0.29,
-      "anchor": "deepseek-v4-flash"
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "MiMo-V2.5-Pro",
       "slug": "xiaomi/mimo-v2.5-pro",
       "inputPrice": 0.44,
       "outputPrice": 0.88,
-      "anchor": "deepseek-v4-pro"
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Ling-2.6-flash",
@@ -133,42 +157,54 @@
       "slug": "kuaishou/kat-coder-pro-v2",
       "inputPrice": 0.3,
       "outputPrice": 1.2,
-      "anchor": "deepseek-v4-flash"
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Qwen3.6 Flash",
       "slug": "qwen/qwen3.6-flash",
       "inputPrice": 0.25,
       "outputPrice": 1.5,
-      "anchor": "deepseek-v4-flash"
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Doubao-Seed-2.1-pro",
       "slug": "bytedance/doubao-seed-2.1-pro",
       "inputPrice": 0.8848,
       "outputPrice": 4.424,
-      "anchor": "deepseek-v4-pro"
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Doubao-Seed-2.1-turbo",
       "slug": "bytedance/doubao-seed-2.1-turbo",
       "inputPrice": 0.4424,
       "outputPrice": 2.212,
-      "anchor": "deepseek-v4-pro"
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "Doubao-Seed-Evolving",
       "slug": "bytedance/doubao-seed-evolving",
       "inputPrice": 0.8848,
       "outputPrice": 4.424,
-      "anchor": "deepseek-v4-pro"
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
     },
     {
       "model": "LongCat-2.0",
       "slug": "meituan/longcat-2.0",
       "inputPrice": 0.75,
       "outputPrice": 2.95,
-      "anchor": "deepseek-v4-pro"
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-30",
+      "endDate": "2026-07-07"
     }
   ]
 }

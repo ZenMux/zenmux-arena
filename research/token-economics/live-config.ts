@@ -40,6 +40,28 @@ export interface LiveModelPrice {
   newInput: number;
   newOutput: number;
   newBlended: number;
+  /** Campaign window — UTC calendar dates, endDate INCLUSIVE (same convention
+      as config/token-deals.json). Null when the model has no dated campaign
+      (anchors, unanchored curiosities). Ended-ness is derived at RENDER time
+      from these dates, never baked into cached payloads. */
+  startDate: string | null;
+  endDate: string | null;
+}
+
+// ── Campaign window helpers ──────────────────────────────────────────────────
+// endDate is an inclusive UTC calendar day, so the campaign actually ends at
+// the START of the following day. Callers pass "now" explicitly (usually the
+// payload's generatedAt) so cached payloads and clients agree on the clock.
+export const DAY_MS = 86_400_000;
+
+export function dealWindowEndMs(endDate: string): number {
+  return Date.parse(`${endDate}T00:00:00.000Z`) + DAY_MS;
+}
+
+export function isDealEnded(endDate: string | null | undefined, atMs: number): boolean {
+  if (!endDate) return false;
+  const end = dealWindowEndMs(endDate);
+  return Number.isFinite(end) && atMs >= end;
 }
 
 export interface LiveModelConfig {

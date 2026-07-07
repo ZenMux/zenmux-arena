@@ -31,6 +31,10 @@ import {
 // Load .env.local for local runs (Morphe deployments inject env vars directly)
 loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
 
+// Writable-machine run: same relaxed query budget as the backfill script (the
+// runtime keeps the tight default). Explicit env still wins.
+process.env.TOKEN_DEALS_QUERY_TIMEOUT_MS ||= "300000";
+
 function summarize(payload: TokenDealsPayload): string {
   const freeCount = payload.deals.filter((d) => d.dealType === "free").length;
   const t = payload.totals;

@@ -70,8 +70,16 @@ export { DealsDbConfigError, closeDealsDbPool } from "./db";
 
 const TABLE = "valid_usage";
 // Re-fetch this many trailing buckets on incremental merges so late-arriving
-// billing rows (backfills) still land. 3 days / 12 hours of overlap.
+// billing rows (backfills) still land. 3 days / 12 hours of overlap. This deep
+// sweep is for the WRITABLE scripts (precompute/backfill), which run once per
+// deploy and can afford it.
 const OVERLAP_BUCKETS: Record<number, number> = { [DAY]: 3, [HOUR]: 12 };
+// The runtime refreshes every 5 minutes, so re-querying 3 extra days of DAY
+// buckets on every poll is what pushed the healthy-path query to ~100s and
+// made it timeout-prone. One trailing day is enough for rows that arrive
+// minutes-to-hours late; anything later is swept up by the next deploy's
+// precompute (which keeps the deep overlap above).
+const RUNTIME_OVERLAP_BUCKETS: Record<number, number> = { [DAY]: 1, [HOUR]: 12 };
 
 const CACHE_DIR_ENV = "TOKEN_DEALS_CACHE_DIR";
 
@@ -567,6 +575,16 @@ export interface IncrementalOptions {
       sets this — it advances a young baseline chunk by chunk, where the tail
       legitimately dwarfs the window. */
   allowLargeTail?: boolean;
+  /** Runtime self-healing: merge at most this much NEW tail per call. When the
+      baseline has fallen further behind, the merge stops at the cap and returns
+      a payload whose `to` is short of the current boundary — the caller marks
+      it stale, the client re-polls, and the next call continues from there, so
+      an arbitrarily old baseline converges in bounded steps instead of one
+      monster query that times out and never advances (the 2026-07-05 lockup).
+      Setting this also switches to RUNTIME_OVERLAP_BUCKETS (shallow overlap)
+      and disables the 50% bail-out — a runtime "all" merge has no full-fetch
+      alternative, so chunking must always proceed. */
+  maxTailMs?: number;
 }
 
 /** Runtime default: a brand-new deal's cold query never reaches back more
@@ -600,10 +618,28 @@ export async function incrementallyUpdate(
     return payload;
   }
 
-  const overlapMs = (OVERLAP_BUCKETS[bucketSeconds] ?? 3) * bucketSeconds * 1000;
+  // Capped merges (runtime self-heal) stop the target short of the boundary
+  // when the baseline is far behind — the DB is only ever asked for a bounded
+  // span, and the caller loops/re-polls until `to` catches up. floorTo keeps
+  // the intermediate `to` on a refresh boundary so the resulting payload obeys
+  // the same invariants as an uncapped one.
+  const capped = options.maxTailMs != null && toMs - baselineTo > options.maxTailMs;
+  const effectiveToMs = capped
+    ? floorTo(baselineTo + options.maxTailMs!, REFRESH_INTERVAL_SECONDS)
+    : toMs;
+
+  const overlapBuckets = options.maxTailMs != null ? RUNTIME_OVERLAP_BUCKETS : OVERLAP_BUCKETS;
+  const overlapMs = (overlapBuckets[bucketSeconds] ?? 3) * bucketSeconds * 1000;
   const incFromMs = Math.max(fromMs, floorTo(baselineTo, bucketSeconds) - overlapMs);
-  // A tail bigger than half the window buys nothing over a full fetch.
-  if (!options.allowLargeTail && toMs - incFromMs > (toMs - fromMs) * 0.5) return null;
+  // A tail bigger than half the window buys nothing over a full fetch — but a
+  // capped merge has no full-fetch alternative (the runtime must converge in
+  // chunks), so the bail-out only applies to uncapped merges.
+  if (
+    !options.allowLargeTail &&
+    options.maxTailMs == null &&
+    toMs - incFromMs > (toMs - fromMs) * 0.5
+  )
+    return null;
 
   // Split slugs: ones the baseline has buckets for get a tail query; brand-new
   // ones (no baseline series) need their window (capped by the lookback).
@@ -615,23 +651,25 @@ export async function incrementallyUpdate(
   for (const deal of deals) {
     (baselineSlugs.has(deal.slug) ? knownDeals : newDeals).push(deal);
   }
-  const knownSlugs = slugsInWindow(knownDeals, incFromMs, toMs, bucketSeconds);
+  const knownSlugs = slugsInWindow(knownDeals, incFromMs, effectiveToMs, bucketSeconds);
   const lookbackMs = options.maxNewDealLookbackMs ?? DEFAULT_NEW_DEAL_LOOKBACK_MS;
   const newFromMs =
     newDeals.length > 0
       ? Math.max(
           fromMs,
-          Number.isFinite(lookbackMs) ? floorTo(toMs - lookbackMs, bucketSeconds) : fromMs,
+          Number.isFinite(lookbackMs)
+            ? floorTo(effectiveToMs - lookbackMs, bucketSeconds)
+            : fromMs,
           floorTo(Math.min(...newDeals.map((d) => dateStartMs(d.startDate))), bucketSeconds),
         )
       : incFromMs;
-  const newSlugs = slugsInWindow(newDeals, newFromMs, toMs, bucketSeconds);
+  const newSlugs = slugsInWindow(newDeals, newFromMs, effectiveToMs, bucketSeconds);
 
   const [tailPayg, tailSub, newPayg, newSub] = await Promise.all([
-    queryPaygRows({ slugs: knownSlugs, fromMs: incFromMs, toMs, bucketSeconds }),
-    querySubRows({ slugs: knownSlugs, fromMs: incFromMs, toMs, bucketSeconds }),
-    queryPaygRows({ slugs: newSlugs, fromMs: newFromMs, toMs, bucketSeconds }),
-    querySubRows({ slugs: newSlugs, fromMs: newFromMs, toMs, bucketSeconds }),
+    queryPaygRows({ slugs: knownSlugs, fromMs: incFromMs, toMs: effectiveToMs, bucketSeconds }),
+    querySubRows({ slugs: knownSlugs, fromMs: incFromMs, toMs: effectiveToMs, bucketSeconds }),
+    queryPaygRows({ slugs: newSlugs, fromMs: newFromMs, toMs: effectiveToMs, bucketSeconds }),
+    querySubRows({ slugs: newSlugs, fromMs: newFromMs, toMs: effectiveToMs, bucketSeconds }),
   ]);
 
   // Rebuild the raw per-slug map: baseline buckets before the incremental
@@ -663,6 +701,8 @@ export async function incrementallyUpdate(
   const subRawBySlug = subRowsToMap(tailSub);
   subRowsToMap(newSub, subRawBySlug);
 
+  // A capped merge's payload honestly ends at effectiveToMs — its `to` is what
+  // tells the caller (and the next merge) how far the ledger actually advanced.
   const payload = assemble({
     deals,
     rawBySlug,
@@ -670,7 +710,7 @@ export async function incrementallyUpdate(
     range,
     bucketSeconds,
     fromMs,
-    toMs,
+    toMs: effectiveToMs,
     now,
     lastSuccessAt: now.toISOString(),
   });
@@ -751,6 +791,12 @@ const inFlight = new Map<string, Promise<{ payload: TokenDealsPayload; source: D
 const SWR_WAIT_MS = 1_200;
 /** L1 TTL for stale/degraded payloads — short so recovery is retried quickly. */
 const STALE_TTL_MS = 10_000;
+/** Runtime merge cap: at most one day of NEW tail per refresh. Sized so the
+    worst single query (1-day tail + 1-day runtime overlap, all slugs) stays
+    well inside the DB timeout. A baseline that's further behind converges one
+    capped chunk per client poll (stale → 20s re-poll) instead of attempting a
+    monster query that times out forever. */
+const RUNTIME_MAX_TAIL_MS = DAY * 1000;
 
 export interface DealsFetchResult {
   payload: TokenDealsPayload;
@@ -772,8 +818,26 @@ async function refreshPayload(
   now: Date,
 ): Promise<{ payload: TokenDealsPayload; source: DealsFetchSource }> {
   if (baseline) {
-    const merged = await incrementallyUpdate(range, baseline, now);
-    if (merged) return { payload: merged, source: "incremental-db" };
+    // Chunked self-heal applies to "all" only: its window start is fixed, so a
+    // capped target always lands inside it, and it's the only range with no
+    // full-fetch fallback. 72h keeps the plain merge — its window slides (a
+    // capped target could fall before the window start) and its full fetch is
+    // small enough to be the recovery path.
+    const merged = await incrementallyUpdate(
+      range,
+      baseline,
+      now,
+      range === "all" ? { maxTailMs: RUNTIME_MAX_TAIL_MS } : {},
+    );
+    if (merged) {
+      // A capped merge that stopped short of the current boundary is progress,
+      // not the final answer — mark it stale so the client re-polls (~20s) and
+      // the next refresh continues from the advanced `to`. The self-heal loop.
+      if (Date.parse(merged.to) < currentDataAsOf(now)) {
+        return { payload: { ...merged, stale: true }, source: "incremental-db" };
+      }
+      return { payload: merged, source: "incremental-db" };
+    }
   }
   // The "all" window spans the whole ledger (2025-09-29 → now) — a full
   // aggregation of it must never run inside a serverless request. Keep the
@@ -808,10 +872,33 @@ export async function getTokenDealsWithMeta(
   const raw = await readJsonCache(range);
   // compact: a baseline written before money rounding carries full-precision
   // floats; rounding here keeps every serve path small. Idempotent.
-  const baseline =
+  const diskBaseline =
     raw?.live && raw.schema === DEALS_SCHEMA_VERSION && !Number.isNaN(Date.parse(raw.to))
       ? compactDealsPayload(raw)
       : null;
+
+  // The packaged file never advances on the read-only FS, so on its own every
+  // refresh would re-query `disk.to → now` — a window that grows with deploy
+  // age until it times out (the 2026-07-05 lockup). The L1 entry outlives its
+  // TTL in the map, so the last successful merge doubles as an in-memory
+  // baseline: take the freshest of the two and each refresh only queries since
+  // the LAST MERGE. Lost on instance recycle — that just falls back to disk.
+  // Stale-marked entries are still valid baselines (a capped self-heal chunk
+  // is marked stale precisely so the client re-polls — its points are real
+  // merged data), but the flag must not ride along: whether THIS response is
+  // stale is re-decided below from how far the merge gets.
+  const expired = responseCache.get(range)?.data;
+  const memBaseline =
+    expired?.live &&
+    expired.schema === DEALS_SCHEMA_VERSION &&
+    expired.deals.every((d) => d.points != null) &&
+    !Number.isNaN(Date.parse(expired.to))
+      ? { ...expired, stale: undefined }
+      : null;
+  const baseline =
+    memBaseline && (!diskBaseline || Date.parse(memBaseline.to) > Date.parse(diskBaseline.to))
+      ? memBaseline
+      : diskBaseline;
 
   // Fresh packaged baseline → pure file read, no DB, no waiting.
   if (baseline && Date.parse(baseline.to) >= currentDataAsOf(now)) {

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "syncedAt": "2026-07-04T05:26:15.028Z",
+  "syncedAt": "2026-07-06T16:23:51.662Z",
   "discounts": [
     {
       "slug": "anthropic/claude-3.5-sonnet",
@@ -300,6 +300,23 @@
       "display": true
     },
     {
+      "slug": "tencent/hy3",
+      "model": "Hy3",
+      "publishDate": "2026-07-06",
+      "startDate": "2026-07-06",
+      "endDate": "2026-07-31",
+      "discount": 0.9,
+      "providers": [
+        {
+          "slug": "tencent-cloud",
+          "name": "TencentCloud",
+          "discount": 0.9
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
       "slug": "tencent/hy3-preview",
       "model": "Hy3 preview",
       "publishDate": "2026-04-23",
@@ -404,7 +421,7 @@
       "model": "GLM 5.2",
       "publishDate": "2026-06-17",
       "startDate": "2026-06-23",
-      "endDate": "2026-07-31",
+      "endDate": "2026-07-05",
       "discount": 0.307271,
       "providers": [
         {
@@ -428,7 +445,7 @@
           "discount": 0.307271
         }
       ],
-      "delisted": false,
+      "delisted": true,
       "display": true
     }
   ],
