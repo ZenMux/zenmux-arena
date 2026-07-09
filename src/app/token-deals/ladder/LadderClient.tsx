@@ -232,8 +232,22 @@ function LadderRow({
 
       <div className="min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="truncate font-[family-name:var(--font-deals-display)] text-base uppercase leading-tight tracking-tight text-white sm:text-xl">
-            {deal.model}
+          {/* Name column is capped (~16rem on sm+), so long model titles ellipsize.
+              On row hover we lift a full-name chip above the bar so the complete
+              title is readable without waiting on the native title delay. */}
+          <span className="relative min-w-0 flex-1">
+            <span
+              className="block truncate font-[family-name:var(--font-deals-display)] text-base uppercase leading-tight tracking-tight text-white sm:text-xl"
+              title={deal.model}
+            >
+              {deal.model}
+            </span>
+            <span
+              role="tooltip"
+              className="pointer-events-none absolute left-0 top-0 z-20 hidden max-w-[min(28rem,70vw)] border border-white/25 bg-[#0a0a0b] px-2 py-1 font-[family-name:var(--font-deals-display)] text-base uppercase leading-tight tracking-tight text-white shadow-[0_8px_24px_rgba(0,0,0,0.55)] group-hover:block sm:text-xl"
+            >
+              {deal.model}
+            </span>
           </span>
           <ChevronDown
             className={
@@ -243,7 +257,10 @@ function LadderRow({
             aria-hidden
           />
         </div>
-        <div className="mt-0.5 truncate font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-white/45">
+        <div
+          className="mt-0.5 truncate font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-white/45"
+          title={`${deal.vendorName} · ${deal.slug}`}
+        >
           {deal.vendorName} ·{" "}
           <span style={{ color: ended ? undefined : "#41f08d" }}>
             {isFree ? "FREE" : percentOff(deal.discount)}
@@ -289,7 +306,14 @@ function LadderRow({
   );
 
   return (
-    <div className={"border-b border-white/10 " + (open ? "bg-white/[0.03]" : "")}>
+    // hover:z-20 lifts the full-name chip above the next row's paint order —
+    // without it the absolute tooltip gets buried under the sibling below.
+    <div
+      className={
+        "relative border-b border-white/10 " +
+        (open ? "z-10 bg-white/[0.03]" : "hover:z-20")
+      }
+    >
       <button
         type="button"
         onClick={onToggle}

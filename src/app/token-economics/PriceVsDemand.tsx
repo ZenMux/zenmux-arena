@@ -49,6 +49,13 @@ export function PriceVsDemand({ data }: { data: TokenEconomicsData }) {
     [data.models],
   );
 
+  // Resolve the hovered model so the detail strip can show the FULL listing
+  // name (m.name) — the bar tip only has room for shortName.
+  const active = useMemo(
+    () => (hover ? ranked.find((m) => m.slug === hover) ?? null : null),
+    [hover, ranked],
+  );
+
   // Vendor clusters: each kept price-sorted (priciest first), clusters themselves
   // ordered by median price so the most expensive makers lead.
   const groups = useMemo<Group[]>(() => {
@@ -171,16 +178,41 @@ export function PriceVsDemand({ data }: { data: TokenEconomicsData }) {
         </div>
       </div>
 
-      {/* legend / methodology line */}
-      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 border border-[#141414] bg-[#fbf9f4] px-3 py-2 text-[11px] text-[#6f6a5f]">
-        <span>
-          Bar length = median daily tokens served (log scale) · rows ranked by
-          basket price, priciest first ·{" "}
-          {grouped
-            ? "vendors ranked by median price, models ranked within each maker"
-            : "colored by maker"}{" "}
-          · hover a row to isolate it.
-        </span>
+      {/* Hover detail / default methodology line.
+          shortName on the bar tip is often ambiguous for long titles; this
+          strip reveals the full listing name on hover (same pattern as Value
+          Ladder + Value Map). */}
+      <div className="mt-2 flex min-h-[38px] flex-wrap items-center gap-x-2 gap-y-1 border border-[#141414] bg-[#fbf9f4] px-3 py-2 text-[11px]">
+        {active ? (
+          <>
+            <VendorGlyph vendor={active.vendor} alt={active.vendorName} className="size-4 shrink-0" />
+            <span className="font-bold text-[#141414]">{active.name}</span>
+            <span className="text-[#6f6a5f]">·</span>
+            <span className="tabular-nums">basket {usd(active.blendedCost)}</span>
+            <span className="text-[#6f6a5f]">·</span>
+            <span className="tabular-nums">{perDay(active.avgDailyTokens)}</span>
+            <span className="text-[#6f6a5f]">·</span>
+            <span className="tabular-nums text-[#1a8a4a]">
+              {perDollarDay(active.avgDailyPerDollar)}
+            </span>
+            {active.publishTime && (
+              <>
+                <span className="text-[#6f6a5f]">·</span>
+                <span className="tabular-nums text-[#6f6a5f]">
+                  released {date(active.publishTime)}
+                </span>
+              </>
+            )}
+          </>
+        ) : (
+          <span className="text-[#6f6a5f]">
+            Hover a row for the full model name · bar length = median daily
+            tokens (log scale) · rows ranked by basket price, priciest first ·{" "}
+            {grouped
+              ? "vendors ranked by median price, models ranked within each maker"
+              : "colored by maker"}
+          </span>
+        )}
       </div>
     </section>
   );
@@ -200,6 +232,10 @@ function Row({
   setHover: (s: string | null) => void;
 }) {
   const dim = hover != null && hover !== m.slug;
+  const active = hover === m.slug;
+  // On hover, expand shortName → full listing name so long titles are readable
+  // right on the bar tip (the detail strip below also shows it as a backup).
+  const label = active ? m.name : m.shortName;
   return (
     <div
       className="relative flex h-[22px] items-center transition-opacity duration-150 motion-reduce:transition-none"
@@ -214,7 +250,15 @@ function Row({
       />
       <div className="ml-1.5 flex items-center gap-1 whitespace-nowrap">
         <VendorGlyph vendor={m.vendor} alt={m.vendorName} className="size-3.5" />
-        <span className="text-[11px] font-bold leading-none">{m.shortName}</span>
+        <span
+          className={
+            active
+              ? "text-[11px] font-bold leading-none text-[#141414]"
+              : "text-[11px] font-bold leading-none"
+          }
+        >
+          {label}
+        </span>
         {/* basket price — the row's ranking key, shown so the price→demand
             relationship is legible without hovering. */}
         <span className="text-[10px] font-bold tabular-nums leading-none text-[#141414]">

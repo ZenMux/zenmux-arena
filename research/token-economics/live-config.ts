@@ -76,7 +76,7 @@ export const LIVE_RANGE_OPTIONS = [
 
 export type LiveRangeKey = (typeof LIVE_RANGE_OPTIONS)[number]["key"];
 
-export const DEFAULT_LIVE_RANGE: LiveRangeKey = "all";
+export const DEFAULT_LIVE_RANGE: LiveRangeKey = "72h";
 export const DEFAULT_LIVE_START_ISO = "2026-06-22T00:00:00.000Z";
 export const DEFAULT_LIVE_BUCKET_SECONDS = 300;
 export const DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS = 300;
