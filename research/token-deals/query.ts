@@ -69,6 +69,13 @@ import {
 export { DealsDbConfigError, closeDealsDbPool } from "./db";
 
 const TABLE = "valid_usage";
+// OceanBase hint for the aggregation queries. The (model_slug, created_at)
+// index IS used, but every matched row index-backs into the main table for the
+// money/token columns — that lookup dominates. PARALLEL(4) splits the scan
+// across servers (measured ~4x on 1–4 day windows); READ_CONSISTENCY(WEAK)
+// lets follower replicas serve the read, which is safe here because dataAsOf
+// is always floored to the previous closed 5-minute boundary.
+const QUERY_HINT = "/*+ READ_CONSISTENCY(WEAK) PARALLEL(4) */";
 // Re-fetch this many trailing buckets on incremental merges so late-arriving
 // billing rows (backfills) still land. 3 days / 12 hours of overlap. This deep
 // sweep is for the WRITABLE scripts (precompute/backfill), which run once per
@@ -174,7 +181,7 @@ async function queryPaygRows(params: {
   if (params.slugs.length === 0 || params.fromMs >= params.toMs) return [];
   const placeholders = params.slugs.map(() => "?").join(",");
   const sql = `
-    SELECT
+    SELECT ${QUERY_HINT}
       model_slug,
       ${bucketExpression(params.bucketSeconds)} AS bucket,
       COUNT(*) AS requests,
@@ -217,7 +224,7 @@ async function querySubRows(params: {
   if (params.slugs.length === 0 || params.fromMs >= params.toMs) return [];
   const placeholders = params.slugs.map(() => "?").join(",");
   const sql = `
-    SELECT
+    SELECT ${QUERY_HINT}
       model_slug,
       provider_slug,
       ${bucketExpression(params.bucketSeconds)} AS bucket,

@@ -21,6 +21,12 @@ import { loadLiveModelConfig } from "./live-models";
 export { LiveConfigError } from "./live-config";
 
 const TABLE = "valid_usage";
+// OceanBase hint: the (model_slug, created_at) index is used but every matched
+// row index-backs into the main table for the token/cost columns — that lookup
+// dominates the runtime. PARALLEL(4) splits the scan (measured ~4x on 1–4 day
+// windows); READ_CONSISTENCY(WEAK) lets follower replicas serve the read,
+// which is safe because dataAsOf is floored to the previous closed bucket.
+const QUERY_HINT = "/*+ READ_CONSISTENCY(WEAK) PARALLEL(4) */";
 export const LIVE_START_ENV = "TOKEN_ECON_LIVE_START_ISO";
 export const LIVE_BUCKET_SECONDS_ENV = "TOKEN_ECON_LIVE_BUCKET_SECONDS";
 export const LIVE_REFRESH_INTERVAL_SECONDS_ENV = "TOKEN_ECON_LIVE_REFRESH_INTERVAL_SECONDS";
@@ -388,7 +394,7 @@ async function queryUsageRows(params: {
   const placeholders = params.slugs.map(() => "?").join(",");
   const bucket = bucketExpression(params.bucketSeconds);
   const sql = `
-    SELECT
+    SELECT ${QUERY_HINT}
       model_slug,
       ${bucket} AS bucket,
       COUNT(*) AS requests,

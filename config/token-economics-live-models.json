@@ -207,13 +207,31 @@
       "endDate": "2026-07-31"
     },
     {
+      "model": "KAT-Coder-Pro-V2.5",
+      "slug": "kuaishou/kat-coder-pro-v2.5",
+      "inputPrice": 0.74,
+      "outputPrice": 2.96,
+      "anchor": "deepseek-v4-pro",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
+    },
+    {
+      "model": "KAT-Coder-Air-V2.5",
+      "slug": "kuaishou/kat-coder-air-v2.5",
+      "inputPrice": 0.15,
+      "outputPrice": 0.6,
+      "anchor": "deepseek-v4-flash",
+      "startDate": "2026-06-23",
+      "endDate": "2026-07-31"
+    },
+    {
       "model": "LongCat-2.0",
       "slug": "meituan/longcat-2.0",
       "inputPrice": 0.75,
       "outputPrice": 2.95,
       "anchor": "deepseek-v4-pro",
       "startDate": "2026-06-30",
-      "endDate": "2026-07-07"
+      "endDate": "2026-07-31"
     }
   ]
 }

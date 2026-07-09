@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "syncedAt": "2026-07-06T16:23:51.662Z",
+  "syncedAt": "2026-07-09T02:35:55.838Z",
   "discounts": [
     {
       "slug": "anthropic/claude-3.5-sonnet",
@@ -164,6 +164,23 @@
       "display": true
     },
     {
+      "slug": "kuaishou/kat-coder-air-v2.5",
+      "model": "KAT-Coder-Air-V2.5",
+      "publishDate": "2026-07-08",
+      "startDate": "2026-07-09",
+      "endDate": "2026-07-31",
+      "discount": 0.9,
+      "providers": [
+        {
+          "slug": "streamlake",
+          "name": "Streamlake",
+          "discount": 0.9
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
       "slug": "kuaishou/kat-coder-pro-v2",
       "model": "KAT-Coder-Pro-V2",
       "publishDate": "2026-03-30",
@@ -181,11 +198,28 @@
       "display": true
     },
     {
+      "slug": "kuaishou/kat-coder-pro-v2.5",
+      "model": "KAT-Coder-Pro-V2.5",
+      "publishDate": "2026-07-08",
+      "startDate": "2026-07-09",
+      "endDate": "2026-07-31",
+      "discount": 0.6,
+      "providers": [
+        {
+          "slug": "streamlake",
+          "name": "Streamlake",
+          "discount": 0.6
+        }
+      ],
+      "delisted": false,
+      "display": true
+    },
+    {
       "slug": "meituan/longcat-2.0",
       "model": "LongCat-2.0",
       "publishDate": "2026-06-30",
       "startDate": "2026-06-30",
-      "endDate": "2026-07-07",
+      "endDate": "2026-07-31",
       "discount": 0.4,
       "providers": [
         {
@@ -463,7 +497,7 @@
       "sourceSlug": "anthropic/claude-sonnet-5",
       "model": "Claude Sonnet 5 (Free)",
       "publishDate": "2026-06-30",
-      "online": true,
+      "online": false,
       "display": true
     },
     {
