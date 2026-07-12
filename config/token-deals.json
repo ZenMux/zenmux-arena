@@ -489,7 +489,7 @@
       "sourceSlug": "anthropic/claude-fable-5",
       "model": "Claude Fable 5 (Free)",
       "publishDate": "2026-06-09",
-      "online": true,
+      "online": false,
       "display": true
     },
     {
