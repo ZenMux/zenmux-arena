@@ -56,10 +56,10 @@ export function DealTrendPanel({ deal }: { deal: DealSeries }) {
   const isFree = deal.dealType === "free";
 
   return (
-    <div className="border-l-2 pb-5 pl-3 pt-3 sm:pl-4" style={{ borderColor: theme.bg }}>
+    <div className="border-l-2 pb-5 pl-3 pt-3 sm:pl-4" style={{ borderColor: theme.chart }}>
       {/* ── Window stats strip ── */}
       <div className="flex flex-wrap items-stretch gap-[3px]">
-        <Stat label="Saved" value={deal.stats ? usdGrouped(deal.stats.saved) : "—"} accent={theme.bg} />
+        <Stat label="Saved" value={deal.stats ? usdGrouped(deal.stats.saved) : "—"} accent={theme.chart} />
         <Stat label="Tokens" value={deal.stats ? tokens(deal.stats.tokens) : "—"} />
         <Stat label="Developers paid" value={deal.stats ? usdGrouped(deal.stats.paid) : "—"} />
         <Stat
@@ -95,7 +95,7 @@ export function DealTrendPanel({ deal }: { deal: DealSeries }) {
           )}
         </div>
         {trend.length > 0 ? (
-          <TrendChart trend={trend} color={theme.bg} dealId={deal.id} />
+          <TrendChart trend={trend} color={theme.chart} dealId={deal.id} />
         ) : (
           <div className="flex h-24 items-center justify-center border border-dashed border-white/15 font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
             No daily data — live billing aggregation unavailable

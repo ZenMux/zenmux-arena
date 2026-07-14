@@ -218,6 +218,8 @@ export function isDeepDiscount(d: number): boolean {
 export interface BandTheme {
   /** Band background — the vendor's brand color, verbatim. */
   bg: string;
+  /** Brand-tinted data ink, lifted when needed to clear the dark chart canvas. */
+  chart: string;
   /** Headline ink: a deep/pale shade of the SAME hue, high contrast. */
   title: string;
   /** Secondary ink for meta lines (translucent black/white). */
@@ -242,6 +244,11 @@ function relLuminance(hex: string): number {
   );
 }
 
+function contrastRatio(a: string, b: string): number {
+  const [lighter, darker] = [relLuminance(a), relLuminance(b)].sort((x, y) => y - x);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 /** Mix `hex` toward pure black (t<0) or pure white (t>0) by |t|. */
 function shade(hex: string, t: number): string {
   const target = t > 0 ? 255 : 0;
@@ -252,12 +259,29 @@ function shade(hex: string, t: number): string {
   return `#${mixed.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
 
+/**
+ * Keep vendor hues for data marks, but lift near-black brands (xAI, Moonshot,
+ * and future additions) until a thin line is clearly visible on the ladder's
+ * #0a0a0b canvas. The generous 6.5:1 floor also leaves useful contrast after
+ * opacity is applied to the daily bars and area fill.
+ */
+function chartInk(brand: string): string {
+  const canvas = "#0a0a0b";
+  if (contrastRatio(brand, canvas) >= 6.5) return brand;
+  for (let lift = 0.05; lift <= 1; lift += 0.05) {
+    const candidate = shade(brand, lift);
+    if (contrastRatio(candidate, canvas) >= 6.5) return candidate;
+  }
+  return "#ffffff";
+}
+
 export function bandTheme(vendor: VendorId | string): BandTheme {
   const bg = vendorColor(vendor);
+  const chart = chartInk(bg);
   const isLight = relLuminance(bg) > 0.4;
   return isLight
-    ? { bg, title: shade(bg, -0.68), meta: "rgba(0,0,0,0.62)", isLight }
-    : { bg, title: shade(bg, 0.82), meta: "rgba(255,255,255,0.72)", isLight };
+    ? { bg, chart, title: shade(bg, -0.68), meta: "rgba(0,0,0,0.62)", isLight }
+    : { bg, chart, title: shade(bg, 0.82), meta: "rgba(255,255,255,0.72)", isLight };
 }
 
 // ---------------------------------------------------------------------------

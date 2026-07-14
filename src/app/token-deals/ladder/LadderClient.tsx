@@ -280,7 +280,7 @@ function LadderRow({
         <div className="h-7 min-w-0 flex-1 bg-white/[0.07] sm:h-8">
           <div
             className="flex h-full items-center justify-end transition-[width] duration-500"
-            style={{ width: `${Math.max(ratio * 100, 0.75)}%`, backgroundColor: theme.bg }}
+            style={{ width: `${Math.max(ratio * 100, 0.75)}%`, backgroundColor: theme.chart }}
           >
             <span
               className="hidden truncate px-2 font-[family-name:var(--font-deals-mono)] text-[11px] font-bold tabular-nums lg:inline"
@@ -300,7 +300,7 @@ function LadderRow({
 
       {/* The trend half: cumulative saved sparkline over the deal's window. */}
       <div className="hidden items-center justify-end sm:flex">
-        <Sparkline deal={deal} color={ended ? "rgba(255,255,255,0.35)" : theme.bg} />
+        <Sparkline deal={deal} color={ended ? "rgba(255,255,255,0.35)" : theme.chart} />
       </div>
     </div>
   );
