@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "syncedAt": "2026-07-09T07:19:14.089Z",
+  "syncedAt": "2026-07-17T01:47:53.086Z",
   "discounts": [
     {
       "slug": "anthropic/claude-3.5-sonnet",
@@ -342,6 +342,11 @@
       "discount": 0.9,
       "providers": [
         {
+          "slug": "novita",
+          "name": "NovitaAI",
+          "discount": 0.9
+        },
+        {
           "slug": "tencent-cloud",
           "name": "TencentCloud",
           "discount": 0.9
@@ -481,6 +486,43 @@
       ],
       "delisted": true,
       "display": true
+    },
+    {
+      "slug": "z-ai/glm-5.2",
+      "model": "GLM 5.2",
+      "publishDate": "2026-06-17",
+      "startDate": "2026-07-14",
+      "endDate": "2026-07-31",
+      "discount": 0.7,
+      "providers": [
+        {
+          "slug": "alibaba",
+          "name": "Alibaba Cloud",
+          "discount": 0.7
+        },
+        {
+          "slug": "baidu",
+          "name": "Baidu",
+          "discount": 0.7
+        },
+        {
+          "slug": "bigmodel",
+          "name": "BigModel",
+          "discount": 0.7
+        },
+        {
+          "slug": "streamlake",
+          "name": "Streamlake",
+          "discount": 0.7
+        },
+        {
+          "slug": "tencent-cloud",
+          "name": "TencentCloud",
+          "discount": 0.7
+        }
+      ],
+      "delisted": false,
+      "display": true
     }
   ],
   "freeModels": [
@@ -586,6 +628,14 @@
       "model": "Kimi K2.7 Code Free",
       "publishDate": "2026-06-12",
       "online": false,
+      "display": true
+    },
+    {
+      "slug": "moonshotai/kimi-k3-free",
+      "sourceSlug": "moonshotai/kimi-k3",
+      "model": "Kimi K3 (Free)",
+      "publishDate": "2026-07-17",
+      "online": true,
       "display": true
     },
     {
