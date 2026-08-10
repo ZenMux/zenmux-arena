@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "syncedAt": "2026-07-17T01:47:53.086Z",
+  "syncedAt": "2026-07-31T09:04:36.741Z",
   "discounts": [
     {
       "slug": "anthropic/claude-3.5-sonnet",
@@ -519,6 +519,11 @@
           "slug": "tencent-cloud",
           "name": "TencentCloud",
           "discount": 0.7
+        },
+        {
+          "slug": "volcengine",
+          "name": "Volcengine",
+          "discount": 0.7
         }
       ],
       "delisted": false,
@@ -535,6 +540,14 @@
       "display": true
     },
     {
+      "slug": "anthropic/claude-sonnet-4.5-free",
+      "sourceSlug": "anthropic/claude-sonnet-4.5",
+      "model": "Claude Sonnet 4.5 (Free)",
+      "publishDate": "2025-09-29",
+      "online": false,
+      "display": true
+    },
+    {
       "slug": "anthropic/claude-sonnet-5-free",
       "sourceSlug": "anthropic/claude-sonnet-5",
       "model": "Claude Sonnet 5 (Free)",
@@ -546,8 +559,8 @@
       "slug": "deepseek/deepseek-v4-flash-free",
       "sourceSlug": "deepseek/deepseek-v4-flash",
       "model": "DeepSeek V4 Flash (Free)",
-      "publishDate": "2026-04-24",
-      "online": false,
+      "publishDate": "2026-07-31",
+      "online": true,
       "display": true
     },
     {
