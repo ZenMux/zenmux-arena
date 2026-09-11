@@ -21,6 +21,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { TokenPosterDialog } from "./token-poster-dialog";
 
 /* ── Specimens ────────────────────────────────────────────────────────────── */
 
@@ -219,6 +220,8 @@ function pickSpecimen(excludeFile: string | undefined): Specimen {
 
 export function SpecimenPlate() {
   const [egg, setEgg] = useState<Egg | null>(null);
+  const [posterOpen, setPosterOpen] = useState(false);
+  const clicksUntilPoster = useRef<number | null>(null);
 
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const letterRefs = useRef<(HTMLElement | null)[]>([]);
@@ -300,8 +303,17 @@ export function SpecimenPlate() {
     }
   }
 
-  /** Title click: a random bird dives in (never the one already wearing). */
+  /** Every 3–6 title clicks reveal the poster. Sample only on interaction so
+   *  SSR stays deterministic; closing starts a fresh random countdown. */
   function borrowPlumage() {
+    if (posterOpen) return;
+    clicksUntilPoster.current ??= 3 + Math.floor(Math.random() * 4);
+    clicksUntilPoster.current -= 1;
+    if (clicksUntilPoster.current === 0) {
+      clicksUntilPoster.current = null;
+      setPosterOpen(true);
+      return;
+    }
     wear(pickSpecimen(egg?.file).file);
   }
 
@@ -538,7 +550,7 @@ export function SpecimenPlate() {
 
       {/* The flying bird: a fixed-position clone riding a quadratic offset-path
           arc from the perch to the letter, shrinking to letter size en route. */}
-      {egg?.phase === "flying" && egg.flight && (
+      {!posterOpen && egg?.phase === "flying" && egg.flight && (
         <span
           key={`flight-${egg.count}`}
           aria-hidden
@@ -564,6 +576,14 @@ export function SpecimenPlate() {
           />
         </span>
       )}
+      <TokenPosterDialog
+        open={posterOpen}
+        onOpenChange={setPosterOpen}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          titleRef.current?.focus({ preventScroll: true });
+        }}
+      />
     </>
   );
 }
