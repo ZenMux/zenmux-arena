@@ -14,8 +14,13 @@
 import { BUILD_INFO, buildLabel } from "@/lib/build-info";
 import { LocalTime } from "@/components/LocalTime";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 export function BuildStamp({ className }: { className?: string }) {
+  const pathname = usePathname();
+  // The presentation has its own full-screen controls; keep build metadata out
+  // of the projected stage while preserving the fingerprint on research pages.
+  if (pathname === "/talk" || pathname.startsWith("/talk/")) return null;
   return (
     <div
       className={cn(

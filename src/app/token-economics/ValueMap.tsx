@@ -38,7 +38,7 @@ interface SpotlightLabel extends Pt {
   labelAnchor: "start" | "end";
 }
 
-export function ValueMap({ data }: { data: TokenEconomicsData }) {
+export function ValueMap({ data, presentation = false }: { data: TokenEconomicsData; presentation?: boolean }) {
   const [hover, setHover] = useState<string | null>(null);
   const [hoverVendor, setHoverVendor] = useState<VendorId | null>(null);
   const [hiddenVendors, setHiddenVendors] = useState<Set<VendorId>>(() => new Set());
@@ -167,8 +167,8 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
   };
 
   return (
-    <section>
-      <div className="mb-3">
+    <section data-presentation={presentation ? "value-map" : undefined}>
+      {!presentation && <div className="mb-3">
         <h2 className="text-sm font-bold uppercase tracking-[0.14em]">
           The Value Map · Price vs. Daily Demand
         </h2>
@@ -179,7 +179,7 @@ export function ValueMap({ data }: { data: TokenEconomicsData }) {
           <b className="text-[#141414]">median crosshairs</b> split the cloud into
           four zones — read where the money meets the demand.
         </p>
-      </div>
+      </div>}
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_270px] xl:items-stretch">
         <div ref={chartRef} className="relative self-start overflow-x-auto border border-[#141414] bg-[#fbf9f4] p-2">

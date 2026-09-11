@@ -28,6 +28,7 @@ import { logoPath, tokens, usd, PANEL_SCROLLBAR } from "./lib";
 import { VendorGlyph } from "./components";
 import { LiveSkeletonBoard, LiveSkeletonStyles } from "./LiveSkeletonChart";
 import { useElementHeight } from "./useElementHeight";
+import { cn } from "@/lib/utils";
 
 const LIVE_COLORS = [
   "#4f6ef7",
@@ -384,7 +385,7 @@ interface HoverTarget {
   index: number;
 }
 
-const CHART: ChartBox = {
+const FULL_CHART: ChartBox = {
   left: 74,
   right: 194,
   top: 16,
@@ -395,29 +396,56 @@ const CHART: ChartBox = {
   plotH: 560 - 16 - 48,
 };
 
+const PRESENTATION_CHART: ChartBox = {
+  ...FULL_CHART,
+  width: 1200,
+  height: 360,
+  plotW: 1200 - FULL_CHART.left - FULL_CHART.right,
+  plotH: 360 - FULL_CHART.top - FULL_CHART.bottom,
+};
+
+type LivePresentationPayload = LiveTokenEconomicsPayload & {
+  cacheSource?: string;
+  cachePersistence?: string;
+};
+
 async function fetchLivePayload(
   range: LiveRangeKey,
   signal?: AbortSignal,
-): Promise<LiveTokenEconomicsPayload> {
+  presentation = false,
+): Promise<LivePresentationPayload> {
   // Default cache mode ON PURPOSE (no `cache: "no-store"`): the page.tsx server
   // component preloads this URL with the HTML, and the browser only matches a
   // preloaded response to a same-mode fetch. The API sends `max-age=0`, so the
   // browser revalidates on every poll anyway — no staleness risk.
-  const res = await fetch(`/api/token-economics/live?range=${range}`, { signal });
+  const requestSignal = presentation
+    ? AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(25_000)])
+    : signal;
+  const res = await fetch(`/api/token-economics/live?range=${range}`, { signal: requestSignal });
   const json = (await res.json()) as LiveTokenEconomicsPayload | { error?: string };
   if (!res.ok) throw new Error("error" in json && json.error ? json.error : "Live usage failed");
-  return json as LiveTokenEconomicsPayload;
+  if (presentation && (!("anchors" in json) || !Array.isArray(json.anchors)
+    || !json.anchors.some((a) => a.models?.some((m) => m.points?.length > 0))
+    || !Number.isFinite(Date.parse(json.to)))) {
+    throw new Error("Live API returned no usable observations or cutoff. Please retry.");
+  }
+  return {
+    ...json as LiveTokenEconomicsPayload,
+    cacheSource: res.headers.get("X-Cache-Source") ?? undefined,
+    cachePersistence: res.headers.get("X-Cache-Persistence") ?? undefined,
+  };
 }
 
-export function LiveLeaderboard() {
+export function LiveLeaderboard({ presentation = false }: { presentation?: boolean } = {}) {
+  const [anchorId, setAnchorId] = useState<string | null>(null);
   const [range, setRange] = useState<LiveRangeKey>(DEFAULT_LIVE_RANGE);
   const [metric, setMetric] = useState<LiveMetricKey>("cumulative");
   const [axis, setAxis] = useState<LiveYAxisKey>("tokens");
   // Per-range payload cache: switching to an already-fetched range shows its
   // data instantly (no skeleton) while a background refresh runs. Kept in a ref
   // so caching a range doesn't itself trigger a render — `data` drives the UI.
-  const cacheRef = useRef<Partial<Record<LiveRangeKey, LiveTokenEconomicsPayload>>>({});
-  const [data, setData] = useState<LiveTokenEconomicsPayload | null>(null);
+  const cacheRef = useRef<Partial<Record<LiveRangeKey, LivePresentationPayload>>>({});
+  const [data, setData] = useState<LivePresentationPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   // `loading` = first-ever load for the current range (show skeleton).
   // `refreshing` = we already have data on screen and are silently updating it.
@@ -469,7 +497,7 @@ export function LiveLeaderboard() {
       const hasData = cacheRef.current[range] != null;
       if (hasData) setRefreshing(true);
       try {
-        const json = await fetchLivePayload(range, signal);
+        const json = await fetchLivePayload(range, signal ?? controller.signal, presentation);
         if (!live) return;
         refreshIntervalSeconds =
           json.refreshIntervalSeconds || DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS;
@@ -499,11 +527,11 @@ export function LiveLeaderboard() {
       controller.abort();
       clearTimer();
     };
-  }, [range, manualRefresh]);
+  }, [range, manualRefresh, presentation]);
 
   return (
-    <section className="space-y-7">
-      <div className="grid gap-4 border border-[#141414] bg-[#fbf9f4] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+    <section className={cn(!presentation && "space-y-7")} data-presentation={presentation ? "live" : undefined}>
+      {!presentation && <div className="grid gap-4 border border-[#141414] bg-[#fbf9f4] px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#6f6a5f]">
             Anchor-normalized pricing experiment
@@ -535,7 +563,7 @@ export function LiveLeaderboard() {
           </span>
           <ArrowUpRight className="size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden />
         </a>
-      </div>
+      </div>}
 
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="flex flex-wrap items-center gap-2">
@@ -555,7 +583,7 @@ export function LiveLeaderboard() {
 
         <div className="flex flex-wrap items-center justify-end gap-2">
           {data && (
-            <div className="hidden text-right text-[10px] font-bold tracking-[0.02em] text-[#6f6a5f] lg:block">
+            <div data-live-timing="" className="hidden text-right text-[10px] font-bold tracking-[0.02em] text-[#6f6a5f] lg:block">
               <span className="text-[#141414]">{data.bucket}</span> buckets ·{" "}
               <span className="text-[#141414]">{formatDuration(data.refreshIntervalSeconds)}</span>{" "}
               refresh · <span className="text-[#141414]">{formatTick(data.from, data.bucketSeconds)}</span>{" "}
@@ -607,13 +635,30 @@ export function LiveLeaderboard() {
         </div>
       </div>
 
+      {presentation && data && (
+        <div data-live-provenance="" role="status">
+          <SegmentedControl
+            label="Price anchor"
+            options={data.anchors.map((a) => ({ key: a.id, label: a.label, title: a.label }))}
+            value={data.anchors.find((a) => a.id === anchorId)?.id ?? data.anchors[0]?.id ?? ""}
+            onChange={setAnchorId}
+          />
+          <span>
+            {data.stale ? "历史快照 · 等待刷新" : "已载入账本"} · 来源 {data.cacheSource ?? "API 未报告"}
+            {" · "}持久化 {data.cachePersistence ?? "未报告"}
+            {" · 实际截至 "}<time dateTime={data.to}>{data.to.replace("T", " ").replace(".000Z", " UTC")}</time>
+          </span>
+        </div>
+      )}
       {error && <ErrorPanel message={error} />}
 
       {!data && loading ? (
         <LiveSkeleton />
       ) : data ? (
         <div className="space-y-9">
-          {data.anchors.map((anchor) => (
+          {(presentation
+            ? data.anchors.filter((a) => a.id === (data.anchors.find((item) => item.id === anchorId)?.id ?? data.anchors[0]?.id))
+            : data.anchors).map((anchor) => (
             <AnchorBoard
               key={anchor.id}
               anchor={anchor}
@@ -622,6 +667,7 @@ export function LiveLeaderboard() {
               metric={metric}
               axis={axis}
               nowMs={Date.parse(data.generatedAt)}
+              presentation={presentation}
             />
           ))}
         </div>
@@ -696,6 +742,7 @@ function AnchorBoard({
   metric,
   axis,
   nowMs,
+  presentation = false,
 }: {
   anchor: LiveAnchorSeries;
   bucket: string;
@@ -703,6 +750,7 @@ function AnchorBoard({
   metric: LiveMetricKey;
   axis: LiveYAxisKey;
   nowMs: number;
+  presentation?: boolean;
 }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [chartRef, chartHeight] = useElementHeight<HTMLDivElement>();
@@ -754,6 +802,7 @@ function AnchorBoard({
             metric={metric}
             axis={axis}
             nowMs={nowMs}
+            presentation={presentation}
           />
         </div>
         <PriceAdjustmentPanel anchor={anchor} chartHeight={chartHeight} nowMs={nowMs} />
@@ -1025,6 +1074,7 @@ function TimeSeriesChart({
   metric,
   axis,
   nowMs,
+  presentation = false,
 }: {
   anchor: LiveAnchorSeries;
   visible: LiveModelSeries[];
@@ -1032,7 +1082,9 @@ function TimeSeriesChart({
   metric: LiveMetricKey;
   axis: LiveYAxisKey;
   nowMs: number;
+  presentation?: boolean;
 }) {
+  const CHART = presentation ? PRESENTATION_CHART : FULL_CHART;
   const [hover, setHover] = useState<HoverTarget | null>(null);
   const points = anchor.models[0]?.points ?? [];
   // `endIndex` marks the last in-campaign bucket for concluded deals; the line
@@ -1057,7 +1109,7 @@ function TimeSeriesChart({
     CHART.left + (points.length <= 1 ? 0 : (i / (points.length - 1)) * CHART.plotW);
   const yForValue = useCallback(
     (v: number) => CHART.top + (1 - v / maxY) * CHART.plotH,
-    [maxY],
+    [maxY, CHART.top, CHART.plotH],
   );
 
   const endLabels = useMemo(() => {
@@ -1107,7 +1159,7 @@ function TimeSeriesChart({
       if (!changed) break;
     }
     return placed;
-  }, [plotted, lastIndex, yForValue]);
+  }, [plotted, lastIndex, yForValue, CHART.top, CHART.plotH]);
 
   const summary = useMemo(() => {
     const top = anchor.models[0];
@@ -1171,7 +1223,7 @@ function TimeSeriesChart({
           role="img"
           aria-label={summary}
           viewBox={`0 0 ${CHART.width} ${CHART.height}`}
-          className="w-full min-w-[1080px] cursor-crosshair bg-[#fbf9f4]"
+          className={cn("w-full cursor-crosshair bg-[#fbf9f4]", !presentation && "min-w-[1080px]")}
           onPointerMove={onPointerMove}
           onPointerLeave={() => setHover(null)}
         >

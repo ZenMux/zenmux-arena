@@ -33,7 +33,7 @@ interface Group {
   median: number;
 }
 
-export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
+export function ValueByVendor({ data, presentation = false }: { data: TokenEconomicsData; presentation?: boolean }) {
   const [hover, setHover] = useState<string | null>(null);
   const [grouped, setGrouped] = useState(false);
 
@@ -89,12 +89,12 @@ export function ValueByVendor({ data }: { data: TokenEconomicsData }) {
   }, [loE, hiE]);
 
   return (
-    <section>
+    <section data-presentation={presentation ? "value-ladder" : undefined}>
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-sm font-bold uppercase tracking-[0.14em]">
+          {!presentation && <h2 className="text-sm font-bold uppercase tracking-[0.14em]">
             Value Ladder · Daily Tokens per Dollar
-          </h2>
+          </h2>}
           <p className="mt-0.5 text-[11px] text-[#6f6a5f]">
             A value tier-list · one bar per model, longer = more median daily
             tokens ÷ basket cost (the Value Map&apos;s ratio, log scale) ·{" "}
