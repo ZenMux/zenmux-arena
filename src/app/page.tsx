@@ -9,9 +9,8 @@
 //    fills a row with its accent ink. Corner metadata in small mono.
 //
 // Structure: full-height specimen-ring hero → outlined experiments index →
-// instruments (tools) index → colophon footer. All data still comes from the
-// shared registries (src/lib/experiments.ts, src/lib/tools.ts) and the
-// published aggregate, so nothing here drifts from the sidebar/nav.
+// instruments (tools) index → talks index → colophon footer. Data comes from
+// the experiment, tool and talk registries plus the published aggregate.
 //
 // Type system (loaded in layout.tsx): Jost (geometric sans, hero + smallcaps
 // metadata) · Fraunces italic (specimen captions) · Archivo Black (the giant
@@ -30,6 +29,7 @@ import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EXPERIMENTS } from "@/lib/experiments";
 import { TOOLS } from "@/lib/tools";
+import { TALKS } from "@/lib/talks";
 import { SpecimenPlate } from "./specimen-plate";
 import type { GraphData } from "@research/lib/types";
 import { GITHUB_MARK_PATH } from "@research/lib/branding";
@@ -87,8 +87,8 @@ async function loadDealsStats(): Promise<DealsStats | null> {
    title borrows a random brand's colours. Specimen data moved with it. */
 
 /* ── The index ─────────────────────────────────────────────────────────────
-   Giant outlined rows, Belen-Jones style. Experiments + instruments share one
-   visual system; each row carries its own accent ink for the hover fill. */
+   Giant outlined rows, Belen-Jones style. Experiments, instruments and talks
+   share one visual system, with an accent ink for each row's hover fill. */
 
 interface IndexRow {
   id: string;
@@ -138,12 +138,24 @@ function buildToolRows(): IndexRow[] {
   }));
 }
 
+function buildTalkRows(): IndexRow[] {
+  return TALKS.map((talk) => ({
+    id: talk.id,
+    display: talk.title,
+    href: talk.href,
+    note: talk.tagline,
+    fact: null,
+    accent: "var(--fg-green)",
+  }));
+}
+
 /* ── Page ─────────────────────────────────────────────────────────────────── */
 
 export default function Home() {
   const stats = loadLiveStats();
   const experimentRows = buildExperimentRows(stats);
   const toolRows = buildToolRows();
+  const talkRows = buildTalkRows();
 
   return (
     <main className="fg-paper relative flex-1 overflow-hidden">
@@ -165,14 +177,6 @@ export default function Home() {
           className="h-6 w-auto opacity-90"
         />
         <div className="flex items-center gap-2.5">
-          <Link
-            href="/talk"
-            aria-label="Talk · 如果 Token 会说话"
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--fg-green)]/40 bg-white/40 px-3 font-(family-name:--font-jost) text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--fg-green)] transition-colors hover:bg-[var(--fg-green)] hover:text-[var(--fg-paper)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--fg-green)]"
-          >
-            Talk
-            <ArrowUpRight className="size-3" aria-hidden="true" />
-          </Link>
           <a
             href="https://github.com/ZenMux/zenmux-arena"
             target="_blank"
@@ -215,6 +219,18 @@ export default function Home() {
         <ol>
           {toolRows.map((row, i) => (
             <GiantRow key={row.id} row={row} index={experimentRows.length + i + 1} />
+          ))}
+        </ol>
+
+        <IndexHeading no="III" title="Talks" note="research, told as stories" className="mt-20" />
+        <ol>
+          {talkRows.map((row, i) => (
+            <GiantRow
+              key={row.id}
+              row={row}
+              index={experimentRows.length + toolRows.length + i + 1}
+              titleClassName="font-[family-name:var(--font-geist-sans),sans-serif] text-[clamp(2rem,5vw,4.5rem)] font-semibold normal-case leading-tight"
+            />
           ))}
         </ol>
       </section>
@@ -296,7 +312,11 @@ function IndexHeading({
 
 /* ── Giant outlined row ───────────────────────────────────────────────────── */
 
-function GiantRow({ row, index }: { row: IndexRow; index: number }) {
+function GiantRow({ row, index, titleClassName }: {
+  row: IndexRow;
+  index: number;
+  titleClassName?: string;
+}) {
   const live = Boolean(row.href);
 
   const inner = (
@@ -305,6 +325,7 @@ function GiantRow({ row, index }: { row: IndexRow; index: number }) {
         className={cn(
           "fg-outline font-(family-name:--font-archivo-black) text-[clamp(2.3rem,7.5vw,5.6rem)] uppercase leading-[0.95] tracking-tight",
           !live && "opacity-40",
+          titleClassName,
         )}
       >
         {row.display}
