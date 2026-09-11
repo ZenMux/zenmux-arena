@@ -67,8 +67,9 @@ function Method({ data }: { data: IdentityTalkData }) {
   const [revealed, setRevealed] = useState(false);
   const [sampleIndex, setSampleIndex] = useState(0);
   const variant = data.variants.find((v) => v.id === family)!;
-  const samples = data.evidence.filter((e) => e.uses.includes("method") && e.lang === language && e.family === family);
+  const samples = data.evidence.filter((e) => e.uses.includes("method") && e.outcome === "cross" && e.lang === language && e.family === family);
   const evidence = samples[sampleIndex % samples.length];
+  const model = data.models.find((m) => m.id === evidence?.modelId);
   function reset(next: () => void) { next(); setRevealed(false); setSampleIndex(0); }
   return <>
     <div className={styles.methodGrid}>
@@ -82,16 +83,16 @@ function Method({ data }: { data: IdentityTalkData }) {
         <p className={styles.small}>上方是单语言方案计算。真实研究每模型、每语言为裸问 40 + 追问 30 + 去品牌 40 次，共 29,700 条。</p>
       </div>
       <div className={styles.methodDemo}>
-        <div className={styles.inlineHeader}><p className={styles.eyebrow}>档案回放 / Tencent Hy3 Preview</p><span className={styles.small}>原厂 provider · GPT-5.5 标注</span></div>
+        <div className={styles.inlineHeader}><p className={styles.eyebrow}>档案回放 / {model?.label ?? "跨厂混淆案例"}</p><span className={styles.small}>原厂 provider · GPT-5.5 标注</span></div>
         <div className={styles.promptBox}><span className={styles.caption}>实际发出的提示词</span><p lang={family === "unbranded" ? "en" : language}>{variant.prompts[language]}</p></div>
         {revealed && evidence ? <div className={styles.answerBox} aria-live="polite">
           <div className={styles.inlineHeader}><span className={styles.outcomeText} data-outcome={evidence.outcome}>{OUTCOMES.find((o) => o.id === evidence.outcome)!.label}</span><span className={styles.small}>精选记录 {sampleIndex % samples.length + 1} / {samples.length}</span></div>
           <blockquote lang={evidence.lang}>{evidence.response}{evidence.excerpted ? "…" : ""}</blockquote>
           <Provenance evidence={evidence} />
-        </div> : <div className={styles.answerWaiting}><span aria-hidden="true">“</span><p>同一句「你是谁」，<br />它会递出哪一张名片？</p></div>}
+        </div> : <div className={styles.answerWaiting}><span aria-hidden="true">“</span><p>{samples.length ? <>同一句「你是谁」，<br />它会递出哪一张名片？</> : <>该语言与问法下，<br />没有跨厂混淆记录。</>}</p></div>}
         <div className={styles.demoActions}>
           <Button className={styles.action} onClick={() => { if (revealed) setSampleIndex((i) => i + 1); setRevealed(true); }} disabled={!samples.length}>{revealed ? "换一条已记录回答" : "揭晓真实回答"}<ChevronRight data-icon="inline-end" aria-hidden="true" /></Button>
-          <span className={styles.small}>只回放精选原文；调整重复次数不会发起调用或改变研究统计。</span>
+          <span className={styles.small}>仅回放跨厂混淆原文，不代表总体比例；调整重复次数不影响研究统计。</span>
         </div>
       </div>
     </div>

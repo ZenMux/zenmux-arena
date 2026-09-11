@@ -11,10 +11,19 @@ const dir = path.join(root, "results/who-are-you/mix-20260601T062425");
 const manifest = JSON.parse(fs.readFileSync(path.join(dir, "mix.json"), "utf8"));
 const graph = JSON.parse(fs.readFileSync(path.join(dir, "aggregate.json"), "utf8"));
 const sources = new Set(manifest.sources.map((s) => s.run));
+const expectedMethodCounts = new Map();
 const families = new Map(manifest.sources.map((s) => {
   const g = JSON.parse(fs.readFileSync(path.join(root, "results", s.run, "aggregate.json"), "utf8"));
   const prompt = g.languages.find((l) => l.code === "en").prompt;
-  return [s.run, prompt === "Who are you?" ? "bare" : prompt.startsWith("This is a direct question") ? "unbranded" : "probed"];
+  const family = prompt === "Who are you?" ? "bare" : prompt.startsWith("This is a direct question") ? "unbranded" : "probed";
+  const vendors = new Map(g.models.map((m) => [m.id, m.vendor]));
+  for (const cell of g.cells) {
+    const bucket = `method:${family}:${cell.langCode}`;
+    const cross = Object.entries(cell.distribution).reduce((n, [vendor, probability]) =>
+      ["self", "unknown", "refused", vendors.get(cell.modelId)].includes(vendor) ? n : n + Math.round(probability * cell.n), 0);
+    expectedMethodCounts.set(bucket, (expectedMethodCounts.get(bucket) ?? 0) + cross);
+  }
+  return [s.run, family];
 }));
 const labels = new Map();
 async function* lines(file) {
@@ -45,7 +54,9 @@ for await (const r of lines("records.jsonl")) {
   const f = families.get(r.mixSource.run);
   const outcome = e.claimedVendor === r.modelVendor ? "self" : e.claimedVendor === "refused" ? "refused" : e.claimedVendor === "unknown" || (e.claimedVendor === "other" && !e.other) ? "unknown" : "cross";
   const uses = [];
-  if (r.modelVendor === "tencent" && take(`method:${f}:${r.langCode}`, 2)) uses.push("method");
+  // Method playback illustrates cross-vendor mistakes across all models.
+  // Never fill a language/family bucket with correct self-identification.
+  if (outcome === "cross" && take(`method:${f}:${r.langCode}`, 2)) uses.push("method");
   if (r.modelVendor === "tencent" && r.langCode === "ja" && f === "bare" && e.claimedVendor === "anthropic" && take("tencent")) uses.push("tencent");
   if (r.modelVendor === "z-ai" && r.langCode === "es" && f === "probed" && e.claimedVendor === "google" && take("glm")) uses.push("glm");
   if (r.modelId.includes("doubao-seed-2.0-code") && r.langCode === "en" && f === "unbranded" && e.claimedVendor === "openai" && take("doubao")) uses.push("doubao");
@@ -54,7 +65,10 @@ for await (const r of lines("records.jsonl")) {
   if (!uses.length) continue;
   evidence.push({ id: r.key, sourceRun: r.mixSource.run, sourceKey: r.mixSource.origKey, generationId: r.generationId, timestamp: r.timestamp, modelId: r.modelId, lang: r.langCode, family: f, prompt: r.prompt, response: r.response.slice(0, 900), excerpted: r.response.length > 900, outcome, claimedVendor: e.claimedVendor === "other" ? e.other ?? "unknown" : e.claimedVendor, extractor: e.extractor, uses });
 }
-if (used.size < 42 || evidence.length > 72) throw new Error("Unexpected evidence coverage; review the pinned study before replacing the sample.");
+for (const [bucket, count] of expectedMethodCounts) {
+  if ((used.get(bucket) ?? 0) !== Math.min(2, count)) throw new Error(`Cross-vendor evidence coverage mismatch: ${bucket}`);
+}
+if (["tencent", "glm", "doubao", "inclusionai", ...[...stable].map((id) => `stable:${id}`)].some((bucket) => used.get(bucket) !== 1) || evidence.length > 72) throw new Error("Unexpected evidence coverage; review the pinned study before replacing the sample.");
 const output = { runId: manifest.runId, experimentalWindow: { from, to }, evidence };
 fs.writeFileSync(path.join(here, "evidence.json"), JSON.stringify(output, null, 2) + "\n");
 console.log(`Wrote ${evidence.length} allowlisted excerpts (${Buffer.byteLength(JSON.stringify(output))} bytes).`);

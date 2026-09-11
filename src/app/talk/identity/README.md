@@ -32,11 +32,11 @@ The immutable JSON imports avoid runtime path discovery and standalone tracing
 of the full answer logs. Missing/inconsistent article data fails explicitly;
 there is no silent `latest` substitution.
 
-`evidence.json` contains 71 allowlisted original excerpts (60 for method controls,
+`evidence.json` contains 64 allowlisted original excerpts (54 for method controls,
 plus selected cases/controls; overlap is deduplicated). Every excerpt retains its
 original run, key, generation ID and timestamp. Responses over 900 characters
 are explicitly marked as excerpts. No raw extractor output, usage or credentials
-are serialized. The whole `IdentityTalkData` payload is approximately 266 KB.
+are serialized.
 
 To regenerate the bounded sample, from the repo root:
 
@@ -46,8 +46,14 @@ node src/app/talk/identity/generate-evidence.mjs
 
 This maintenance script reads the published local logs; the runtime loader only
 imports the small output. Method repetition controls calculate a plan and do not
-resample the study or trigger new calls. Each of 30 language/family combinations
-offers two recorded Tencent answers.
+resample the study or trigger new calls. Method playback selects only cross-vendor
+mistakes across all models and labels each excerpt with its actual model. Of the
+30 language/family combinations, 27 offer two recorded mistakes each. Bare
+Traditional Chinese and probed Simplified/Traditional Chinese have zero
+cross-vendor answers in the source aggregates and show an explicit empty state.
+The generator checks coverage against those aggregates; correct self-identification,
+refusals and unknown identity never fill a method bucket. The other views retain
+their full-study statistics and explicitly labeled case/control excerpts.
 
 ## Interpretation and integration notes
 
