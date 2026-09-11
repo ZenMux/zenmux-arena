@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 import { config as loadDotenv } from "dotenv";
 import path from "path";
-import { closeDbPool, fetchLiveTokenEconomics, incrementallyUpdateCache, readJsonCache } from "@research/token-economics/live-query";
+import { closeDbPool, fetchLiveTokenEconomics, incrementallyUpdateCache, readSharedCache } from "@research/token-economics/live-query";
 import { LIVE_RANGE_OPTIONS, type LiveRangeKey } from "@research/token-economics/live-config";
 
 // Load .env.local for local runs (Morphe deployments inject env vars directly)
@@ -17,7 +17,7 @@ async function precomputeRange(range: LiveRangeKey, index: number, total: number
   console.log(`${prefix} Starting...`);
 
   // Try incremental update first if existing cache exists
-  const existing = await readJsonCache(range);
+  const existing = await readSharedCache(range);
   if (existing) {
     process.stdout.write(`\r${prefix} ${formatPercent(0)} Found existing cache (up to ${existing.to.slice(0, 16).replace("T", " ")}), attempting incremental update...`);
     const data = await incrementallyUpdateCache(range, existing, undefined, {
@@ -64,11 +64,11 @@ async function precomputeRange(range: LiveRangeKey, index: number, total: number
 async function main() {
   const ranges = LIVE_RANGE_OPTIONS.map(r => r.key);
   console.log(`[precompute-live] Starting pre-aggregation for ${ranges.length} ranges: ${ranges.join(", ")}`);
-  console.log(`[precompute-live] Cache directory: .cache/token-economics/live/`);
+  console.log(`[precompute-live] Shared cache: Supabase arena_snapshot_cache (token-economics)`);
   console.log(`[precompute-live] Mode: incremental (only fetches new data since last cache, with ${12} bucket overlap for late data)`);
   console.log();
 
-  // Force fetch fresh data from DB for precompute, ignore existing JSON cache
+  // Force fetch fresh data from DB for precompute, advance the shared snapshot
 
   // Run sequentially for clearer progress output
   const results: Array<{ status: "fulfilled" | "rejected"; reason?: unknown; range: string }> = [];
@@ -91,7 +91,7 @@ async function main() {
   if (succeeded.length > 0) {
     console.log(`[precompute-live] ✅ ${succeeded.length}/${ranges.length} ranges cached successfully:`);
     for (const r of succeeded) {
-      console.log(`  - ${r.range}.json`);
+      console.log(`  - token-economics:${r.range}`);
     }
   }
   if (failed.length > 0) {

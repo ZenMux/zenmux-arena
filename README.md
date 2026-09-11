@@ -187,7 +187,7 @@ The deployed page fetches live: the model listing (all-time `all_tokens`) is one
 
 ```bash
 pnpm tokenecon              # local run + audit snapshot (writes to results/, no longer the deployed source)
-pnpm tokenecon:precompute   # precompute the live cache locally
+pnpm tokenecon:precompute   # refresh shared live snapshots in Supabase
 ```
 
 The **avg-daily launch metric**: for each model, sum the daily token series over the first 14 working days (Mon–Fri) on/after `publishTime`, divided by elapsed working days (a zero-usage day counts — low demand is real signal). `LAUNCH_WINDOW_WORKING_DAYS = 14` in `research/token-economics/types.ts`; the usage fetch lives in `research/token-economics/usage.ts`.
@@ -232,10 +232,10 @@ ZenMux pays part of the token bill on a running set of flagship models — this 
 ```bash
 pnpm tokendeals:sync        # merge fresh deal facts from the billing DB into config/token-deals.json
 pnpm tokendeals:backfill     # (re)build the full day-by-day ledger
-pnpm tokendeals:precompute   # precompute the live cache locally
+pnpm tokendeals:precompute   # refresh shared live snapshots in Supabase
 ```
 
-**Serverless-safe reads.** The live route serves a stale-while-revalidate baseline instantly (sub-second first byte) and races a single-flight DB refresh in the background — it never falls back to a full-history query on a cold path.
+**Shared live snapshots.** Both live dashboards read Supabase snapshots and incrementally refresh them on visits. A database lease coordinates instances, and Next `after()` tracks the query and writeback after a stale response. Deployments package code and configuration; live JSON caches are no longer bundled. See [setup, historical migration and recovery](docs/shared-cache.md).
 
 </details>
 

@@ -124,7 +124,9 @@ export function parseDealsConfig(content: string): DealsConfigFile {
 export async function loadDealsConfig(): Promise<DealsConfigFile | null> {
   let content: string;
   try {
-    content = await fs.readFile(dealsConfigPath(), "utf-8");
+    // Runtime overrides are not discoverable by build tracing. The default
+    // config is explicitly included in next.config.ts; do not trace the cwd.
+    content = await fs.readFile(/* turbopackIgnore: true */ dealsConfigPath(), "utf-8");
   } catch {
     return null;
   }

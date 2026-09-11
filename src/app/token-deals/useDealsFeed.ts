@@ -9,8 +9,8 @@
 // degraded (fetch failed OR payload.live=false: deal facts stay, money shows
 // "—", auto-retry with 10s backoff).
 //
-// initialData comes from the server component (the packaged baseline read off
-// the local filesystem), so first paint already has the full board. It may be
+// initialData comes from the server component (the shared snapshot read from
+// Supabase), so first paint already has the full board. It may be
 // hours stale — the hook fetches the live payload immediately on mount and the
 // numbers settle in place (never a skeleton).
 

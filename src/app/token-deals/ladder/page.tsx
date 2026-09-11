@@ -1,8 +1,4 @@
-// Token Deals — THE LADDER. Server shell (ticker nav + amber masthead band);
-// the ranked bars + trend charts live in LadderClient. Like the board, the
-// packaged baseline is read server-side and passed as initialData so the
-// ladder is ranked on first paint; LadderClient polls /api/token-deals/live
-// to settle the numbers.
+// Server first paint uses the shared Supabase snapshot and request-driven refresh.
 
 import type { Metadata } from "next";
 import { LadderClient } from "./LadderClient";

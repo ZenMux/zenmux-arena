@@ -1,4 +1,5 @@
 import { gzipSync } from "node:zlib";
+import { after } from "next/server";
 import {
   DealsDbConfigError,
   buildDegradedPayload,
@@ -54,13 +55,14 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const acceptEncoding = request.headers.get("accept-encoding") ?? "";
   try {
-    const { payload, source, elapsedMs } = await getTokenDealsWithMeta(
+    const { payload, source, persistence, elapsedMs } = await getTokenDealsWithMeta(
       searchParams.get("range"),
       new Date(),
+      { waitUntil: work => after(work) },
     );
     const cachePolicy: CachePolicy = !payload.live
       ? "degraded"
-      : payload.stale
+      : payload.stale || persistence === "unavailable"
         ? "stale"
         : "healthy";
     return jsonResponse(
@@ -68,6 +70,7 @@ export async function GET(request: Request) {
       acceptEncoding,
       {
         "X-Cache-Source": source,
+        "X-Cache-Persistence": persistence,
         "X-Server-Time": `${elapsedMs}ms`,
         "Server-Timing": `deals;desc=${source};dur=${elapsedMs}`,
       },
@@ -75,7 +78,7 @@ export async function GET(request: Request) {
     );
   } catch (error) {
     // Billing DB missing/unreachable → DEGRADED, not an error: deal facts fall
-    // back to the packaged baseline and must stay usable (PRD 图 5). The
+    // back to the shared snapshot and must stay usable (PRD 图 5). The
     // client keys off `live: false` to show the unavailable state + retry.
     if (error instanceof DealsDbConfigError) {
       console.warn("[token-deals] live DB not configured, serving degraded payload");

@@ -1,4 +1,6 @@
 import { gzipSync } from "node:zlib";
+import { after } from "next/server";
+import { CacheBusyError } from "@research/cache/read-through";
 import {
   getLiveTokenEconomicsWithMeta,
   LiveConfigError,
@@ -59,28 +61,28 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const acceptEncoding = request.headers.get("accept-encoding") ?? "";
   try {
-    // Read-only runtime: serves the packaged JSON baseline + an incremental DB
-    // tail query (baseline.to → now), merged in memory. Never writes to disk.
-    const { payload, source, elapsedMs } = await getLiveTokenEconomicsWithMeta(
+    const { payload, source, persistence, elapsedMs } = await getLiveTokenEconomicsWithMeta(
       searchParams.get("range"),
       new Date(),
+      { waitUntil: work => after(work) },
     );
     return jsonResponse(
       payload,
       acceptEncoding,
       {
-        // Diagnostics: inspect these in the browser Network panel to see which
-        // layer served the request and how long the server spent on it.
-        // l1-memory / baseline-fresh / single-flight = no DB; incremental-db =
-        // one DB round-trip; full-db = full re-aggregation (slow); stale-swr =
-        // refresh still running, stale served; stale-baseline = DB failed.
         "X-Cache-Source": source,
+        "X-Cache-Persistence": persistence,
         "X-Server-Time": `${elapsedMs}ms`,
         "Server-Timing": `live;desc=${source};dur=${elapsedMs}`,
       },
-      payload.stale ? "stale" : "healthy",
+      payload.stale || persistence === "unavailable" ? "stale" : "healthy",
     );
   } catch (error) {
+    if (error instanceof CacheBusyError) {
+      return Response.json({ error: error.message }, {
+        status: 503, headers: { "Retry-After": "5", "Cache-Control": "no-store", "X-Cache-Source": "shared-refresh" },
+      });
+    }
     if (error instanceof LiveDbConfigError) {
       return Response.json(
         {

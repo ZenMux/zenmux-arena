@@ -1,9 +1,7 @@
 // Token Deals（让利账本）— live aggregation over the billing DB.
 //
 // Mirrors the token-economics live pipeline's architecture (same DB, same env
-// vars, same read-only-runtime rules) but is a fully independent copy: the PRD
-// forbids touching token-economics code, and the aggregation itself is different
-// (per-deal-window money math instead of anchor boards).
+// vars, same shared Supabase cache) with independent per-deal-window money math.
 //
 // Sources (v3): deal FACTS come from model_discount + model (./discovery.ts);
 // usage/cost/subsidy come from valid_usage. Two billing families, one ledger:
@@ -26,9 +24,8 @@
 // Layers, cheapest first (see getTokenDealsWithMeta):
 //   1. L1 in-memory cache — held until the next refresh boundary closes.
 //   2. Single-flight — concurrent callers share one in-progress merge.
-//   3. Packaged JSON baseline (.cache/token-deals/<range>.json, written by the
-//      precompute script on a writable machine) + an incremental DB query for
-//      just the tail buckets, merged in memory.
+//   3. Supabase snapshot + an incremental DB query for just the tail buckets;
+//      every successful refresh is committed back to the shared snapshot.
 //   4. Full DB aggregation as the cold fallback; stale baseline on DB blips.
 //
 // Bucketing: range "all" uses 1-day buckets (a deal can run for months), range
@@ -36,8 +33,6 @@
 // 5-minute refresh boundary — NOT a bucket boundary — so the trailing partial
 // bucket grows with every poll and the hero total actually ticks live.
 
-import fs from "node:fs/promises";
-import path from "node:path";
 import type { RowDataPacket } from "mysql2/promise";
 import {
   DAY,
@@ -66,6 +61,10 @@ import {
   type TokenDealsPayload,
 } from "./types";
 
+import { snapshotId, snapshotKey, validDeals } from "../cache/payload";
+import { supabaseSnapshotStore, writeSharedSnapshot } from "../cache/supabase";
+import { sharedSnapshotCache, type CacheSource, type CacheResult, type RefreshOptions } from "../cache/read-through";
+
 export { DealsDbConfigError, closeDealsDbPool } from "./db";
 
 const TABLE = "valid_usage";
@@ -84,47 +83,18 @@ const OVERLAP_BUCKETS: Record<number, number> = { [DAY]: 3, [HOUR]: 12 };
 // The runtime refreshes every 5 minutes, so re-querying 3 extra days of DAY
 // buckets on every poll is what pushed the healthy-path query to ~100s and
 // made it timeout-prone. One trailing day is enough for rows that arrive
-// minutes-to-hours late; anything later is swept up by the next deploy's
+// minutes-to-hours late; anything later is swept up by an explicit maintenance
 // precompute (which keeps the deep overlap above).
 const RUNTIME_OVERLAP_BUCKETS: Record<number, number> = { [DAY]: 1, [HOUR]: 12 };
 
-const CACHE_DIR_ENV = "TOKEN_DEALS_CACHE_DIR";
-
-export function cacheDir(): string {
-  return (
-    process.env[CACHE_DIR_ENV]?.trim() ||
-    path.join(process.cwd(), ".cache", "token-deals")
-  );
+export async function readSharedCache(range: DealRangeKey): Promise<TokenDealsPayload | null> {
+  const value = await supabaseSnapshotStore<TokenDealsPayload>(snapshotId("token-deals", range)).read();
+  return validDeals(value, range) ? value : null;
 }
 
-function cachePath(range: DealRangeKey): string {
-  return path.join(cacheDir(), `${range}.json`);
-}
-
-export async function readJsonCache(range: DealRangeKey): Promise<TokenDealsPayload | null> {
-  try {
-    const content = await fs.readFile(cachePath(range), "utf-8");
-    return JSON.parse(content) as TokenDealsPayload;
-  } catch {
-    return null;
-  }
-}
-
-let _tmpSeq = 0;
-
-/** Atomic write (tmp → rename); only the precompute script calls this. */
-export async function writeJsonCache(range: DealRangeKey, data: TokenDealsPayload): Promise<void> {
-  const dir = cacheDir();
-  const file = cachePath(range);
-  const tmp = path.join(dir, `${range}.${process.pid}.${_tmpSeq++}.tmp`);
-  await fs.mkdir(dir, { recursive: true });
-  try {
-    await fs.writeFile(tmp, JSON.stringify(data), "utf-8");
-    await fs.rename(tmp, file);
-  } catch (err) {
-    await fs.unlink(tmp).catch(() => {});
-    throw err;
-  }
+export async function writeSharedCache(range: DealRangeKey, data: TokenDealsPayload): Promise<void> {
+  if (!validDeals(data, range)) throw new Error("Refusing to persist an invalid deals snapshot.");
+  await writeSharedSnapshot(snapshotId("token-deals", range), data);
 }
 
 // ---------------------------------------------------------------------------
@@ -567,7 +537,7 @@ export async function fetchTokenDeals(
     lastSuccessAt: now.toISOString(),
   });
 
-  if (options.persist) await writeJsonCache(range, payload);
+  if (options.persist) await writeSharedCache(range, payload);
   return payload;
 }
 
@@ -598,9 +568,9 @@ export interface IncrementalOptions {
     than ~5 weeks inside a serverless request. */
 const DEFAULT_NEW_DEAL_LOOKBACK_MS = 35 * DAY * 1000;
 
-/** Baseline + incremental merge: reuse the packaged payload's old buckets and
+/** Baseline + incremental merge: reuse the shared payload's old buckets and
     query the DB only for the tail (baseline.to − overlap → now). Deals that
-    appeared AFTER the baseline was packaged (new config entries) get their
+    appeared AFTER the snapshot was written (new config entries) get their
     window fetched up to the lookback cap. Returns null when the baseline isn't
     usable. Exported for the precompute + backfill scripts. */
 export async function incrementallyUpdate(
@@ -621,7 +591,7 @@ export async function incrementallyUpdate(
   if (Number.isNaN(baselineTo)) return null;
   if (baselineTo >= toMs) {
     const payload = { ...baseline, generatedAt: now.toISOString() };
-    if (options.persist) await writeJsonCache(range, payload);
+    if (options.persist) await writeSharedCache(range, payload);
     return payload;
   }
 
@@ -721,12 +691,12 @@ export async function incrementallyUpdate(
     now,
     lastSuccessAt: now.toISOString(),
   });
-  if (options.persist) await writeJsonCache(range, payload);
+  if (options.persist) await writeSharedCache(range, payload);
   return payload;
 }
 
 // ---------------------------------------------------------------------------
-// Degraded payload — deal facts from the freshest packaged baseline, no money
+// Degraded payload — deal facts from the freshest shared snapshot, no money
 // numbers. (Deal discovery lives in the DB now, so when the DB is down the
 // baseline is the only fact source left; with no baseline the page shows its
 // error panel and retries.)
@@ -737,7 +707,8 @@ let lastSuccessAt: string | null = null;
 export async function buildDegradedPayload(now = new Date()): Promise<TokenDealsPayload> {
   // Only a same-schema baseline is safe to surface — an older baseline's deals
   // lack fields the client relies on (dealType/providers/sub split).
-  const candidates = [await readJsonCache("all"), await readJsonCache("72h")];
+  const candidates = await Promise.all(["all", "72h"].map(range =>
+    readSharedCache(range as DealRangeKey).catch(() => null)));
   const baseline = candidates.find((b) => b?.schema === DEALS_SCHEMA_VERSION) ?? null;
   const dataAsOfMs = currentDataAsOf(now);
   const visible: DealSeries[] = (baseline?.deals ?? [])
@@ -769,93 +740,31 @@ export async function buildDegradedPayload(now = new Date()): Promise<TokenDeals
   };
 }
 
-// ---------------------------------------------------------------------------
-// Runtime entry (read-only FS safe): L1 → baseline (stale-while-revalidate) →
-// full fetch. An expired baseline is served IMMEDIATELY (marked `stale`) while
-// a single-flight DB refresh runs; the request only waits SWR_WAIT_MS for it,
-// so first-byte never blocks on the DB. On serverless the instance may freeze
-// after responding — the unfinished refresh promise simply resumes on the next
-// invocation (the client re-polls stale payloads after ~20s), so the refresh
-// still lands without any background-execution guarantee.
-// ---------------------------------------------------------------------------
-
-export type DealsFetchSource =
-  | "l1-memory"
-  | "baseline-fresh"
-  | "single-flight"
-  | "incremental-db"
-  | "stale-swr"
-  | "stale-baseline"
-  | "degraded-no-baseline"
-  | "full-db";
-
-const responseCache = new Map<string, { data: TokenDealsPayload; expiresAt: number }>();
-const inFlight = new Map<string, Promise<{ payload: TokenDealsPayload; source: DealsFetchSource }>>();
-
-/** How long a request waits for the in-flight refresh before answering with
-    the stale baseline. Long enough for a warm incremental query to win the
-    race; short enough that a cold DB connection never holds first-byte. */
-const SWR_WAIT_MS = 1_200;
-/** L1 TTL for stale/degraded payloads — short so recovery is retried quickly. */
-const STALE_TTL_MS = 10_000;
-/** Runtime merge cap: at most one day of NEW tail per refresh. Sized so the
-    worst single query (1-day tail + 1-day runtime overlap, all slugs) stays
-    well inside the DB timeout. A baseline that's further behind converges one
-    capped chunk per client poll (stale → 20s re-poll) instead of attempting a
-    monster query that times out forever. */
+// Runtime refreshes preserve incremental progress in Supabase across deployments.
+export type DealsFetchSource = CacheSource;
+export type DealsFetchResult = CacheResult<TokenDealsPayload>;
 const RUNTIME_MAX_TAIL_MS = DAY * 1000;
 
-export interface DealsFetchResult {
-  payload: TokenDealsPayload;
-  source: DealsFetchSource;
-  elapsedMs: number;
-}
-
-function cachePayload(range: DealRangeKey, payload: TokenDealsPayload): void {
-  const healthy = payload.live && !payload.stale;
-  const ttlMs = healthy ? msUntilNextBoundary(new Date()) : STALE_TTL_MS;
-  responseCache.set(range, { data: payload, expiresAt: Date.now() + ttlMs });
-}
-
-/** The actual refresh work — everything that may touch the DB lives here.
-    Runs at most once per range at a time (single-flight via `inFlight`). */
 async function refreshPayload(
   range: DealRangeKey,
   baseline: TokenDealsPayload | null,
   now: Date,
 ): Promise<{ payload: TokenDealsPayload; source: DealsFetchSource }> {
   if (baseline) {
-    // Chunked self-heal applies to "all" only: its window start is fixed, so a
-    // capped target always lands inside it, and it's the only range with no
-    // full-fetch fallback. 72h keeps the plain merge — its window slides (a
-    // capped target could fall before the window start) and its full fetch is
-    // small enough to be the recovery path.
-    const merged = await incrementallyUpdate(
-      range,
-      baseline,
-      now,
-      range === "all" ? { maxTailMs: RUNTIME_MAX_TAIL_MS } : {},
-    );
-    if (merged) {
-      // A capped merge that stopped short of the current boundary is progress,
-      // not the final answer — mark it stale so the client re-polls (~20s) and
-      // the next refresh continues from the advanced `to`. The self-heal loop.
-      if (Date.parse(merged.to) < currentDataAsOf(now)) {
-        return { payload: { ...merged, stale: true }, source: "incremental-db" };
-      }
-      return { payload: merged, source: "incremental-db" };
-    }
+    const merged = await incrementallyUpdate(range, baseline, now,
+      range === "all" ? { maxTailMs: RUNTIME_MAX_TAIL_MS } : {});
+    if (merged) return { payload: merged, source: "incremental-db" };
   }
-  // The "all" window spans the whole ledger (2025-09-29 → now) — a full
-  // aggregation of it must never run inside a serverless request. Keep the
-  // stale baseline if there is one; otherwise degrade and let a writable
-  // machine rebuild via tokendeals:backfill / the predeploy precompute.
   if (range === "all") {
-    if (baseline) return { payload: { ...baseline, stale: true }, source: "stale-baseline" };
-    console.warn(
-      "[token-deals] No usable 'all' baseline — serving degraded payload. Run `pnpm tokendeals:backfill` on a writable machine.",
-    );
-    return { payload: await buildDegradedPayload(now), source: "degraded-no-baseline" };
+    if (baseline) throw new Error("The shared ledger is incompatible with the current aggregation.");
+    // Missing ledger: initialize a bounded chunk, then visits extend it. Never
+    // issue a full-history query inside a request. The migration normally seeds it.
+    const deals = await discoverDeals();
+    const first = Math.max(dealsStartMs(), Math.min(...deals.map(d => dateStartMs(d.startDate))));
+    const target = Math.min(currentDataAsOf(now), first + RUNTIME_MAX_TAIL_MS);
+    if (!Number.isFinite(target)) return { payload: await buildDegradedPayload(now), source: "degraded-no-baseline" };
+    const payload = await fetchTokenDeals(range, new Date(target));
+    return { payload: { ...payload, generatedAt: now.toISOString(), lastSuccessAt: now.toISOString() }, source: "full-db" };
   }
   return { payload: await fetchTokenDeals(range, now), source: "full-db" };
 }
@@ -863,117 +772,17 @@ async function refreshPayload(
 export async function getTokenDealsWithMeta(
   requestedRange: string | null | undefined,
   now = new Date(),
+  options: RefreshOptions = {},
 ): Promise<DealsFetchResult> {
-  const startedAt = Date.now();
   const range = dealRangeOption(requestedRange).key;
-
-  const cached = responseCache.get(range);
-  if (cached && Date.now() < cached.expiresAt) {
-    return {
-      payload: { ...cached.data, generatedAt: now.toISOString() },
-      source: "l1-memory",
-      elapsedMs: Date.now() - startedAt,
-    };
-  }
-
-  const raw = await readJsonCache(range);
-  // compact: a baseline written before money rounding carries full-precision
-  // floats; rounding here keeps every serve path small. Idempotent.
-  const diskBaseline =
-    raw?.live && raw.schema === DEALS_SCHEMA_VERSION && !Number.isNaN(Date.parse(raw.to))
-      ? compactDealsPayload(raw)
-      : null;
-
-  // The packaged file never advances on the read-only FS, so on its own every
-  // refresh would re-query `disk.to → now` — a window that grows with deploy
-  // age until it times out (the 2026-07-05 lockup). The L1 entry outlives its
-  // TTL in the map, so the last successful merge doubles as an in-memory
-  // baseline: take the freshest of the two and each refresh only queries since
-  // the LAST MERGE. Lost on instance recycle — that just falls back to disk.
-  // Stale-marked entries are still valid baselines (a capped self-heal chunk
-  // is marked stale precisely so the client re-polls — its points are real
-  // merged data), but the flag must not ride along: whether THIS response is
-  // stale is re-decided below from how far the merge gets.
-  const expired = responseCache.get(range)?.data;
-  const memBaseline =
-    expired?.live &&
-    expired.schema === DEALS_SCHEMA_VERSION &&
-    expired.deals.every((d) => d.points != null) &&
-    !Number.isNaN(Date.parse(expired.to))
-      ? { ...expired, stale: undefined }
-      : null;
-  const baseline =
-    memBaseline && (!diskBaseline || Date.parse(memBaseline.to) > Date.parse(diskBaseline.to))
-      ? memBaseline
-      : diskBaseline;
-
-  // Fresh packaged baseline → pure file read, no DB, no waiting.
-  if (baseline && Date.parse(baseline.to) >= currentDataAsOf(now)) {
-    lastSuccessAt = baseline.lastSuccessAt ?? lastSuccessAt;
-    cachePayload(range, baseline);
-    return { payload: baseline, source: "baseline-fresh", elapsedMs: Date.now() - startedAt };
-  }
-
-  // Start (or join) the single-flight refresh. Completion always lands in L1
-  // even if this request stops waiting for it below.
-  const joined = inFlight.has(range);
-  let work = inFlight.get(range);
-  if (!work) {
-    work = refreshPayload(range, baseline, now)
-      .then((result) => {
-        if (result.payload.live) lastSuccessAt = result.payload.lastSuccessAt ?? lastSuccessAt;
-        cachePayload(range, result.payload);
-        return result;
-      })
-      .finally(() => inFlight.delete(range));
-    // A refresh that fails AFTER the requester stopped waiting (SWR timeout)
-    // has no awaiter left — log it here so it never becomes an unhandled
-    // rejection. Requests racing `work` attach their own .catch.
-    work.catch((err) =>
-      console.warn(
-        `[token-deals] Background refresh for ${range} failed:`,
-        err instanceof Error ? err.message : err,
-      ),
-    );
-    inFlight.set(range, work);
-  }
-
-  if (baseline) {
-    // Stale-while-revalidate: give the refresh a short head start, then answer
-    // with the stale baseline. `work` keeps its own error path — a rejection
-    // here just means "serve stale now, retry on the next poll".
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const winner = await Promise.race([
-      work.catch(() => null),
-      new Promise<"timeout">((resolve) => {
-        timer = setTimeout(() => resolve("timeout"), SWR_WAIT_MS);
-      }),
-    ]).finally(() => clearTimeout(timer));
-
-    if (winner != null && winner !== "timeout") {
-      return {
-        payload: winner.payload,
-        source: joined ? "single-flight" : winner.source,
-        elapsedMs: Date.now() - startedAt,
-      };
-    }
-    if (winner == null) {
-      console.warn(`[token-deals] Refresh for ${range} failed, serving stale baseline.`);
-    }
-    const stalePayload: TokenDealsPayload = { ...baseline, stale: true };
-    cachePayload(range, stalePayload);
-    return {
-      payload: stalePayload,
-      source: winner == null ? "stale-baseline" : "stale-swr",
-      elapsedMs: Date.now() - startedAt,
-    };
-  }
-
-  // No usable baseline at all — nothing to answer with but the refresh itself.
-  const { payload, source } = await work;
-  return {
-    payload,
-    source: joined ? "single-flight" : source,
-    elapsedMs: Date.now() - startedAt,
-  };
+  const id = snapshotId("token-deals", range);
+  const result = await sharedSnapshotCache().get<TokenDealsPayload>({
+    key: snapshotKey(id), store: supabaseSnapshotStore(id), now, ...options,
+    valid: (value): value is TokenDealsPayload => validDeals(value, range),
+    fresh: (p, at) => Date.parse(p.to) >= currentDataAsOf(at),
+    ttlMs: (_, at) => Math.min(15_000, msUntilNextBoundary(at)),
+    load: baseline => refreshPayload(range, baseline, now),
+  });
+  if (result.payload.live) lastSuccessAt = result.payload.lastSuccessAt ?? lastSuccessAt;
+  return { ...result, payload: compactDealsPayload(result.payload) };
 }

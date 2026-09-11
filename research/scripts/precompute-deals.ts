@@ -1,19 +1,6 @@
 #!/usr/bin/env tsx
-// Precompute the Token Deals（让利账本）baseline caches.
-//
-// Aligned with precompute-live.ts (token-economics): loads .env.local for local
-// runs, tries an INCREMENTAL update of the existing baseline first (only the
-// tail buckets since the last cache are re-queried, plus a small overlap for
-// late-arriving billing rows), and falls back to a full DB aggregation when no
-// usable baseline exists (first run, schema bump, bucket change).
-//
-// Persists .cache/token-deals/{all,72h}.json — the packaged baselines the
-// read-only runtime extends incrementally (see research/token-deals/query.ts).
-// Run on a writable machine with TOKEN_ECON_LIVE_DB_* set, before or during
-// deploy — the morphe-economics skill's predeploy step does this automatically.
-//
-//   pnpm tokendeals:precompute
-
+// Explicit maintenance refresh; writes shared Supabase snapshots independently
+// of builds. Billing calculations and deep late-arrival overlap are preserved.
 import { config as loadDotenv } from "dotenv";
 import path from "node:path";
 import {
@@ -25,7 +12,7 @@ import {
   closeDealsDbPool,
   fetchTokenDeals,
   incrementallyUpdate,
-  readJsonCache,
+  readSharedCache,
 } from "@research/token-deals/query";
 
 // Load .env.local for local runs (Morphe deployments inject env vars directly)
@@ -49,7 +36,7 @@ async function precomputeRange(range: DealRangeKey, index: number, total: number
   const prefix = `[precompute-deals] [${index + 1}/${total}] ${range.padEnd(4)}`;
   const started = Date.now();
 
-  const existing = await readJsonCache(range);
+  const existing = await readSharedCache(range);
   if (existing) {
     console.log(`${prefix} Found existing cache (data → ${existing.to}), attempting incremental update...`);
     // Writable machine: no lookback cap — a newly-configured deal gets its
@@ -83,7 +70,7 @@ async function precomputeRange(range: DealRangeKey, index: number, total: number
 async function main() {
   const ranges = DEAL_RANGE_OPTIONS.map((r) => r.key);
   console.log(`[precompute-deals] Starting pre-aggregation for ${ranges.length} ranges: ${ranges.join(", ")}`);
-  console.log(`[precompute-deals] Cache directory: .cache/token-deals/`);
+  console.log(`[precompute-deals] Shared cache: Supabase arena_snapshot_cache (token-deals)`);
   console.log();
 
   const failures: Array<{ range: string; reason: unknown }> = [];

@@ -23,7 +23,7 @@ export function FreshnessBar({
   return (
     <div className="flex flex-wrap items-center gap-2.5 font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase tracking-[0.1em] text-white/50">
       {/* suppressHydrationWarning: formatStamp/localZone render in the
-          server's timezone during SSR of the packaged initialData, then
+          server's timezone during SSR of the shared initialData, then
           settle to the browser's own local time on the client. */}
       <span suppressHydrationWarning>
         Updated {formatStamp(generatedAt)} {localZone()}

@@ -1,39 +1,16 @@
 #!/usr/bin/env tsx
-// Backfill the Token Deals ledger from ZenMux's launch (2025-09-29) in chunks.
-//
-// The daily ledger IS the packaged baseline: .cache/token-deals/all.json holds
-// per-deal 1-day buckets, so "backfill" simply advances that baseline from the
-// launch day to now, ≤30 days per step, through the SAME incremental-merge
-// machinery the runtime uses (research/token-deals/query.ts). Each chunk:
-//   · only queries slugs whose registered deal windows intersect the chunk
-//     (discount models are never pulled outside their windows; free models
-//     run from max(publishDate, launch)),
-//   · persists atomically (tmp → rename) → Ctrl-C anytime, rerun resumes from
-//     the baseline's `to`.
-//
-// CACHE PROTECTION — this script never deletes anything:
-//   · a pre-v4 all.json/72h.json is COPIED to backups/<range>.v<schema>.bak.json
-//     before the new baseline overwrites the live filename;
-//   · on completion all.json is COPIED to backups/all.snapshot-<date>.json so
-//     the expensive full-history ledger survives even if the live file is ever
-//     clobbered.
-// Backups live in the backups/ SUBDIR on purpose: the runtime only ever reads
-// <range>.json, and the deploy packaging globs .cache/token-deals/*.json —
-// keeping backups out of the top level keeps them out of the shipped artifact.
-//
-//   pnpm tokendeals:backfill
-
+// Resumable chunked backfill into Supabase; each committed chunk survives
+// process restarts. Completion also creates an immutable Supabase archive.
 import { config as loadDotenv } from "dotenv";
-import fs from "node:fs/promises";
 import path from "node:path";
+import { archiveSnapshot } from "../cache/archive";
 import { DEALS_SCHEMA_VERSION, type TokenDealsPayload } from "@research/token-deals/types";
 import { DAY, REFRESH_INTERVAL_SECONDS, closeDealsDbPool, dealsStartMs, floorTo } from "@research/token-deals/db";
 import { loadDealsConfig } from "@research/token-deals/deals-config";
 import {
-  cacheDir,
   fetchTokenDeals,
   incrementallyUpdate,
-  readJsonCache,
+  readSharedCache,
 } from "@research/token-deals/query";
 
 loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
@@ -57,40 +34,11 @@ function summarize(payload: TokenDealsPayload): string {
   return `${payload.deals.length} deals, saved $${(t?.saved ?? 0).toFixed(2)}, paid $${(t?.paid ?? 0).toFixed(2)}`;
 }
 
-function backupsDir(): string {
-  return path.join(cacheDir(), "backups");
-}
-
-/** Copy (never move/delete) a legacy-schema cache aside before it gets
-    superseded. Idempotent: an existing backup is left alone. */
-async function backupLegacyCache(range: "all" | "72h"): Promise<void> {
-  const existing = await readJsonCache(range);
-  if (!existing || existing.schema === DEALS_SCHEMA_VERSION) return;
-  const src = path.join(cacheDir(), `${range}.json`);
-  const dest = path.join(backupsDir(), `${range}.v${existing.schema ?? 1}.bak.json`);
-  try {
-    await fs.access(dest);
-    return; // backup already there
-  } catch {
-    /* fall through */
-  }
-  await fs.mkdir(backupsDir(), { recursive: true });
-  await fs.copyFile(src, dest);
-  console.log(`[tokendeals:backfill] 🛟 Backed up legacy ${range}.json (schema ${existing.schema ?? "none"}) → backups/${path.basename(dest)}`);
-}
-
 async function snapshotLedger(): Promise<void> {
-  const src = path.join(cacheDir(), "all.json");
-  const dest = path.join(backupsDir(), `all.snapshot-${new Date().toISOString().slice(0, 10)}.json`);
-  try {
-    await fs.access(dest);
-    return;
-  } catch {
-    /* fall through */
-  }
-  await fs.mkdir(backupsDir(), { recursive: true });
-  await fs.copyFile(src, dest);
-  console.log(`[tokendeals:backfill] 🛟 Ledger snapshot written: backups/${path.basename(dest)}`);
+  const payload = await readSharedCache("all");
+  if (!payload) throw new Error("No shared ledger to archive.");
+  await archiveSnapshot("token-deals", `backfill/all-${payload.to}.json`, payload);
+  console.log("[tokendeals:backfill] Verified immutable Supabase ledger archive.");
 }
 
 async function main() {
@@ -104,15 +52,13 @@ async function main() {
     );
     process.exit(1);
   }
-  console.log(`[tokendeals:backfill] Roster: ${displayed} displayed entries. Cache dir: ${cacheDir()}`);
+  console.log(`[tokendeals:backfill] Roster: ${displayed} displayed entries. Storage: Supabase`);
 
-  await backupLegacyCache("all");
-  await backupLegacyCache("72h");
 
   const startMs = dealsStartMs();
   const nowFloorMs = floorTo(Date.now(), REFRESH_INTERVAL_SECONDS);
 
-  let baseline = await readJsonCache("all");
+  let baseline = await readSharedCache("all");
   if (baseline && baseline.schema === DEALS_SCHEMA_VERSION && baseline.live) {
     console.log(`[tokendeals:backfill] Resuming from existing v${DEALS_SCHEMA_VERSION} baseline (data → ${baseline.to}).`);
   } else {

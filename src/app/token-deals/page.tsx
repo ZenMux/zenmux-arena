@@ -1,9 +1,4 @@
-// Token Deals — THE BOARD landing surface. A server component: the shell
-// (ticker nav + opener headline) renders statically, and the packaged baseline
-// (.cache/token-deals/all.json) is read off the local filesystem and passed to
-// DealsClient as initialData — so the first paint already carries the full
-// board, no skeleton. DealsClient then polls /api/token-deals/live to settle
-// the numbers live.
+// Server first paint uses the shared Supabase snapshot and request-driven refresh.
 
 import type { Metadata } from "next";
 import { DealsClient } from "./DealsClient";
@@ -15,8 +10,7 @@ export const metadata: Metadata = {
     "A live public ledger of ZenMux's model subsidies: list price → deal price for every discounted model, and the running total saved for developers.",
 };
 
-// Read the baseline per request, not once at build: the packaged file is
-// deploy-frozen, but a writable deployment (or local dev) may refresh it.
+// Read and refresh shared data on visits, independently of deployment.
 export const dynamic = "force-dynamic";
 
 export default async function TokenDealsPage() {

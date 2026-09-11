@@ -187,7 +187,7 @@ config/study.yaml
 
 ```bash
 pnpm tokenecon              # 本地运行 + 审计快照（写入 results/，已不是线上数据源）
-pnpm tokenecon:precompute   # 在本地预计算 live 缓存
+pnpm tokenecon:precompute   # 增量刷新 Supabase 共享快照
 ```
 
 **日均上线指标**的定义：对每个模型，累加 `publishTime` 之后（含当天）前 14 个工作日（周一至周五）的每日 token 序列，除以已经过的工作日数（用量为零的一天也计入分母——低需求本身就是有效信号）。`LAUNCH_WINDOW_WORKING_DAYS = 14` 定义在 `research/token-economics/types.ts`；用量拉取逻辑在 `research/token-economics/usage.ts`。
@@ -232,7 +232,7 @@ ZenMux 正在为一批旗舰模型的 token 账单支付部分费用——这是
 ```bash
 pnpm tokendeals:sync        # 把计费数据库中的新优惠事实合并进 config/token-deals.json
 pnpm tokendeals:backfill     # （重新）构建完整的逐日账本
-pnpm tokendeals:precompute   # 在本地预计算 live 缓存
+pnpm tokendeals:precompute   # 增量刷新 Supabase 共享快照
 ```
 
 **无服务器环境下的安全读取。** 线上接口会立即返回一份可能过期的基线数据（首字节响应在毫秒级），同时在后台竞速发起一次单飞的数据库刷新——冷启动路径永远不会退化成一次全量历史查询。
@@ -269,7 +269,7 @@ pnpm study:report      # aggregate.json → report.md
 pnpm dev               # http://localhost:3000
 ```
 
-Token Economics 与 Token Deals 在生产环境中于请求时读取**实时**数据（见上文各自小节）——本地开发时，`pnpm tokenecon` / `pnpm tokendeals:sync` + `pnpm tokendeals:backfill` 会填充这些页面读取的缓存。完整的凭据列表（计费数据库、管理密钥）见 `.env.example`。
+Token Economics 与 Token Deals 通过 Supabase 共享快照提供实时数据：访问时读取快照，过期后增量查询计费库并写回，所有实例共享刷新结果。部署只打包代码和配置，不再携带本地 JSON 缓存。历史迁移、权限配置和回填步骤见 [数据链路说明](docs/shared-cache.md)，凭据见 `.env.example`。
 
 ---
 
@@ -309,7 +309,7 @@ src/
 - **抽取模型的解析是防御性的。** 一个独立的模型为每条身份回答打标签；解析顺序是严格 JSON → 第一个配对的 `{…}` → 兜底的别名扫描，未识别的标签会通过 `vendorFromText` 归一化，否则退化为 `unknown`。
 - **厂商分类体系。** `research/lib/vendors.ts` 是规范注册表——67 个厂商，别名（含中文名如通义千问 / 文心一言）按最长匹配优先。`self`、`unknown`、`refused` 是分析用的伪厂商，并非真实厂商。
 - **关系图只在网页端渲染。** `buildGraphSvg` 手写构建 Who Are You? 的 SVG；`/api/export` 通过 `@resvg/resvg-js` 把它栅格化为 PNG。Graph Studio 用同一份 `RenderConfig` 同时驱动实时预览和导出，因此导出结果所见即所得。
-- **实时数据，实时风险。** Token Economics 与 Token Deals 在请求时读取生产计费数据库——两者都采用“陈旧数据先返回、后台单飞刷新”的缓存策略，确保无服务器冷启动永远不会卡在一次全量历史查询上。
+- **实时数据。** 快照过期后增量读取计费数据库，结果写回 Supabase；跨实例锁避免重复刷新，失败时保留历史快照。无快照的冷启动仍可能较慢，Token Deals 全历史账本按有界时间段逐步恢复。
 - **前端技术栈。** Next.js 16 · React 19 · Tailwind v4（CSS-first，没有 `tailwind.config.js`）· shadcn/ui（风格 `radix-nova`，基础色 `neutral`，图标用 `lucide`）。多数页面是 RSC + `force-dynamic`，因此新数据刷新页面即可看到，无需重新构建。
 
 </details>

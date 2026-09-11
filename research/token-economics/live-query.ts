@@ -1,5 +1,3 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
 import { VENDORS } from "@research/lib/vendors";
 import type { VendorId } from "@research/lib/types";
@@ -17,6 +15,9 @@ import {
   type LiveUsagePoint,
 } from "./live-config";
 import { loadLiveModelConfig } from "./live-models";
+import { snapshotId, snapshotKey, validEconomics } from "../cache/payload";
+import { supabaseSnapshotStore, writeSharedSnapshot } from "../cache/supabase";
+import { sharedSnapshotCache, type CacheSource, type CacheResult, type RefreshOptions } from "../cache/read-through";
 
 export { LiveConfigError } from "./live-config";
 
@@ -33,86 +34,15 @@ export const LIVE_REFRESH_INTERVAL_SECONDS_ENV = "TOKEN_ECON_LIVE_REFRESH_INTERV
 const QUERY_TIMEOUT_ENV = "TOKEN_ECON_LIVE_QUERY_TIMEOUT_MS";
 const DEFAULT_QUERY_TIMEOUT_MS = 60_000;
 
-// L1 in-memory cache: the freshest fully-merged payload per range, with a short
-// TTL. Serves concurrent bursts so we don't run the incremental DB query more
-// than once per ~10s on a hot instance.
-const responseCache = new Map<string, { data: LiveTokenEconomicsPayload; expiresAt: number }>();
-
-// In-flight de-dup (single-flight): if a merge for a range is already running,
-// concurrent callers await the same promise instead of each firing their own
-// incremental DB query.
-const inFlight = new Map<
-  string,
-  Promise<{ payload: LiveTokenEconomicsPayload; source: LiveFetchSource }>
->();
-
-// Cache directory resolution. READ and WRITE are deliberately split so the two
-// deployment roles never interfere:
-//
-//   - Runtime (production API route): READ-ONLY. The server runs on a read-only
-//     serverless filesystem and must never query the DB or write to disk. It
-//     reads the *.json files that were pre-aggregated and packaged into the
-//     deploy artifact under `<cwd>/.cache/token-economics/live/`. Resolving the
-//     read dir does NO writability probe — a read-only FS can still read the
-//     packaged cache, and the old "write a .write-test file first" probe was the
-//     bug that silently redirected reads to an empty temp dir.
-//
-//   - Precompute (build/deploy machine, writable): the only writer. It runs the
-//     incremental DB query and persists fresh JSON, which then gets packaged.
-//
-// TOKEN_ECON_LIVE_CACHE_DIR overrides the directory for both roles when set.
-const CACHE_DIR_ENV = "TOKEN_ECON_LIVE_CACHE_DIR";
-
-function cacheDir(): string {
-  return (
-    process.env[CACHE_DIR_ENV]?.trim() ||
-    path.join(process.cwd(), ".cache", "token-economics", "live")
-  );
+/** Shared snapshots are the only runtime baseline; JSON is an import format. */
+export async function readSharedCache(range: LiveRangeKey): Promise<LiveTokenEconomicsPayload | null> {
+  const value = await supabaseSnapshotStore<LiveTokenEconomicsPayload>(snapshotId("token-economics", range)).read();
+  return validEconomics(value, range) ? value : null;
 }
 
-function cachePath(range: LiveRangeKey): string {
-  return path.join(cacheDir(), `${range}.json`);
-}
-
-/**
- * Read a pre-aggregated payload from the packaged JSON cache. Pure read: never
- * touches the DB, never writes, never throws — returns null if the file is
- * missing or unparseable. Safe to call on a read-only filesystem.
- */
-export async function readJsonCache(range: LiveRangeKey): Promise<LiveTokenEconomicsPayload | null> {
-  try {
-    const content = await fs.readFile(cachePath(range), "utf-8");
-    return JSON.parse(content) as LiveTokenEconomicsPayload;
-  } catch {
-    return null;
-  }
-}
-
-// Monotonic per-process counter for unique tmp filenames. Date.now()/Math.random()
-// are intentionally avoided (some harnesses forbid them); a counter is enough to
-// keep concurrent writers in the same process from sharing a tmp file.
-let _tmpSeq = 0;
-
-/**
- * Persist a payload to the on-disk JSON cache via atomic write (write tmp →
- * rename). Used ONLY by the precompute script on a writable filesystem; the
- * runtime never calls this. The tmp filename carries pid + a per-process
- * counter so two concurrent writers can never clobber each other's half-written
- * file before the rename.
- */
-export async function writeJsonCache(range: LiveRangeKey, data: LiveTokenEconomicsPayload): Promise<void> {
-  const dir = cacheDir();
-  const cacheFile = path.join(dir, `${range}.json`);
-  const tmpPath = path.join(dir, `${range}.${process.pid}.${_tmpSeq++}.tmp`);
-  await fs.mkdir(dir, { recursive: true });
-  try {
-    await fs.writeFile(tmpPath, JSON.stringify(data), "utf-8");
-    await fs.rename(tmpPath, cacheFile); // Atomic swap; readers never see a partial file
-  } catch (err) {
-    // Clean up the tmp file on failure so a read-only/full disk doesn't leave litter
-    await fs.unlink(tmpPath).catch(() => {});
-    throw err;
-  }
+export async function writeSharedCache(range: LiveRangeKey, data: LiveTokenEconomicsPayload): Promise<void> {
+  if (!validEconomics(data, range)) throw new Error("Refusing to persist an invalid economics snapshot.");
+  await writeSharedSnapshot(snapshotId("token-economics", range), data);
 }
 
 const DB_ENV = {
@@ -477,8 +407,8 @@ function compactModelSeries(m: LiveModelSeries): LiveModelSeries {
 
 /**
  * Overlay the CURRENT live-model config's price/campaign fields onto a cached
- * payload. Baselines are packaged at deploy time, so a payload served from the
- * `baseline-fresh`/`stale` paths carries whatever config existed when it was
+ * payload. Snapshots retain the configuration from their last refresh, so a payload served from the
+ * `supabase`/`stale` paths carries whatever config existed when it was
  * built — without this overlay, an edited `endDate` (or price) in
  * `config/token-economics-live-models.json` would not take effect until the
  * cache is rebuilt. Usage stats/points stay untouched; only per-model config
@@ -544,9 +474,8 @@ export interface FetchProgress {
  * behind {@link getLiveTokenEconomics} (when no baseline exists for incremental
  * merge) and the full-fetch path of the precompute script.
  *
- * `persist` defaults to false so the runtime can never accidentally write to
- * its read-only filesystem; only the precompute script (writable build machine)
- * passes `persist: true`.
+ * `persist` is for explicit maintenance commands. Request refreshes persist
+ * through the shared coordinator while holding the database refresh lease.
  */
 export async function fetchLiveTokenEconomics(
   requestedRange: string | null | undefined,
@@ -670,10 +599,10 @@ export async function fetchLiveTokenEconomics(
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
   });
 
-  // Only the precompute script (writable FS) persists. The runtime never writes.
+  // Maintenance commands persist here; request refreshes commit under their shared lease.
   if (options.persist) {
-    onProgress({ stage: "write-cache", message: "Writing cache to disk...", percent: 95 });
-    await writeJsonCache(range.key, result);
+    onProgress({ stage: "write-cache", message: "Writing shared snapshot to Supabase...", percent: 95 });
+    await writeSharedCache(range.key, result);
     onProgress({ stage: "write-cache", message: "Done!", percent: 100 });
   }
 
@@ -873,219 +802,49 @@ export async function incrementallyUpdateCache(
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
   });
 
-  // Only the precompute script (writable FS) persists; the runtime merges in
-  // memory and returns without ever touching the read-only disk.
+  // Maintenance commands persist here; request refreshes commit under their shared lease.
   if (options.persist) {
-    onProgress({ stage: "write-cache", message: "Writing updated cache to disk...", percent: 95 });
-    await writeJsonCache(range.key, result);
+    onProgress({ stage: "write-cache", message: "Writing updated snapshot to Supabase...", percent: 95 });
+    await writeSharedCache(range.key, result);
     onProgress({ stage: "write-cache", message: "Incremental update complete!", percent: 100 });
   }
 
   return result;
 }
 
-/**
- * Which layer produced a runtime response. Surfaced to the API route as the
- * `X-Cache-Source` header so you can tell from the browser Network panel whether
- * a request was served from memory, the packaged baseline, or a live DB query.
- *
- *   - `l1-memory`     : served from the in-memory cache, ZERO DB work (fast).
- *   - `baseline-fresh`: the packaged baseline already covers the current bucket
- *                       (no boundary crossed since it was built) — returned as-is
- *                       with NO config read and NO DB query. Pure time arithmetic.
- *   - `single-flight` : joined an already-running merge for this range (fast).
- *   - `incremental-db`: packaged baseline + a DB query for the `baseline.to → now`
- *                       tail, merged in memory — AND it finished inside the SWR
- *                       wait window, so the caller got the fresh data directly.
- *   - `stale-swr`     : the refresh was still running after the SWR wait; the
- *                       expired baseline was served immediately (marked `stale`)
- *                       and the refresh keeps going — its result lands in L1.
- *   - `stale-baseline`: the refresh FAILED (DB blip); served the baseline as-is.
- *   - `full-db`       : no usable baseline; full re-aggregation from the DB (slow).
- */
-export type LiveFetchSource =
-  | "l1-memory"
-  | "baseline-fresh"
-  | "single-flight"
-  | "incremental-db"
-  | "stale-swr"
-  | "stale-baseline"
-  | "full-db";
+export type LiveFetchSource = CacheSource;
+export type LiveFetchResult = CacheResult<LiveTokenEconomicsPayload>;
 
-export interface LiveFetchResult {
-  payload: LiveTokenEconomicsPayload;
-  source: LiveFetchSource;
-  elapsedMs: number;
-}
-
-/** How long a request waits for the in-flight refresh before answering with
-    the stale baseline. Long enough for a warm incremental query to win the
-    race; short enough that a cold DB connection never holds first-byte. */
-const SWR_WAIT_MS = 1_200;
-/** L1 TTL for stale results — short so recovery is retried quickly. */
-const STALE_TTL_MS = 10_000;
-
-function cachePayload(range: LiveRangeKey, payload: LiveTokenEconomicsPayload): void {
-  const ttlMs = payload.stale ? STALE_TTL_MS : msUntilNextBoundary(new Date());
-  responseCache.set(range, { data: payload, expiresAt: Date.now() + ttlMs });
-}
-
-/** The actual refresh work — everything that may touch the DB lives here.
-    Runs at most once per range at a time (single-flight via `inFlight`). */
-async function refreshLivePayload(
-  requestedRange: string | null | undefined,
-  baseline: LiveTokenEconomicsPayload | null,
-  now: Date,
-): Promise<{ payload: LiveTokenEconomicsPayload; source: LiveFetchSource }> {
-  if (baseline) {
-    // Incrementally fetch only the new tail (baseline.to → now). Returns null
-    // when incremental isn't valid (e.g. bucket size changed) — then fall
-    // through to a full fetch.
-    const merged = await incrementallyUpdateCache(requestedRange, baseline, now);
-    if (merged) return { payload: merged, source: "incremental-db" };
-  }
-  return { payload: await fetchLiveTokenEconomics(requestedRange, now), source: "full-db" };
-}
-
-/**
- * Runtime entry point for the live leaderboard API. Designed for a read-only
- * serverless filesystem that CAN reach the DB:
- *
- *   1. L1 in-memory cache — serves concurrent bursts with zero DB load.
- *   2. Baseline boundary check (pure time arithmetic) — a packaged baseline
- *      that already reaches the current bucket IS the live answer.
- *   3. Stale-while-revalidate — an EXPIRED baseline is served immediately
- *      (marked `stale`) while a single-flight DB refresh runs; the request
- *      only waits SWR_WAIT_MS for it, so first-byte never blocks on a cold DB
- *      connection. The finished refresh always lands in L1 — on serverless the
- *      unfinished promise simply resumes on the next invocation (the client
- *      re-polls stale payloads quickly), so the refresh still lands without
- *      any background-execution guarantee.
- *   4. Fallbacks — refresh failure with a baseline serves the stale baseline;
- *      no baseline at all awaits one full fetch.
- *
- * Never writes to disk (`persist` is never set), so it is safe on read-only FS.
- * Returns the payload plus diagnostics (`source`, `elapsedMs`).
- */
+/** L1 → Supabase → incremental billing query → fenced Supabase commit. */
 export async function getLiveTokenEconomicsWithMeta(
   requestedRange: string | null | undefined,
   now = new Date(),
+  options: RefreshOptions = {},
 ): Promise<LiveFetchResult> {
-  const startedAt = Date.now();
-  const range = liveRangeOption(requestedRange);
-  const cacheKey = range.key;
-
-  // 1. L1 in-memory cache. Config fields are re-overlaid on every serve so an
-  // edit to config/token-economics-live-models.json (price, endDate…) shows up
-  // on the next request instead of waiting out the TTL / a cache rebuild.
-  const cached = responseCache.get(cacheKey);
-  if (cached && Date.now() < cached.expiresAt) {
-    return {
-      payload: await overlayLiveModelConfig({ ...cached.data, generatedAt: now.toISOString() }),
-      source: "l1-memory",
-      elapsedMs: Date.now() - startedAt,
-    };
-  }
-
-  // 2. Read the packaged JSON cache as the historical baseline — but prefer
-  // the last successful in-memory merge when it's fresher. The packaged file
-  // never advances on the read-only FS, so merging from disk alone re-queries
-  // a `disk.to → now` window that grows with deploy age until it times out;
-  // the expired L1 entry (never evicted from the map, only past its TTL) lets
-  // each refresh continue from the LAST merge instead. Lost on instance
-  // recycle — that just falls back to the disk baseline.
-  const raw = await readJsonCache(cacheKey);
-  const diskBaseline =
-    raw?.bucketSeconds && !Number.isNaN(Date.parse(raw.to)) ? compactLivePayload(raw) : null;
-  const expired = responseCache.get(cacheKey)?.data;
-  const memBaseline =
-    expired && !expired.stale && expired.bucketSeconds && !Number.isNaN(Date.parse(expired.to))
-      ? expired
-      : null;
-  const baseline =
-    memBaseline && (!diskBaseline || Date.parse(memBaseline.to) > Date.parse(diskBaseline.to))
-      ? memBaseline
-      : diskBaseline;
-
-  // 2a. BOUNDARY CHECK: if the baseline already reaches the current data-as-of
-  // boundary, no new bucket has closed since it was built — no DB needed. The
-  // packaged baseline still carries deploy-time config, so overlay the current
-  // config before serving.
-  if (baseline && new Date(baseline.to) >= currentDataAsOf(now, baseline.bucketSeconds)) {
-    const overlaid = await overlayLiveModelConfig(baseline);
-    cachePayload(cacheKey, overlaid);
-    return { payload: overlaid, source: "baseline-fresh", elapsedMs: Date.now() - startedAt };
-  }
-
-  // 3. Start (or join) the single-flight refresh. Completion always lands in
-  // L1 even if this request stops waiting for it below.
-  const joined = inFlight.has(cacheKey);
-  let work = inFlight.get(cacheKey);
-  if (!work) {
-    work = refreshLivePayload(requestedRange, baseline, now)
-      .then((result) => {
-        cachePayload(cacheKey, result.payload);
-        return result;
-      })
-      .finally(() => inFlight.delete(cacheKey));
-    // A refresh that fails AFTER the requester stopped waiting (SWR timeout)
-    // has no awaiter left — log it here so it never becomes an unhandled
-    // rejection. Requests racing `work` attach their own .catch.
-    work.catch((err) =>
-      console.warn(
-        `[token-economics/live] Background refresh for ${cacheKey} failed:`,
-        err instanceof Error ? err.message : err,
-      ),
-    );
-    inFlight.set(cacheKey, work);
-  }
-
-  if (baseline) {
-    // Stale-while-revalidate: give the refresh a short head start, then answer
-    // with the stale baseline. `work` keeps its own error path — a rejection
-    // here just means "serve stale now, retry on the next poll".
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const winner = await Promise.race([
-      work.catch(() => null),
-      new Promise<"timeout">((resolve) => {
-        timer = setTimeout(() => resolve("timeout"), SWR_WAIT_MS);
-      }),
-    ]).finally(() => clearTimeout(timer));
-
-    if (winner != null && winner !== "timeout") {
-      return {
-        payload: winner.payload,
-        source: joined ? "single-flight" : winner.source,
-        elapsedMs: Date.now() - startedAt,
-      };
-    }
-    if (winner == null) {
-      console.warn(
-        `[token-economics/live] Refresh for ${cacheKey} failed, serving stale baseline.`,
-      );
-    }
-    const stalePayload: LiveTokenEconomicsPayload = await overlayLiveModelConfig({
-      ...baseline,
-      stale: true,
-    });
-    cachePayload(cacheKey, stalePayload);
-    return {
-      payload: stalePayload,
-      source: winner == null ? "stale-baseline" : "stale-swr",
-      elapsedMs: Date.now() - startedAt,
-    };
-  }
-
-  // 4. No usable baseline — nothing to answer with but the refresh itself.
-  const { payload, source } = await work;
+  const range = liveRangeOption(requestedRange).key;
+  const id = snapshotId("token-economics", range);
+  const result = await sharedSnapshotCache().get<LiveTokenEconomicsPayload>({
+    key: snapshotKey(id), store: supabaseSnapshotStore(id), now, ...options,
+    valid: (value): value is LiveTokenEconomicsPayload => validEconomics(value, range),
+    fresh: (p, at) => Date.parse(p.to) >= currentDataAsOf(at, p.bucketSeconds).getTime(),
+    ttlMs: (_, at) => Math.min(15_000, msUntilNextBoundary(at)),
+    async load(baseline) {
+      if (baseline) {
+        const merged = await incrementallyUpdateCache(range, baseline, now);
+        if (merged) return { payload: merged, source: "incremental-db" };
+      }
+      return { payload: await fetchLiveTokenEconomics(range, now), source: "full-db" };
+    },
+  });
   return {
-    payload,
-    source: joined ? "single-flight" : source,
-    elapsedMs: Date.now() - startedAt,
+    ...result,
+    payload: await overlayLiveModelConfig({
+      ...compactLivePayload(result.payload),
+      dataLagSeconds: Math.max(0, Math.floor((now.getTime() - Date.parse(result.payload.to)) / 1000)),
+    }),
   };
 }
 
-/** Payload-only convenience wrapper around {@link getLiveTokenEconomicsWithMeta}. */
 export async function getLiveTokenEconomics(
   requestedRange: string | null | undefined,
   now = new Date(),

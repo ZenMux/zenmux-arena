@@ -1,247 +1,147 @@
 ---
 name: morphe-economics
-description: Fully independent deployment skill for ZenMux projects with live token economics / token deals dashboards. Automatically runs incremental pre-aggregation of live data (token-economics leaderboard AND token-deals ledger) and packages warm caches into deployment for instant cold starts. Does NOT depend on base morphe skill - all scripts are bundled directly. Use when deploying ZenMux Arena or any project with the live dashboards to get zero-timeout instant page loads.
+description: Deploy ZenMux Arena to Morphe with Supabase shared snapshots for Token Economics and Token Deals. Checks schema, server write access and migrated data, then builds, packages and deploys Next.js standalone without local cache or credential files. Includes optional shared-data refresh and independent freshness reporting. All deployment scripts are bundled in this skill.
 ---
 
-# Morphe Economics (ZenMux Token Economics Optimized Deploy)
+# Morphe Economics
 
-## Overview
-**Fully independent deployment skill** for ZenMux Arena and other projects with live token economics dashboards. Does **NOT** depend on the base `morphe` skill - all required scripts are bundled directly in this skill directory. Key features:
-- 🚀 **Automatic incremental pre-aggregation** of token economics data before build
-- 🔥 **Instant cold starts**: Warm cache packaged directly into deployment, no DB queries on first visit
-- ⚡ **Blazing fast pre-deploy step**: Incremental caching only fetches new data since last run (typically 1-5 seconds, not minutes)
-- 🛡️ **Non-blocking design**: If pre-aggregation fails for any reason, deployment proceeds normally and the app does a one-time full DB fetch on first request (read-only runtime never writes; the L1 in-memory cache absorbs the rest)
-- 📦 **Self-contained**: All deploy scripts are included, no external dependencies on other skills
+Run from the project root. Scripts are under `.agents/skills/morphe-economics/scripts/`.
+The target is Morphe (`custom.debian11`, linux-x64-gnu); it starts `node server.js`.
+This skill is self-contained and does not require the base Morphe skill.
 
-## Usage
-Invoke directly with: `/morphe-economics [app-name]`
-- If app name is not provided, defaults to the current directory name (for this repo: `arena`)
+## Data model
 
-## Workflow (Fully Automated, Run All Steps In Order)
-Execute all steps below from the project root, using scripts bundled inside `.agents/skills/morphe-economics/scripts/` (no external dependencies).
+Arena follows Insights' shared-snapshot flow: memory → Supabase → a bounded,
+read-only billing query → a Supabase commit. A visit triggers refresh after the
+current data boundary expires. Other visitors and newly started instances read
+the same snapshot. Next `after()` keeps refresh, persistence and lease release
+alive after a stale response is sent.
 
----
+- `arena_snapshot_cache`: current snapshots for both modules and both ranges.
+- `arena_cache_leases`: cross-instance refresh exclusion; expired workers cannot
+  publish and older cutoffs cannot overwrite newer data.
+- `arena_cache_archives`: immutable imports and backfill checkpoints.
+- Only the server Secret Key (or legacy service-role key) can access these tables.
+  Publishable keys cannot write or directly read the private cache tables.
+- No `.cache/token-economics` or `.cache/token-deals` file is needed at runtime.
+  Deploying code neither resets snapshots nor refreshes billing data by itself.
+- Preserve the PAYG/subscription split, deal-window semantics, bucket overlap,
+  and bounded full-ledger catch-up when changing maintenance scripts.
 
-### Step 1: Ensure Logged In
-Log in via the browser — **never ask the user for a username or password**:
+Implementation and recovery details: [shared cache](../../../docs/shared-cache.md).
+
+## Deployment workflow
+
+### 1. Inspect the target and credentials
+
+Inspect the existing `.morphe.json` and reuse its function name. A new name is
+needed only when the user asks for a new function or none is configured.
 
 ```bash
 bash .agents/skills/morphe-economics/scripts/login.sh
 ```
 
-This works like `gh auth login` / `vercel login`: the user only clicks in the browser, no copy-pasting tokens.
+The login script reuses `~/.morphe/auth.json`; otherwise it opens the browser
+OAuth flow. Surface `OPEN_AUTH` if manual navigation is needed. Stop on failure;
+never ask for a username/password or print keys.
 
-- If a valid `accessToken` already exists in `~/.morphe/auth.json`, the script reuses it and skips the browser (prints `AUTH_OK=1` immediately).
-- Otherwise it starts a local callback server, opens the browser to `morphe.zenmux.app/cli-auth` (prints `OPEN_AUTH=<url>` — surface this to the user in case the browser can't auto-open), and waits. The user logs in (password or Google) and clicks **「授权并返回终端」**; the browser POSTs the token back and the script writes it to `~/.morphe/auth.json`.
-- On success the script prints `AUTH_OK=1`. To force a fresh login (e.g. switch accounts), run `bash .agents/skills/morphe-economics/scripts/login.sh --force`.
-- If the script errors or times out (no `AUTH_OK=1`), report the error and stop.
+Ensure the **Morphe function environment**, not just the local build environment,
+contains `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`),
+and the existing `TOKEN_ECON_LIVE_DB_*` and aggregation settings. Server variables
+are read at runtime. `NEXT_PUBLIC_*` values are fixed when building and are not
+a substitute for server secrets. Follow the current API in [api.md](references/api.md)
+when inspecting the configured function. Report missing runtime configuration.
 
----
+### 2. Check shared-data readiness
 
-### Step 2: Resolve Function Name
-Use the provided app name or detect from directory name:
-```bash
-APP_NAME="${1:-$(basename "$PWD")}"
-echo "🚀 Deploying to Morphe function: $APP_NAME"
-python3 .agents/skills/morphe-economics/scripts/morphe.py set-function-name --name "$APP_NAME" 2>/dev/null || echo "ℹ️  Function name already set"
-```
-
----
-
-### Step 3: Bump Version (auto-increment, runs BEFORE the build)
-Increment `package.json`'s version so the in-app build badge advances on every
-deploy. This **must** run before `pnpm build` — `next.config.ts` reads
-`package.json`'s `version` at build time and bakes it into the bundle, so a bump
-after the build would not ship.
-
-Default behavior is a **minor bump** (`X.Y.Z → X.(Y+1).0`, e.g. `0.22.0 →
-0.23.0`) — what the user calls "+0.1". The script edits `package.json` in place,
-preserving its formatting (only the version line changes):
-```bash
-echo ""
-echo "=== Bumping app version (minor +1 by default) ==="
-python3 .agents/skills/morphe-economics/scripts/morphe.py bump-version
-```
-Variations (only if explicitly requested):
-- Patch fix: `... bump-version --part patch`   (`0.22.0 → 0.22.1`)
-- Major release: `... bump-version --part major` (`0.22.0 → 1.0.0`)
-- Pin exact: `... bump-version --set 1.0.0`
-
-> The bumped `package.json` is part of the deploy diff — commit it (or let it
-> ride as a working-tree change). The build badge then reads `v0.23.0` while the
-> git sha + build time auto-refresh on their own (see `next.config.ts` /
-> `src/components/BuildStamp.tsx`).
-
----
-
-### Step 4: Run Incremental Pre-Aggregation
-This step warms the live caches before building — **both** the token-economics
-leaderboard (`.cache/token-economics/live/`) and the token-deals ledger
-(`.cache/token-deals/`) — using incremental updates to minimize runtime:
 ```bash
 bash .agents/skills/morphe-economics/scripts/predeploy.sh
 ```
-This script automatically:
-- Detects which live precompute scripts the project has
-  (`tokenecon:precompute`, `tokendeals:precompute`) and runs each one that
-  exists; the two refresh independently, so one failing never blocks the other
-- Loads environment variables from `.env.local` (the precompute scripts do
-  this themselves via dotenv)
-- Runs **incremental** pre-aggregation: only fetches new data since last cache + a small bucket overlap to fix late-arriving DB records
-- Automatically cleans up DB connections so it doesn't hang
-- Never fails the deployment on precompute errors (just warns loudly and continues)
-- Prints a **data-freshness report** before AND after refresh — each range's
-  actual data cutoff (`to`) and how many minutes it lags `now` — so a daily
-  deploy can confirm at a glance that the shipped baseline really advanced. If
-  precompute fails it prints a loud banner naming the (unchanged, stale)
-  baseline it is about to ship.
 
----
+This checks schema/RPC availability, read/write isolation, refresh locking, and
+all four usable current snapshots. It does **not** query the billing source or
+run migration on every deployment. Missing schema or data is a failed readiness
+gate: fix it before packaging a release that relies on shared snapshots.
 
-### Step 5: Verify Build Configuration
-Ensure Next.js is configured to include the `.cache` directory in standalone output. For this project, it's already pre-configured, but automatically add it if missing:
+First-time migration only:
+
 ```bash
-if ! grep -q '\.cache/\*\*' next.config.ts 2>/dev/null && ! grep -q '\.cache/\*\*' next.config.js 2>/dev/null; then
-  echo "🔧 Adding .cache to outputFileTracingIncludes in next config..."
-  # Auto-add config if missing (edit next.config.ts appropriately)
-fi
+pnpm supabase:setup
+pnpm cache:migrate --dry-run
+pnpm cache:migrate
+pnpm cache:migrate --verify-only
+pnpm supabase:check --require-data
 ```
-Required config (Next.js 15+ — `outputFileTracingIncludes` is a **top-level**
-key, NOT under `experimental`; one entry per live API route that reads the
-packaged cache):
-```ts
-const nextConfig: NextConfig = {
-  output: "standalone",
-  outputFileTracingIncludes: {
-    "/api/token-economics/live/**": ["./.cache/**"],
-    "/api/token-deals/live/**": ["./.cache/**"],
-  },
-};
-```
-> This makes `next build`'s tracer pull `.cache/**` into `.next/standalone/`.
-> Step 6 below ALSO copies it in by hand — that's deliberate belt-and-braces:
-> the trace include can miss freshly-written files depending on build timing,
-> so the explicit copy guarantees the just-refreshed baseline is packaged.
 
----
+Schema setup needs `SUPABASE_ACCESS_TOKEN` or `SUPABASE_DB_URL`; runtime does not.
+If neither is available, use `pnpm supabase:sql` in the project's SQL Editor.
+Import reads the existing `.cache` files, archives every source, verifies all
+fields after the JSONB round trip, and promotes only current snapshots. Reruns
+preserve newer shared data. Keep the local originals as rollback evidence.
 
-### Step 6: Production Build
-Run standard Next.js production build:
+### 3. Optional data refresh
+
+When the user asks to refresh data as part of the release:
+
 ```bash
-echo ""
-echo "=== Building production bundle ==="
+bash .agents/skills/morphe-economics/scripts/predeploy.sh --refresh
+```
+
+This runs both maintenance refreshes independently, writing Supabase directly.
+A failed refresh does not erase the existing snapshot. Report the two outcomes
+and actual cutoffs separately; a successful build/deploy does not prove freshness.
+If usable snapshots remain, a degraded refresh permits deployment. Full ledger
+recovery is an explicit `pnpm tokendeals:backfill`, which checkpoints to Supabase.
+Do not run an expensive full backfill on every release.
+
+### 4. Version, validation and build
+
+For an actual release, bump the version **before** building. Preserve Arena's
+existing minor-bump convention unless the user requests another version:
+
+```bash
+python3 .agents/skills/morphe-economics/scripts/morphe.py bump-version
+pnpm cache:test
+pnpm exec tsc --noEmit
+pnpm lint
 pnpm build
 ```
 
----
+Do not bump or deploy for a request limited to refactoring or local verification.
+See [nextjs-config.md](references/nextjs-config.md) for native binaries and pnpm.
+Keep `output: "standalone"`, required public/config files, and the existing
+research viewer assets. Exclude `.cache/**`, `.env*` and `.npmrc` from tracing.
+Never copy cache files into standalone or add them back to tracing includes.
 
-### Step 7: Copy Caches into Standalone Before Packaging
-The morphe.py packager handles copying `.next/static` and `public/` automatically. We only need to copy the `.cache` directories into `.next/standalone/` so they get included in the zip:
+### 5. Package and verify
+
 ```bash
-echo ""
-echo "=== Copying live caches into standalone ==="
-if [ -d ".cache/token-economics/live" ] && [ "$(ls -A .cache/token-economics/live)" ]; then
-  mkdir -p .next/standalone/.cache/token-economics/live
-  cp -f .cache/token-economics/live/*.json .next/standalone/.cache/token-economics/live/
-  echo "✅ Token economics cache staged in standalone dir"
-else
-  echo "ℹ️  No token-economics cache found; runtime will do a one-time full DB fetch on first request (no baseline packaged)"
-fi
-if [ -d ".cache/token-deals" ] && ls .cache/token-deals/*.json >/dev/null 2>&1; then
-  mkdir -p .next/standalone/.cache/token-deals
-  cp -f .cache/token-deals/*.json .next/standalone/.cache/token-deals/
-  echo "✅ Token deals cache staged in standalone dir"
-else
-  echo "ℹ️  No token-deals cache found; runtime will do a one-time full DB fetch on first request (no baseline packaged)"
-fi
-```
-> **Note**: morphe.py already handles `.next/static` and `public/` during the package step — do NOT manually cp those, it would duplicate them.
-
----
-
-### Step 8: Package Deployment Zip (Use official morphe packager)
-Use the bundled morphe.py package command for Next.js - it automatically handles native binary pruning for linux-x64, fixes pnpm symlink issues, and preserves symlinks to reduce package size:
-```bash
-echo ""
-echo "=== Packaging deployment (linux-x64 optimized) ==="
-python3 .agents/skills/morphe-economics/scripts/morphe.py package --framework nextjs
-
-# morphe.py writes code.zip to the PROJECT ROOT (not .next/code.zip)
-PACKAGE_SIZE=$(ls -lh code.zip | awk '{print $5}')
-echo "📦 Deployment package: code.zip ($PACKAGE_SIZE)"
-
-# Verify server.js is at the zip root and cache is included
-if ! unzip -l code.zip | grep -qE "^[[:space:]]+[0-9]+ .+ server\.js$"; then
-  echo "❌ Error: server.js not found at zip root, deployment would fail!"; exit 1
-fi
-if unzip -l code.zip | grep -q ".cache/token-economics/live/.*\.json"; then
-  echo "✅ Token-economics cache verified in deployment package (instant cold start guaranteed)"
-else
-  echo "⚠️  Warning: token-economics cache not found in package; runtime will do a one-time full DB fetch on first request"
-fi
-if unzip -l code.zip | grep -q ".cache/token-deals/.*\.json"; then
-  echo "✅ Token-deals cache verified in deployment package (instant cold start guaranteed)"
-else
-  echo "⚠️  Warning: token-deals cache not found in package; runtime will do a one-time full DB fetch on first request"
-fi
+python3 .agents/skills/morphe-economics/scripts/morphe.py package --project-root . --framework nextjs
+python3 .agents/skills/morphe-economics/scripts/verify-package.py code.zip
 ```
 
----
+The packager stages public/static assets, repairs pnpm links, prunes native
+binaries for linux-x64-gnu, removes local caches/credentials, and creates a zip
+with `server.js` at its root. Verification fails on leaked cache/credential files
+or missing required runtime assets. Never copy `.env.local` into the package.
 
-### Step 9: Deploy to Morphe
-Upload and deploy, with one automatic retry on transient timeout errors:
+### 6. Deploy and verify runtime behavior
+
 ```bash
-echo ""
-echo "=== Deploying to Morphe ==="
-if ! python3 .agents/skills/morphe-economics/scripts/morphe.py deploy --zip code.zip --timeout 3600; then
-  echo "⚠️  First deploy attempt hit transient timeout, retrying..."
-  sleep 5
-  python3 .agents/skills/morphe-economics/scripts/morphe.py deploy --zip code.zip --timeout 3600
-fi
-
-echo ""
-echo "🎉 Deployment complete!"
-echo "💡 Token economics page will load instantly from pre-built cache"
+python3 .agents/skills/morphe-economics/scripts/morphe.py deploy --zip code.zip --project-root . --timeout 3600
 ```
 
----
+If the deploy call times out, inspect the actual function state before retrying;
+do not assume every error is transient or blindly redeploy a successful release.
 
-## Deploy Guarantees
-| Metric | Standard morphe deploy | morphe-economics deploy |
-|--------|-------------------------|--------------------------|
-| Pre-deploy pre-aggregation | ❌ Manual, full fetch every time | ✅ Automatic incremental fetch (~1-5s) |
-| Cold start first visit latency | 10-60s (DB aggregation, risk of timeout) | <100ms (reads local JSON cache) |
-| DB connection dependency at startup | Required | Not needed for initial load (stale cache returned while refreshing) |
-| Deployment failure risk | Precompute failures can block deploy | Precompute errors just warn, deploy always proceeds |
-| External dependencies | Requires base morphe skill | ❌ None (fully self-contained, all scripts bundled) |
-| Cache persistence across deployments | ❌ Fresh cold cache every deploy | ✅ Cache packaged into artifact, warm immediately on boot |
+Use ordinary GETs against the returned live domain (HEAD may be rejected by the
+gateway). Verify `/token-economics`, `/token-deals`, `/token-deals/ladder`, and
+both `/api/token-*/live?range=all|72h` routes. Inspect `X-Cache-Source`,
+`X-Cache-Persistence`, `to`, `stale`, and `live`. An HTTP 200 with stale or degraded
+data is not proof that refresh persisted. Re-read shared metadata after a refresh
+and confirm another cold process serves it with no repeated billing query.
 
-## Cache Architecture on Production
-The production filesystem is **read-only**: the runtime never writes the cache,
-it only reads the packaged JSON baseline and queries the DB for the new tail.
-After deployment, the token economics API serves a live leaderboard like this:
-1. **L1 In-memory cache** (10s TTL): serves hot concurrent bursts with zero DB load.
-2. **Single-flight**: at most one incremental DB query per range runs at a time;
-   concurrent callers share its result.
-3. **Baseline + incremental tail**: the packaged `.cache/<range>.json` is the
-   historical baseline (all older buckets, reused as-is). Each request queries
-   the DB **only** for `baseline.to → now` (plus a small overlap for late data)
-   and merges in memory. The bulk of the series is never re-queried, so the live
-   number stays current without a full re-aggregation.
-4. **Stale fallback**: if the incremental DB query fails (transient blip), the
-   packaged baseline is served with `stale: true` so the page never hard-fails.
-
-The runtime is **read-only**: it never writes to disk. The only writers are the
-`tokenecon:precompute` / `tokendeals:precompute` steps on the writable build
-machine, whose output is packaged into the deploy artifact (Step 7). The
-token-deals ledger (`/api/token-deals/live`) follows the exact same 4-layer
-chain with its own baseline files in `.cache/token-deals/{all,72h}.json`.
-
-## Fallback Behavior
-If *anything* goes wrong with pre-aggregation (DB down, network issues, script errors):
-1. Clear warning is printed during deployment
-2. Deployment continues normally and succeeds
-3. The deployed app ships without a packaged baseline; on the first request the
-   runtime does one full DB fetch (slower cold start) and serves it from the L1
-   in-memory cache. It still never writes to the read-only disk.
-4. No data loss, no downtime, no broken functionality - pre-aggregation is purely a performance optimization.
+Report release status, each refresh outcome, the data cutoffs, and any runtime
+configuration/degradation separately. Never promise a fixed cold-start latency.
+Inspect generated version/`.morphe.json` changes. Commit/push only within the
+user's authorized release scope and keep unrelated working-tree edits intact.

@@ -654,7 +654,7 @@ function FinePrint({
   return (
     <div className="mx-auto w-full max-w-[1800px] px-4 py-8 sm:px-8">
       {/* suppressHydrationWarning: formatStamp/localZone render in the server's
-          timezone during SSR of the packaged initialData. */}
+          timezone during SSR of the shared initialData. */}
       <p
         suppressHydrationWarning
         className="font-[family-name:var(--font-deals-mono)] text-[10px] font-semibold uppercase leading-relaxed tracking-[0.08em] text-white/40"

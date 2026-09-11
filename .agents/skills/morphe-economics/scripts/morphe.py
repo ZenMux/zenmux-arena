@@ -543,6 +543,34 @@ def _prune_and_place_bindings(standalone):
         print(f"  linked linux binding to top level: {pkg_name}", file=sys.stderr)
 
 
+def _scrub_runtime_files(standalone):
+    """Remove local snapshot caches and credential files before zipping.
+
+    Shared data lives in Supabase; credentials live in the function environment.
+    Deletion failures abort packaging instead of silently leaking a secret.
+    """
+    removed = []
+    for root, dirs, files in os.walk(standalone, followlinks=False):
+        dirs[:] = [name for name in dirs if name != "node_modules"]
+        for name in list(dirs):
+            if name == ".cache" or name.startswith(".env"):
+                target = Path(root) / name
+                if target.is_symlink():
+                    target.unlink()
+                else:
+                    shutil.rmtree(target)
+                dirs.remove(name)
+                removed.append(str(target.relative_to(standalone)))
+        for name in files:
+            if name.startswith(".env") or name == ".npmrc":
+                target = Path(root) / name
+                target.unlink()
+                removed.append(str(target.relative_to(standalone)))
+    for relative in removed:
+        print(f"  removed local-only artifact: {relative}", file=sys.stderr)
+    return removed
+
+
 def _dir_size(path):
     total = 0
     for root, _dirs, files in os.walk(path):
@@ -851,6 +879,8 @@ def cmd_package(args):
     _prune_and_place_bindings(standalone)
     print("repairing partial top-level packages...", file=sys.stderr)
     _repair_partial_packages(standalone)
+
+    _scrub_runtime_files(standalone)
 
     # Zip from INSIDE standalone (so server.js is at the zip root) but write the
     # archive OUTSIDE it. `-y` stores symlinks instead of following them: the runtime

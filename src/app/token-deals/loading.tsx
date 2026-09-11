@@ -1,7 +1,7 @@
 // Route-level loading UI for every Token Deals surface. Because the nav lives
 // in layout.tsx, a Board↔Ladder↔About click keeps the ticker bar in place and
 // swaps only the body for this skeleton — the navigation feels instant even
-// though the pages are force-dynamic (they read the packaged baseline on the
+// though the pages are force-dynamic (they read the shared snapshot on the
 // server per request). Shape is deliberately generic: a masthead band + stat
 // panels + content strips reads plausibly as any of the three pages.
 
