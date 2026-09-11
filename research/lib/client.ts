@@ -1,13 +1,19 @@
 // Anthropic SDK client factory, pointed at the ZenMux Messages endpoint.
 
 import Anthropic from "@anthropic-ai/sdk";
-import type { StudyConfig } from "./types";
+
+export interface ZenMuxClientConfig {
+  api: {
+    baseURL: string;
+    apiKeyEnv: string;
+  };
+}
 
 /**
  * Build an Anthropic client targeting ZenMux. We set `maxRetries: 0` because retry/backoff
  * is owned by limiter.ts (withRetry) for unified logging, jitter, and error classification.
  */
-export function makeClient(cfg: StudyConfig): Anthropic {
+export function makeClient(cfg: ZenMuxClientConfig): Anthropic {
   const apiKey = process.env[cfg.api.apiKeyEnv];
   if (!apiKey) throw new Error(`Missing env ${cfg.api.apiKeyEnv}`);
   return new Anthropic({

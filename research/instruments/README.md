@@ -4,6 +4,8 @@ Research memo for the planned study: *do frontier LLMs differ in "MBTI personali
 Everything below was verified against primary sources (official PDFs / license pages), not
 secondary blog claims. Item banks live next to this file as JSON.
 
+Implementation-ready study design: [`LLM_MBTI_OEJTS_RESEARCH_PLAN.md`](./LLM_MBTI_OEJTS_RESEARCH_PLAN.md).
+
 ---
 
 ## 1. The headline constraint: the real MBTI is not usable

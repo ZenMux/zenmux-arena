@@ -1,0 +1,184 @@
+# =============================================================================
+# LLM personality profile study — OEJTS 1.2
+#
+# Model catalogue snapshot: 2026-09-11, https://zenmux.ai/api/v1/models
+# Selection rule: one newest general-purpose chat model per manufacturer,
+# excluding image-only, code-only, role-play-only, contributor, and models
+# without a manufacturer-operated provider route on ZenMux.
+#
+# Every id is pinned to the manufacturer-operated provider with the
+# `model_slug:provider_slug` syntax. Refresh and review this list immediately
+# before starting a new study run; a run pins this file into its result folder.
+# =============================================================================
+
+study:
+  id: llm-mbti-oejts
+  title: "LLM Personality Profiles with OEJTS 1.2"
+  description: "Sixteen independent OEJTS 1.2 administrations per model, through manufacturer-operated providers."
+
+catalog:
+  asOf: "2026-09-11"
+  source: "https://zenmux.ai/api/v1/models"
+  selectionRule: "Newest general-purpose chat model per manufacturer with a manufacturer-operated ZenMux provider route."
+
+api:
+  baseURL: "https://zenmux.ai/api/anthropic"
+  apiKeyEnv: "ZENMUX_API_KEY"
+  maxTokens: 2048
+  temperature: 0.7
+  modelConcurrency: 8
+  batchSize: 4
+  maxRetries: 6
+  retryBaseMs: 1000
+  retryCapMs: 60000
+
+instrument:
+  id: oejts-1.2
+  path: "research/instruments/oejts-1.2.json"
+  language: en
+  responseScale: 5
+  promptVersion: oejts-original-en-v1
+
+repeats: 16
+
+# A model gets a stable type only when BOTH rules pass:
+# 1. one unique full type occurs in a strict majority: at least 9/16;
+# 2. each of that type's four letters occurs at least 13/16 times.
+# Otherwise aggregate reports `no_stable_type`, while retaining the modal type.
+classification:
+  minModalCount: 9
+  minLetterCount: 13
+
+models:
+  - id: "openai/gpt-6-astra:openai"
+    baseModelId: "openai/gpt-6-astra"
+    manufacturer: openai
+    providerSlug: openai
+    label: "GPT-6 Astra"
+    catalogPublishDate: "2026-09-04"
+
+  - id: "anthropic/claude-fable-5.1:anthropic"
+    baseModelId: "anthropic/claude-fable-5.1"
+    manufacturer: anthropic
+    providerSlug: anthropic
+    label: "Claude Fable 5.1"
+    catalogPublishDate: "2026-09-01"
+
+  - id: "google/gemini-3.8-flash:google-vertex"
+    baseModelId: "google/gemini-3.8-flash"
+    manufacturer: google
+    providerSlug: google-vertex
+    label: "Gemini 3.8 Flash"
+    catalogPublishDate: "2026-09-02"
+
+  - id: "deepseek/deepseek-v4.1-flash:deepseek"
+    baseModelId: "deepseek/deepseek-v4.1-flash"
+    manufacturer: deepseek
+    providerSlug: deepseek
+    label: "DeepSeek V4.1 Flash"
+    catalogPublishDate: "2026-09-10"
+
+  - id: "qwen/qwen3.8-max-0902:alibaba"
+    baseModelId: "qwen/qwen3.8-max-0902"
+    manufacturer: qwen
+    providerSlug: alibaba
+    label: "Qwen3.8 Max 0902"
+    catalogPublishDate: "2026-09-02"
+
+  - id: "bytedance/doubao-seed-2.1-pro:volcengine"
+    baseModelId: "bytedance/doubao-seed-2.1-pro"
+    manufacturer: bytedance
+    providerSlug: volcengine
+    label: "Doubao Seed 2.1 Pro"
+    catalogPublishDate: "2026-06-23"
+
+  - id: "x-ai/grok-4.6:x-ai"
+    baseModelId: "x-ai/grok-4.6"
+    manufacturer: x-ai
+    providerSlug: x-ai
+    label: "Grok 4.6"
+    catalogPublishDate: "2026-08-13"
+
+  - id: "z-ai/glm-5.3-flash:bigmodel"
+    baseModelId: "z-ai/glm-5.3-flash"
+    manufacturer: z-ai
+    providerSlug: bigmodel
+    label: "GLM 5.3 Flash"
+    catalogPublishDate: "2026-08-26"
+
+  - id: "moonshotai/kimi-k3:moonshotai"
+    baseModelId: "moonshotai/kimi-k3"
+    manufacturer: moonshotai
+    providerSlug: moonshotai
+    label: "Kimi K3"
+    catalogPublishDate: "2026-07-17"
+
+  - id: "minimax/minimax-m3:minimax"
+    baseModelId: "minimax/minimax-m3"
+    manufacturer: minimax
+    providerSlug: minimax
+    label: "MiniMax M3"
+    catalogPublishDate: "2026-06-01"
+
+  - id: "baidu/ernie-5.1:baidu"
+    baseModelId: "baidu/ernie-5.1"
+    manufacturer: baidu
+    providerSlug: baidu
+    label: "ERNIE 5.1"
+    catalogPublishDate: "2026-05-09"
+
+  - id: "tencent/hy3:tencent-cloud"
+    baseModelId: "tencent/hy3"
+    manufacturer: tencent
+    providerSlug: tencent-cloud
+    label: "Hy3"
+    catalogPublishDate: "2026-07-06"
+
+  - id: "xiaomi/mimo-v2.5-pro:xiaomi"
+    baseModelId: "xiaomi/mimo-v2.5-pro"
+    manufacturer: xiaomi
+    providerSlug: xiaomi
+    label: "MiMo V2.5 Pro"
+    catalogPublishDate: "2026-04-23"
+
+  - id: "stepfun/step-3.7-flash:stepfun"
+    baseModelId: "stepfun/step-3.7-flash"
+    manufacturer: stepfun
+    providerSlug: stepfun
+    label: "Step 3.7 Flash"
+    catalogPublishDate: "2026-05-29"
+
+  - id: "meituan/longcat-2.0:longcat"
+    baseModelId: "meituan/longcat-2.0"
+    manufacturer: meituan
+    providerSlug: longcat
+    label: "LongCat 2.0"
+    catalogPublishDate: "2026-06-30"
+
+  - id: "inclusionai/ling-3.0-tiny:ant-ling"
+    baseModelId: "inclusionai/ling-3.0-tiny"
+    manufacturer: inclusionai
+    providerSlug: ant-ling
+    label: "Ling 3.0 Tiny"
+    catalogPublishDate: "2026-08-07"
+
+  - id: "mistralai/mistral-large-2512:mistral"
+    baseModelId: "mistralai/mistral-large-2512"
+    manufacturer: mistralai
+    providerSlug: mistral
+    label: "Mistral Large 3"
+    catalogPublishDate: "2025-12-02"
+
+  - id: "meta/muse-spark-1.3:meta"
+    baseModelId: "meta/muse-spark-1.3"
+    manufacturer: meta
+    providerSlug: meta
+    label: "Muse Spark 1.3"
+    catalogPublishDate: "2026-09-03"
+
+  - id: "sapiens-ai/agnes-2.5-flash:sapiens-ai"
+    baseModelId: "sapiens-ai/agnes-2.5-flash"
+    manufacturer: sapiens-ai
+    providerSlug: sapiens-ai
+    label: "Agnes 2.5 Flash"
+    catalogPublishDate: "2026-08-10"
