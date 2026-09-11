@@ -77,14 +77,14 @@ const TABLE = "valid_usage";
 const QUERY_HINT = "/*+ READ_CONSISTENCY(WEAK) PARALLEL(4) */";
 // Re-fetch this many trailing buckets on incremental merges so late-arriving
 // billing rows (backfills) still land. 3 days / 12 hours of overlap. This deep
-// sweep is for the WRITABLE scripts (precompute/backfill), which run once per
-// deploy and can afford it.
+// sweep is for explicit Supabase refresh/backfill commands with a longer
+// query budget than request-driven refreshes.
 const OVERLAP_BUCKETS: Record<number, number> = { [DAY]: 3, [HOUR]: 12 };
 // The runtime refreshes every 5 minutes, so re-querying 3 extra days of DAY
 // buckets on every poll is what pushed the healthy-path query to ~100s and
 // made it timeout-prone. One trailing day is enough for rows that arrive
 // minutes-to-hours late; anything later is swept up by an explicit maintenance
-// precompute (which keeps the deep overlap above).
+// refresh (which keeps the deep overlap above).
 const RUNTIME_OVERLAP_BUCKETS: Record<number, number> = { [DAY]: 1, [HOUR]: 12 };
 
 export async function readSharedCache(range: DealRangeKey): Promise<TokenDealsPayload | null> {
@@ -92,7 +92,7 @@ export async function readSharedCache(range: DealRangeKey): Promise<TokenDealsPa
   return validDeals(value, range) ? value : null;
 }
 
-export async function writeSharedCache(range: DealRangeKey, data: TokenDealsPayload): Promise<void> {
+async function writeSharedCache(range: DealRangeKey, data: TokenDealsPayload): Promise<void> {
   if (!validDeals(data, range)) throw new Error("Refusing to persist an invalid deals snapshot.");
   await writeSharedSnapshot(snapshotId("token-deals", range), data);
 }
@@ -508,7 +508,7 @@ function uniqueSlugs(deals: DealPeriod[]): string[] {
   return [...new Set(deals.map((d) => d.slug))];
 }
 
-/** Full re-aggregation straight from the DB (cold path / precompute). */
+/** Full re-aggregation straight from the DB (cold path / maintenance refresh). */
 export async function fetchTokenDeals(
   requestedRange: string | null | undefined,
   now = new Date(),
@@ -545,7 +545,7 @@ export interface IncrementalOptions {
   persist?: boolean;
   /** Cap on how far back a deal that's missing from the baseline may be
       queried. The serverless runtime keeps the default (a long-history entry
-      newly added to the config must be backfilled on a writable machine, not
+      newly added to the config must be backfilled with the maintenance commands, not
       cold-queried in a request); scripts pass Infinity. */
   maxNewDealLookbackMs?: number;
   /** Skip the "tail > 50% of the window" bail-out. Only the backfill script
@@ -572,7 +572,7 @@ const DEFAULT_NEW_DEAL_LOOKBACK_MS = 35 * DAY * 1000;
     query the DB only for the tail (baseline.to − overlap → now). Deals that
     appeared AFTER the snapshot was written (new config entries) get their
     window fetched up to the lookback cap. Returns null when the baseline isn't
-    usable. Exported for the precompute + backfill scripts. */
+    usable. Exported for the refresh + backfill commands. */
 export async function incrementallyUpdate(
   range: DealRangeKey,
   baseline: TokenDealsPayload,

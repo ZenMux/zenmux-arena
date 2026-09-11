@@ -1,6 +1,6 @@
 ---
 name: morphe-economics
-description: Deploy ZenMux Arena to Morphe with Supabase shared snapshots for Token Economics and Token Deals. Checks schema, server write access and migrated data, then builds, packages and deploys Next.js standalone without local cache or credential files. Includes optional shared-data refresh and independent freshness reporting. All deployment scripts are bundled in this skill.
+description: Deploy ZenMux Arena to Morphe with Supabase shared snapshots for Token Economics and Token Deals. Checks schema, server write access and shared-data readiness, then builds, packages and deploys Next.js standalone without local cache or credential files. Includes optional shared-data refresh and independent freshness reporting. All deployment scripts are bundled in this skill.
 ---
 
 # Morphe Economics
@@ -20,7 +20,7 @@ alive after a stale response is sent.
 - `arena_snapshot_cache`: current snapshots for both modules and both ranges.
 - `arena_cache_leases`: cross-instance refresh exclusion; expired workers cannot
   publish and older cutoffs cannot overwrite newer data.
-- `arena_cache_archives`: immutable imports and backfill checkpoints.
+- `arena_cache_archives`: verified historical archives and backfill checkpoints.
 - Only the server Secret Key (or legacy service-role key) can access these tables.
   Publishable keys cannot write or directly read the private cache tables.
 - No `.cache/token-economics` or `.cache/token-deals` file is needed at runtime.
@@ -63,21 +63,20 @@ all four usable current snapshots. It does **not** query the billing source or
 run migration on every deployment. Missing schema or data is a failed readiness
 gate: fix it before packaging a release that relies on shared snapshots.
 
-First-time migration only:
+For a new Supabase project:
 
 ```bash
 pnpm supabase:setup
-pnpm cache:migrate --dry-run
-pnpm cache:migrate
-pnpm cache:migrate --verify-only
+pnpm tokenecon:refresh
+pnpm tokendeals:backfill
 pnpm supabase:check --require-data
 ```
 
 Schema setup needs `SUPABASE_ACCESS_TOKEN` or `SUPABASE_DB_URL`; runtime does not.
 If neither is available, use `pnpm supabase:sql` in the project's SQL Editor.
-Import reads the existing `.cache` files, archives every source, verifies all
-fields after the JSONB round trip, and promotes only current snapshots. Reruns
-preserve newer shared data. Keep the local originals as rollback evidence.
+The historical JSON migration is complete. Its local files and one-time import
+command have been removed. Existing deployments reuse their Supabase snapshots;
+historical recovery uses immutable Supabase archives or explicit source backfill.
 
 ### 3. Optional data refresh
 

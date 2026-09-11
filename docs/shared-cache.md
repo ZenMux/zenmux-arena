@@ -44,13 +44,10 @@ Only the server has data-plane access. The browser uses Arena's existing APIs.
 RPCs are `SECURITY INVOKER`, restricted to `service_role`, with a fixed search path.
 `arena_cache_archives` grants the service role INSERT/SELECT only.
 
-## Setup and historical import
+## Setup and recovery
 
 ```bash
 pnpm supabase:setup
-pnpm cache:migrate --dry-run
-pnpm cache:migrate
-pnpm cache:migrate --verify-only
 pnpm supabase:check --require-data
 ```
 
@@ -59,20 +56,20 @@ Setup applies `supabase/schema.sql` idempotently, using `SUPABASE_ACCESS_TOKEN`
 by the deployed runtime. Without either, `pnpm supabase:sql` prints the SQL for
 the project's SQL Editor.
 
-Import recursively reads `.cache/token-economics` and `.cache/token-deals`,
-including backups. `--cache-root /absolute/path` selects a different source root.
-Every file is inserted into the immutable archive and read back for a canonical
-SHA-256 comparison of every JSON field. Original source-byte hashes are retained
-as provenance. Only the four current files are promoted to active snapshots;
-backup files never become live data. Existing newer shared snapshots win. Reruns
-are idempotent, and local originals are never modified or deleted. Verification
-reports are written under `.cache/migration-reports/`, outside the deploy artifact.
+The JSON migration is complete: four live snapshots and five verified historical
+archives are stored in Supabase. Local cache files, import reports and the
+one-time import command have been retired. Recovery uses the shared snapshots,
+immutable Supabase archives, or a deliberate source backfill.
+
+For a new empty database, run `pnpm tokenecon:refresh` and
+`pnpm tokendeals:backfill`, then repeat the readiness check. These commands write
+Supabase directly; no local cache directory is created.
 
 ## Maintenance and deployment
 
 ```bash
-pnpm tokenecon:precompute    # deep-overlap incremental refresh to Supabase
-pnpm tokendeals:precompute  # independent Deals refresh to Supabase
+pnpm tokenecon:refresh      # deep-overlap incremental refresh to Supabase
+pnpm tokendeals:refresh     # independent Deals refresh to Supabase
 pnpm tokendeals:backfill    # resumable chunks + an immutable completed archive
 pnpm cache:test             # isolated cache lifecycle/concurrency/failure tests
 pnpm supabase:test          # SQL assertions; needs a DDL connection, rolls back probes
@@ -90,7 +87,7 @@ not establish freshness or successful persistence.
 
 `supabase/tests/cache.sql` runs transactional SQL checks for role grants/RLS,
 insert/update, lock exclusion, monotonic writes and stale-owner fencing. Execute
-with psql or the Management API; its probes roll back. Local migration sources
-and immutable archives remain available for recovery. Do not restore an older
+with psql or the Management API; its probes roll back. Immutable Supabase archives
+remain available for recovery. Do not restore an older
 snapshot over a newer active cutoff; inspect an archive separately or restore
 to a new schema version after reviewing the intended data change.

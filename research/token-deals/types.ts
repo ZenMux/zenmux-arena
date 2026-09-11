@@ -9,7 +9,7 @@
 import type { VendorId } from "@research/lib/types";
 
 /** Payload schema version. Bumped when the money口径 or deal shape changes so
-    an old packaged baseline is never incrementally extended with mismatched
+    an old shared snapshot is never incrementally extended with mismatched
     semantics. v2: deals discovered from model_discount/model tables, SAVED =
     Σ valid_usage.discount_amount. v3: subscription traffic included (origin ×
     same-period per-provider factor), PAYG/subscription split carried on every
@@ -63,7 +63,7 @@ export interface DealPeriod {
   startDate: string; // YYYY-MM-DD, inclusive (00:00 UTC)
   endDate: string | null; // YYYY-MM-DD, inclusive (window closes at endDate 24:00 UTC)
   /** Model listing date from the `model` table (publish_time, YYYY-MM-DD);
-      null when unknown (or on legacy packaged baselines). Display-only. */
+      null when unknown (or on legacy shared snapshots). Display-only. */
   publishTime: string | null;
   /** Model hidden or removed on the main site — keep the card, drop the link. */
   delisted: boolean;
@@ -95,7 +95,7 @@ export function dealRangeOption(key: string | null | undefined) {
 
 /** One time bucket of a deal's in-window usage, translated into money. Every
     field is additive (a DB sum, or origin × a fixed factor applied once at
-    aggregation time), so a packaged baseline can be incrementally extended by
+    aggregation time), so a shared snapshot can be incrementally extended by
     unioning buckets — nothing is recomputed on merge.
 
     paid/saved are TOTALS across both billing families; subPaid/subSaved are the
@@ -160,7 +160,7 @@ export interface TokenDealsPayload {
   to: string;
   /** false = degraded: deal facts only, all money fields null. */
   live: boolean;
-  /** Set when serving a stale packaged baseline after a DB blip. */
+  /** Set when serving a stale shared snapshot after a DB blip. */
   stale?: boolean;
   /** Last time a live aggregation succeeded (for the degraded banner). */
   lastSuccessAt: string | null;

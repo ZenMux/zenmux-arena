@@ -187,7 +187,7 @@ config/study.yaml
 
 ```bash
 pnpm tokenecon              # 本地运行 + 审计快照（写入 results/，已不是线上数据源）
-pnpm tokenecon:precompute   # 增量刷新 Supabase 共享快照
+pnpm tokenecon:refresh   # 增量刷新 Supabase 共享快照
 ```
 
 **日均上线指标**的定义：对每个模型，累加 `publishTime` 之后（含当天）前 14 个工作日（周一至周五）的每日 token 序列，除以已经过的工作日数（用量为零的一天也计入分母——低需求本身就是有效信号）。`LAUNCH_WINDOW_WORKING_DAYS = 14` 定义在 `research/token-economics/types.ts`；用量拉取逻辑在 `research/token-economics/usage.ts`。
@@ -232,10 +232,10 @@ ZenMux 正在为一批旗舰模型的 token 账单支付部分费用——这是
 ```bash
 pnpm tokendeals:sync        # 把计费数据库中的新优惠事实合并进 config/token-deals.json
 pnpm tokendeals:backfill     # （重新）构建完整的逐日账本
-pnpm tokendeals:precompute   # 增量刷新 Supabase 共享快照
+pnpm tokendeals:refresh   # 增量刷新 Supabase 共享快照
 ```
 
-**无服务器环境下的安全读取。** 线上接口会立即返回一份可能过期的基线数据（首字节响应在毫秒级），同时在后台竞速发起一次单飞的数据库刷新——冷启动路径永远不会退化成一次全量历史查询。
+**共享实时快照。** 线上接口读取 Supabase，过期后增量回源并写回；跨实例锁协调刷新，Next `after()` 跟踪后台任务。部署只打包代码和配置。初始化或回源失败时会显示实际的数据截止时间与降级状态。
 
 </details>
 
@@ -269,7 +269,7 @@ pnpm study:report      # aggregate.json → report.md
 pnpm dev               # http://localhost:3000
 ```
 
-Token Economics 与 Token Deals 通过 Supabase 共享快照提供实时数据：访问时读取快照，过期后增量查询计费库并写回，所有实例共享刷新结果。部署只打包代码和配置，不再携带本地 JSON 缓存。历史迁移、权限配置和回填步骤见 [数据链路说明](docs/shared-cache.md)，凭据见 `.env.example`。
+Token Economics 与 Token Deals 通过 Supabase 共享快照提供实时数据：访问时读取快照，过期后增量查询计费库并写回，所有实例共享刷新结果。部署只打包代码和配置，不再携带本地 JSON 缓存。共享快照、权限配置和回填步骤见 [数据链路说明](docs/shared-cache.md)，凭据见 `.env.example`。
 
 ---
 

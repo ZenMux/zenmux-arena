@@ -80,6 +80,7 @@ const nextConfig: NextConfig = {
   // resolve the same way they do in local dev.
   outputFileTracingIncludes: {
     "/*": ["./public/**/*", "./config/token-economics-live-models.json"],
+    "/": ["./config/token-deals.json"],
     "/api/token-deals/live/**": ["./config/token-deals.json"],
     "/token-deals/**": ["./config/token-deals.json"],
   },

@@ -49,7 +49,7 @@ async function check() {
       console.log(`OK ${snapshotKey(id)}: data through ${payload.to}, generated ${payload.generatedAt}`);
     }
   }
-  if (missing && process.argv.includes("--require-data")) throw new Error(`${missing} usable snapshots missing; import history or run backfill before deployment.`);
+  if (missing && process.argv.includes("--require-data")) throw new Error(`${missing} usable snapshots missing; run the Supabase refresh/backfill commands before deployment.`);
 }
 
 async function main() {

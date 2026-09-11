@@ -11,7 +11,7 @@ export const REFRESH_INTERVAL_SECONDS = 300;
 export const HOUR = 3600;
 export const DAY = 86400;
 
-/** Per-query timeout. Overridable so the writable scripts (precompute /
+/** Per-query timeout. Overridable so the maintenance commands (refresh /
     backfill), which don't care about first-byte latency, can run with a much
     larger budget than the serverless runtime — a chunk that needs 150s should
     succeed on the build machine, not die at 120s. */
@@ -91,7 +91,7 @@ export function getPool(): Pool {
   return pool;
 }
 
-/** For CLI scripts (precompute) so the process can exit cleanly. */
+/** For CLI refresh/backfill commands so the process can exit cleanly. */
 export async function closeDealsDbPool(): Promise<void> {
   if (pool) {
     await pool.end();

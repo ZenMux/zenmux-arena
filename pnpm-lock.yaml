@@ -14,9 +14,6 @@ importers:
       '@resvg/resvg-js':
         specifier: ^2.6.2
         version: 2.6.2
-      '@supabase/ssr':
-        specifier: ^0.12.7
-        version: 0.12.7(@supabase/supabase-js@2.116.0)
       '@supabase/supabase-js':
         specifier: ^2.116.0
         version: 2.116.0
@@ -1625,11 +1622,6 @@ packages:
   '@supabase/realtime-js@2.116.0':
     resolution: {integrity: sha512-MHAnlXxi2s6yiJsZsQMfs2B3RFxeVfQWxerqYhIMqcCQV/FuY3LIeouPEkXw/ah7wUWMLYwempF9MOCUScyddg==}
     engines: {node: '>=22.0.0'}
-
-  '@supabase/ssr@0.12.7':
-    resolution: {integrity: sha512-wiBtEie1KkRJi9RrZWY3R2imRhX1JY7qMyUCH2z9AUk15gQebNEplM+urbCKamdxaTJLXUU6LlpkJsaxhojCEg==}
-    peerDependencies:
-      '@supabase/supabase-js': ^2.114.0
 
   '@supabase/storage-js@2.116.0':
     resolution: {integrity: sha512-6/3hR6vccBP6oGM5B6RfbwZcTCKmQOodd/ZWQdsw8yJsU5zO/a//oBL6yLnmgxcjnHSrelW8rsO7hL5DPybyUQ==}
@@ -5710,11 +5702,6 @@ snapshots:
     dependencies:
       '@supabase/phoenix': 0.4.5
       tslib: 2.8.1
-
-  '@supabase/ssr@0.12.7(@supabase/supabase-js@2.116.0)':
-    dependencies:
-      '@supabase/supabase-js': 2.116.0
-      cookie: 1.1.1
 
   '@supabase/storage-js@2.116.0':
     dependencies:

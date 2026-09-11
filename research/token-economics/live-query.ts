@@ -17,7 +17,7 @@ import {
 import { loadLiveModelConfig } from "./live-models";
 import { snapshotId, snapshotKey, validEconomics } from "../cache/payload";
 import { supabaseSnapshotStore, writeSharedSnapshot } from "../cache/supabase";
-import { sharedSnapshotCache, type CacheSource, type CacheResult, type RefreshOptions } from "../cache/read-through";
+import { sharedSnapshotCache, type CacheResult, type RefreshOptions } from "../cache/read-through";
 
 export { LiveConfigError } from "./live-config";
 
@@ -34,13 +34,13 @@ export const LIVE_REFRESH_INTERVAL_SECONDS_ENV = "TOKEN_ECON_LIVE_REFRESH_INTERV
 const QUERY_TIMEOUT_ENV = "TOKEN_ECON_LIVE_QUERY_TIMEOUT_MS";
 const DEFAULT_QUERY_TIMEOUT_MS = 60_000;
 
-/** Shared snapshots are the only runtime baseline; JSON is an import format. */
+/** Supabase snapshots are the baseline for runtime and maintenance refreshes. */
 export async function readSharedCache(range: LiveRangeKey): Promise<LiveTokenEconomicsPayload | null> {
   const value = await supabaseSnapshotStore<LiveTokenEconomicsPayload>(snapshotId("token-economics", range)).read();
   return validEconomics(value, range) ? value : null;
 }
 
-export async function writeSharedCache(range: LiveRangeKey, data: LiveTokenEconomicsPayload): Promise<void> {
+async function writeSharedCache(range: LiveRangeKey, data: LiveTokenEconomicsPayload): Promise<void> {
   if (!validEconomics(data, range)) throw new Error("Refusing to persist an invalid economics snapshot.");
   await writeSharedSnapshot(snapshotId("token-economics", range), data);
 }
@@ -471,8 +471,8 @@ export interface FetchProgress {
 /**
  * Full re-aggregation of an entire range straight from the DB. This does NO
  * cache orchestration — callers decide caching. It is the cold-path fallback
- * behind {@link getLiveTokenEconomics} (when no baseline exists for incremental
- * merge) and the full-fetch path of the precompute script.
+ * behind {@link getLiveTokenEconomicsWithMeta} (when no baseline exists for incremental
+ * merge) and the full-fetch path of the maintenance refresh command.
  *
  * `persist` is for explicit maintenance commands. Request refreshes persist
  * through the shared coordinator while holding the database refresh lease.
@@ -812,7 +812,6 @@ export async function incrementallyUpdateCache(
   return result;
 }
 
-export type LiveFetchSource = CacheSource;
 export type LiveFetchResult = CacheResult<LiveTokenEconomicsPayload>;
 
 /** L1 → Supabase → incremental billing query → fenced Supabase commit. */
@@ -843,11 +842,4 @@ export async function getLiveTokenEconomicsWithMeta(
       dataLagSeconds: Math.max(0, Math.floor((now.getTime() - Date.parse(result.payload.to)) / 1000)),
     }),
   };
-}
-
-export async function getLiveTokenEconomics(
-  requestedRange: string | null | undefined,
-  now = new Date(),
-): Promise<LiveTokenEconomicsPayload> {
-  return (await getLiveTokenEconomicsWithMeta(requestedRange, now)).payload;
 }

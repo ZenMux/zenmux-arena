@@ -18,7 +18,7 @@ import {
 // Load .env.local for local runs (Morphe deployments inject env vars directly)
 loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
 
-// Writable-machine run: same relaxed query budget as the backfill script (the
+// Maintenance refresh: same relaxed query budget as the backfill script (the
 // runtime keeps the tight default). Explicit env still wins.
 process.env.TOKEN_DEALS_QUERY_TIMEOUT_MS ||= "300000";
 
@@ -32,14 +32,14 @@ function summarize(payload: TokenDealsPayload): string {
   return `${payload.deals.length} deals (${freeCount} free), ${payload.from.slice(0, 10)} → ${payload.to}, ${split}`;
 }
 
-async function precomputeRange(range: DealRangeKey, index: number, total: number): Promise<void> {
-  const prefix = `[precompute-deals] [${index + 1}/${total}] ${range.padEnd(4)}`;
+async function refreshRange(range: DealRangeKey, index: number, total: number): Promise<void> {
+  const prefix = `[refresh-deals] [${index + 1}/${total}] ${range.padEnd(4)}`;
   const started = Date.now();
 
   const existing = await readSharedCache(range);
   if (existing) {
-    console.log(`${prefix} Found existing cache (data → ${existing.to}), attempting incremental update...`);
-    // Writable machine: no lookback cap — a newly-configured deal gets its
+    console.log(`${prefix} Found shared snapshot (data → ${existing.to}), attempting incremental update...`);
+    // Maintenance refresh: no lookback cap — a newly-configured deal gets its
     // whole window (the serverless runtime caps this instead).
     const merged = await incrementallyUpdate(range, existing, new Date(), {
       persist: true,
@@ -69,32 +69,32 @@ async function precomputeRange(range: DealRangeKey, index: number, total: number
 
 async function main() {
   const ranges = DEAL_RANGE_OPTIONS.map((r) => r.key);
-  console.log(`[precompute-deals] Starting pre-aggregation for ${ranges.length} ranges: ${ranges.join(", ")}`);
-  console.log(`[precompute-deals] Shared cache: Supabase arena_snapshot_cache (token-deals)`);
+  console.log(`[refresh-deals] Refreshing shared snapshots for ${ranges.length} ranges: ${ranges.join(", ")}`);
+  console.log(`[refresh-deals] Shared cache: Supabase arena_snapshot_cache (token-deals)`);
   console.log();
 
   const failures: Array<{ range: string; reason: unknown }> = [];
   for (let i = 0; i < ranges.length; i++) {
     try {
-      await precomputeRange(ranges[i], i, ranges.length);
+      await refreshRange(ranges[i], i, ranges.length);
     } catch (err) {
       failures.push({ range: ranges[i], reason: err });
-      console.error(`[precompute-deals] [${i + 1}/${ranges.length}] ${ranges[i]} ❌ Failed: ${err instanceof Error ? err.message : err}`);
+      console.error(`[refresh-deals] [${i + 1}/${ranges.length}] ${ranges[i]} ❌ Failed: ${err instanceof Error ? err.message : err}`);
     }
     console.log();
   }
 
   if (failures.length > 0) {
-    console.error(`[precompute-deals] ❌ ${failures.length}/${ranges.length} ranges failed.`);
+    console.error(`[refresh-deals] ❌ ${failures.length}/${ranges.length} ranges failed.`);
     await closeDealsDbPool();
     process.exit(1);
   }
-  console.log(`[precompute-deals] 🎉 All ranges pre-aggregated successfully!`);
+  console.log(`[refresh-deals] 🎉 All shared snapshots refreshed successfully!`);
   await closeDealsDbPool();
 }
 
 main().catch(async (err) => {
-  console.error("[precompute-deals] Fatal error:", err);
+  console.error("[refresh-deals] Fatal error:", err);
   await closeDealsDbPool();
   process.exit(1);
 });

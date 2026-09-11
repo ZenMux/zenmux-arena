@@ -23,6 +23,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
@@ -32,8 +33,11 @@ import { TOOLS } from "@/lib/tools";
 import { SpecimenPlate } from "./specimen-plate";
 import type { GraphData } from "@research/lib/types";
 import { GITHUB_MARK_PATH } from "@research/lib/branding";
+import { loadInitialDeals } from "./token-deals/initial-deals";
 
-/* ── Live data (unchanged loaders) ────────────────────────────────────────── */
+export const dynamic = "force-dynamic";
+
+/* ── Published research + shared live data ───────────────────────────────── */
 
 interface LiveStats {
   totalAnswers: number;
@@ -58,33 +62,23 @@ function loadLiveStats(): LiveStats | null {
   }
 }
 
-/** Token Deals mini metrics for its hub card, read from the packaged baseline
- *  cache (the config roster only holds deal facts; money and live status come
- *  from the aggregated ledger). Null when no baseline shipped. */
+/** The hub shares the board's Supabase snapshot and request-driven refresh. */
 interface DealsStats {
   activeCount: number;
   bestDiscount: number | null;
 }
 
-function loadDealsStats(): DealsStats | null {
-  try {
-    const cachePath = path.join(process.cwd(), ".cache", "token-deals", "all.json");
-    const payload = JSON.parse(fs.readFileSync(cachePath, "utf8")) as {
-      activeCount?: number;
-      deals?: { dealType?: string; discount?: number; status?: string }[];
-    };
-    // Deepest factor among active PAID deals — free models (discount 0) would
-    // flatten "best cut ×0.17" to a meaningless ×0.00.
-    const activePaid = (payload.deals ?? []).filter(
-      (d) => d.status === "active" && d.dealType !== "free" && typeof d.discount === "number",
-    );
-    return {
-      activeCount: payload.activeCount ?? activePaid.length,
-      bestDiscount: activePaid.length ? Math.min(...activePaid.map((d) => d.discount!)) : null,
-    };
-  } catch {
-    return null;
-  }
+async function loadDealsStats(): Promise<DealsStats | null> {
+  const payload = await loadInitialDeals();
+  if (!payload) return null;
+  // Free models (factor 0) must not flatten the best paid discount to zero.
+  const activePaid = payload.deals.filter(
+    (d) => d.status === "active" && d.dealType !== "free",
+  );
+  return {
+    activeCount: payload.activeCount,
+    bestDiscount: activePaid.length ? Math.min(...activePaid.map((d) => d.discount)) : null,
+  };
 }
 
 /* ── The specimen ring ─────────────────────────────────────────────────────
@@ -109,10 +103,7 @@ interface IndexRow {
   accent: string;
 }
 
-function buildExperimentRows(
-  stats: LiveStats | null,
-  deals: DealsStats | null,
-): IndexRow[] {
+function buildExperimentRows(stats: LiveStats | null): IndexRow[] {
   const accents: Record<string, string> = {
     "who-are-you": "#2c6e49",
     "token-economics": "#b07d2b",
@@ -124,11 +115,6 @@ function buildExperimentRows(
       fact = `${(stats.totalAnswers / 1000).toFixed(1).replace(/\.0$/, "")}k answers · ${stats.models} models · ${stats.languages} languages · ${Math.round(stats.selfRate * 100)}% self-ID`;
     } else if (e.id === "token-economics") {
       fact = "basket 100k in + 1k out · anchored to DeepSeek V4 Pro";
-    } else if (e.id === "token-deals" && deals) {
-      fact =
-        deals.bestDiscount != null
-          ? `${deals.activeCount} deals live · best cut ×${deals.bestDiscount.toFixed(2)}`
-          : `${deals.activeCount} deals live`;
     }
     return {
       id: e.id,
@@ -156,8 +142,7 @@ function buildToolRows(): IndexRow[] {
 
 export default function Home() {
   const stats = loadLiveStats();
-  const deals = loadDealsStats();
-  const experimentRows = buildExperimentRows(stats, deals);
+  const experimentRows = buildExperimentRows(stats);
   const toolRows = buildToolRows();
 
   return (
@@ -211,9 +196,11 @@ export default function Home() {
       <section className="relative z-10 mx-auto mt-10 w-full max-w-6xl px-6 sm:px-10 md:mt-0">
         <IndexHeading no="I" title="Experiments" note="field studies, running live" />
         <ol>
-          {experimentRows.map((row, i) => (
-            <GiantRow key={row.id} row={row} index={i + 1} />
-          ))}
+          {experimentRows.map((row, i) => row.id === "token-deals" ? (
+            <Suspense key={row.id} fallback={<GiantRow row={row} index={i + 1} />}>
+              <LiveDealsRow row={row} index={i + 1} />
+            </Suspense>
+          ) : <GiantRow key={row.id} row={row} index={i + 1} />)}
         </ol>
 
         <IndexHeading no="II" title="Instruments" note="calculators & utilities" className="mt-20" />
@@ -257,6 +244,14 @@ export default function Home() {
 }
 
 /* ── Index heading — small roman numeral + rule ───────────────────────────── */
+
+async function LiveDealsRow({ row, index }: { row: IndexRow; index: number }) {
+  const deals = await loadDealsStats();
+  const fact = !deals ? null : deals.bestDiscount != null
+    ? `${deals.activeCount} deals live · best cut ×${deals.bestDiscount.toFixed(2)}`
+    : `${deals.activeCount} deals live`;
+  return <GiantRow row={{ ...row, fact }} index={index} />;
+}
 
 function IndexHeading({
   no,

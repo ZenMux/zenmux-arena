@@ -12,14 +12,14 @@ function formatPercent(p?: number): string {
   return `${p.toString().padStart(3)}%`;
 }
 
-async function precomputeRange(range: LiveRangeKey, index: number, total: number): Promise<void> {
-  const prefix = `[precompute-live] [${index + 1}/${total}] ${range.padEnd(4)}`;
+async function refreshRange(range: LiveRangeKey, index: number, total: number): Promise<void> {
+  const prefix = `[refresh-live] [${index + 1}/${total}] ${range.padEnd(4)}`;
   console.log(`${prefix} Starting...`);
 
-  // Try incremental update first if existing cache exists
+  // Use the latest shared snapshot for incremental updates
   const existing = await readSharedCache(range);
   if (existing) {
-    process.stdout.write(`\r${prefix} ${formatPercent(0)} Found existing cache (up to ${existing.to.slice(0, 16).replace("T", " ")}), attempting incremental update...`);
+    process.stdout.write(`\r${prefix} ${formatPercent(0)} Found shared snapshot (up to ${existing.to.slice(0, 16).replace("T", " ")}), attempting incremental update...`);
     const data = await incrementallyUpdateCache(range, existing, undefined, {
       persist: true,
       onProgress: (prog) => {
@@ -44,7 +44,7 @@ async function precomputeRange(range: LiveRangeKey, index: number, total: number
     console.log(`${prefix} Incremental update not possible, falling back to full refetch...`);
   }
 
-  // No existing cache or incremental failed: do full fetch
+  // No compatible shared snapshot: do full fetch
   const data = await fetchLiveTokenEconomics(range, undefined, {
     persist: true,
     onProgress: (prog) => {
@@ -63,23 +63,21 @@ async function precomputeRange(range: LiveRangeKey, index: number, total: number
 
 async function main() {
   const ranges = LIVE_RANGE_OPTIONS.map(r => r.key);
-  console.log(`[precompute-live] Starting pre-aggregation for ${ranges.length} ranges: ${ranges.join(", ")}`);
-  console.log(`[precompute-live] Shared cache: Supabase arena_snapshot_cache (token-economics)`);
-  console.log(`[precompute-live] Mode: incremental (only fetches new data since last cache, with ${12} bucket overlap for late data)`);
+  console.log(`[refresh-live] Refreshing shared snapshots for ${ranges.length} ranges: ${ranges.join(", ")}`);
+  console.log(`[refresh-live] Shared cache: Supabase arena_snapshot_cache (token-economics)`);
+  console.log(`[refresh-live] Mode: incremental (only fetches new data since last cache, with ${12} bucket overlap for late data)`);
   console.log();
-
-  // Force fetch fresh data from DB for precompute, advance the shared snapshot
 
   // Run sequentially for clearer progress output
   const results: Array<{ status: "fulfilled" | "rejected"; reason?: unknown; range: string }> = [];
   for (let i = 0; i < ranges.length; i++) {
     const range = ranges[i];
     try {
-      await precomputeRange(range, i, ranges.length);
+      await refreshRange(range, i, ranges.length);
       results.push({ status: "fulfilled", range });
     } catch (err) {
       results.push({ status: "rejected", reason: err, range });
-      console.error(`[precompute-live] [${i + 1}/${ranges.length}] ${range} ❌ Failed: ${err instanceof Error ? err.message : err}`);
+      console.error(`[refresh-live] [${i + 1}/${ranges.length}] ${range} ❌ Failed: ${err instanceof Error ? err.message : err}`);
     }
     console.log();
   }
@@ -87,15 +85,15 @@ async function main() {
   const failed = results.filter(r => r.status === "rejected");
   const succeeded = results.filter(r => r.status === "fulfilled");
 
-  console.log(`[precompute-live] ${"─".repeat(60)}`);
+  console.log(`[refresh-live] ${"─".repeat(60)}`);
   if (succeeded.length > 0) {
-    console.log(`[precompute-live] ✅ ${succeeded.length}/${ranges.length} ranges cached successfully:`);
+    console.log(`[refresh-live] ✅ ${succeeded.length}/${ranges.length} shared snapshots refreshed successfully:`);
     for (const r of succeeded) {
       console.log(`  - token-economics:${r.range}`);
     }
   }
   if (failed.length > 0) {
-    console.error(`[precompute-live] ❌ ${failed.length}/${ranges.length} ranges failed:`);
+    console.error(`[refresh-live] ❌ ${failed.length}/${ranges.length} ranges failed:`);
     failed.forEach((f) => {
       console.error(`  - ${f.range}: ${f.reason instanceof Error ? f.reason.message : f.reason}`);
     });
@@ -103,12 +101,12 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`[precompute-live] 🎉 All ranges pre-aggregated successfully!`);
+  console.log(`[refresh-live] 🎉 All shared snapshots refreshed successfully!`);
   await closeDbPool();
 }
 
 main().catch(async (err) => {
-  console.error("[precompute-live] Fatal error:", err);
+  console.error("[refresh-live] Fatal error:", err);
   await closeDbPool();
   process.exit(1);
 });

@@ -187,7 +187,7 @@ The deployed page fetches live: the model listing (all-time `all_tokens`) is one
 
 ```bash
 pnpm tokenecon              # local run + audit snapshot (writes to results/, no longer the deployed source)
-pnpm tokenecon:precompute   # refresh shared live snapshots in Supabase
+pnpm tokenecon:refresh   # refresh shared live snapshots in Supabase
 ```
 
 The **avg-daily launch metric**: for each model, sum the daily token series over the first 14 working days (Mon–Fri) on/after `publishTime`, divided by elapsed working days (a zero-usage day counts — low demand is real signal). `LAUNCH_WINDOW_WORKING_DAYS = 14` in `research/token-economics/types.ts`; the usage fetch lives in `research/token-economics/usage.ts`.
@@ -223,7 +223,7 @@ ZenMux pays part of the token bill on a running set of flagship models — this 
 
 <br/>
 
-**Config-file-driven.** [`config/token-deals.json`](config/token-deals.json) (read/written by `research/token-deals/deals-config.ts`) is the single source of truth for which deals exist and their price/date facts — the runtime page makes **zero** database queries, only reads that config plus the public pricing API. `pnpm tokendeals:sync` incrementally merges fresh discovery from the billing DB into the config (printing a diff for human confirmation) without ever overwriting a field you hand-edited.
+**Config-file-driven.** [`config/token-deals.json`](config/token-deals.json) (read/written by `research/token-deals/deals-config.ts`) is the single source of truth for which deals exist and their price/date facts — deal discovery reads that config plus the public pricing API; expired Supabase usage snapshots are refreshed from the billing database. `pnpm tokendeals:sync` incrementally merges fresh discovery from the billing DB into the config (printing a diff for human confirmation) without ever overwriting a field you hand-edited.
 
 **Merge protection.** A deal's key is `slug@startDate`. Once its `endDate` has passed, the entire entry is frozen; an in-progress entry only ever gets its `endDate` *filled in* (or pulled earlier if the discount actually ended sooner) — never pushed later. Nothing is ever deleted.
 
@@ -232,10 +232,10 @@ ZenMux pays part of the token bill on a running set of flagship models — this 
 ```bash
 pnpm tokendeals:sync        # merge fresh deal facts from the billing DB into config/token-deals.json
 pnpm tokendeals:backfill     # (re)build the full day-by-day ledger
-pnpm tokendeals:precompute   # refresh shared live snapshots in Supabase
+pnpm tokendeals:refresh   # refresh shared live snapshots in Supabase
 ```
 
-**Shared live snapshots.** Both live dashboards read Supabase snapshots and incrementally refresh them on visits. A database lease coordinates instances, and Next `after()` tracks the query and writeback after a stale response. Deployments package code and configuration; live JSON caches are no longer bundled. See [setup, historical migration and recovery](docs/shared-cache.md).
+**Shared live snapshots.** Both live dashboards read Supabase snapshots and incrementally refresh them on visits. A database lease coordinates instances, and Next `after()` tracks the query and writeback after a stale response. Deployments package code and configuration; live JSON caches are no longer bundled. See [setup, shared snapshots and recovery](docs/shared-cache.md).
 
 </details>
 
@@ -269,7 +269,7 @@ pnpm study:report      # aggregate.json → report.md
 pnpm dev               # http://localhost:3000
 ```
 
-Token Economics and Token Deals read **live** data at request time in production (see each section above) — locally, `pnpm tokenecon` / `pnpm tokendeals:sync` + `pnpm tokendeals:backfill` populate the caches those pages read from. Full credentials (billing DB, management key) live in `.env.example`.
+Token Economics and Token Deals share live billing snapshots in Supabase. Visits incrementally refresh expired snapshots, and maintenance refresh/backfill commands write Supabase directly. The local JSON import is complete and its tooling has been removed. See [shared-data setup and recovery](docs/shared-cache.md) and `.env.example`.
 
 ---
 

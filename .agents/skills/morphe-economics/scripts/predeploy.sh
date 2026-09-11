@@ -10,7 +10,7 @@ fi
 pnpm supabase:check --require-data
 if [[ "${1:-}" == "--refresh" ]]; then
   for module in tokenecon tokendeals; do
-    if pnpm "$module:precompute"; then
+    if pnpm "$module:refresh"; then
       echo "[$module] shared refresh succeeded"
     else
       echo "[$module] REFRESH FAILED: retaining the previous Supabase snapshot" >&2
