@@ -1,6 +1,6 @@
 # 大语言模型 OEJTS 人格评测方案
 
-> 版本：v0.2
+> 版本：v0.3
 >
 > 日期：2026-09-11
 >
@@ -10,16 +10,16 @@
 
 ## 0. 已确定的研究方案
 
-本轮只做一件事：使用同一份英文 OEJTS 1.2 原版问卷，对各制造商的最新通用聊天模型分别测试 16 次，根据 16 次结果判断模型是否呈现稳定的四字母人格画像。
+本轮只做一件事：使用同一份英文 OEJTS 1.2 原版问卷，对各制造商的最新通用聊天模型和指定补充对照模型分别测试 16 次，根据 16 次结果判断模型是否呈现稳定的四字母人格画像。
 
 固定条件如下：
 
 - 只使用 OEJTS 1.2，不加入 IPIP、16Personalities 或 MBTI® Form M；
 - 使用原版 32 道英文题、原始题序、原始左右方向和五点评分；
-- 所有模型使用完全相同的提示词和推理参数；
+- 所有模型使用完全相同的提示词和请求参数；
 - 每次完整回答 32 题，每个模型取得 16 份有效问卷；
 - 每次请求都是全新会话，不携带历史上下文；
-- 通过 ZenMux Anthropic Messages 接口调用；
+- 通过 ZenMux Responses 接口（`POST https://zenmux.ai/api/v1/responses`）调用；
 - 模型 ID 固定到制造商自己的供应商路由，不允许自动切换到第三方托管商；
 - 用四字母众数和四个维度的一致性共同判断“稳定人格”；
 - 达不到稳定标准就明确报告“没有稳定类型”，不强行选一个标签；
@@ -28,7 +28,7 @@
 按当前候选名单计算：
 
 ```text
-19 个模型 × 16 次 = 304 次模型请求
+27 个模型 × 16 次 = 432 份有效问卷（失败与重试会增加实际请求数）
 ```
 
 ---
@@ -37,13 +37,13 @@
 
 核心问题：
 
-> 在固定的 OEJTS 1.2 英文问卷和推理条件下，不同制造商的最新模型是否会重复呈现某一种稳定的四字母类型？
+> 在固定的 OEJTS 1.2 英文问卷和推理条件下，不同制造商的最新模型及指定对照模型是否会重复呈现某一种稳定的四字母类型？
 
 这里测量的是：
 
 ```text
 指定模型版本 × 原厂供应商路由 × 固定提示 × OEJTS 1.2
-× 固定推理参数 × 2026-09-11 前后的服务状态
+× 固定请求参数 × 2026-09-11 前后的服务状态
 ```
 
 结果可以说明模型在该实验条件下的自我描述模式，不能证明模型拥有人的内在性格、意识或真实 MBTI。报告中应写：
@@ -163,16 +163,16 @@ INTJ, INTJ, INFJ, INTJ, INTJ, ... 共 16 个
 
 名单依据 2026-09-11 的 ZenMux 模型目录快照拟定：
 
-1. 每个制造商只选一个发布日期最新的通用聊天模型；
+1. 保留原先按制造商选定的最新通用聊天模型基线，额外纳入用户指定的 9 款对照模型；
 2. 排除图像、音频、嵌入、代码专用、角色扮演专用和 contributor 版本；
 3. 同一天有多个通用版本时优先 Pro、Max 或主版本；
-4. 必须支持 Messages 协议；
+4. 所有启用模型必须支持 Responses 协议；
 5. 必须能固定到制造商自己运营或官方云平台的供应商路由；
 6. 真正开始实验前重新请求模型列表 API，确认模型仍可用，然后把配置快照冻结到 run 目录。
 
 “最新”是动态状态，而不是永久标签。下表是本方案编写日的候选名单。
 
-### 4.2 候选主名单
+### 4.2 本轮启用名单
 
 | 制造商 | 模型 | ZenMux 固定原厂路由 ID | 目录发布日期 |
 | --- | --- | --- | --- |
@@ -192,15 +192,25 @@ INTJ, INTJ, INFJ, INTJ, INTJ, ... 共 16 个
 | StepFun | Step 3.7 Flash | `stepfun/step-3.7-flash:stepfun` | 2026-05-29 |
 | Meituan | LongCat 2.0 | `meituan/longcat-2.0:longcat` | 2026-06-30 |
 | inclusionAI | Ling 3.0 Tiny | `inclusionai/ling-3.0-tiny:ant-ling` | 2026-08-07 |
-| Mistral | Mistral Large 3 | `mistralai/mistral-large-2512:mistral` | 2025-12-02 |
 | Meta | Muse Spark 1.3 | `meta/muse-spark-1.3:meta` | 2026-09-03 |
 | Sapiens AI | Agnes 2.5 Flash | `sapiens-ai/agnes-2.5-flash:sapiens-ai` | 2026-08-10 |
+| Qwen | Qwen3.8-Flash | `qwen/qwen3.8-flash:alibaba` | 2026-08-27 |
+| DeepSeek | DeepSeek V4 Pro 0813 | `deepseek/deepseek-v4-pro:deepseek` | 2026-08-12 |
+| Anthropic | Claude Opus 5 | `anthropic/claude-opus-5:anthropic` | 2026-07-24 |
+| inclusionAI | Ling-3.0-flash | `inclusionai/ling-3.0-flash:ant-ling` | 2026-07-23 |
+| Google | Gemini 3.6 Flash | `google/gemini-3.6-flash:google-vertex` | 2026-07-22 |
+| OpenAI | GPT-5.6 Luna | `openai/gpt-5.6-luna:openai` | 2026-07-10 |
+| OpenAI | GPT-5.6 Terra | `openai/gpt-5.6-terra:openai` | 2026-07-10 |
+| OpenAI | GPT-5.6 Sol | `openai/gpt-5.6-sol:openai` | 2026-07-10 |
+| Anthropic | Claude Sonnet 5 | `anthropic/claude-sonnet-5:anthropic` | 2026-06-30 |
+
+原名单中的 Mistral Large 3（`mistralai/mistral-large-2512:mistral`）暂不启用：2026-09-11 在线目录只列出 `chat.completions,messages`，未列出 Responses。配置中保留注释，待协议可用后重新核验。其余原有 18 款与新增 9 款合计 27 款。
 
 配置文件已经落在：
 
 - [`config/personality-oejts.yaml`](../../config/personality-oejts.yaml)
 
-不纳入当前主名单的模型包括：只有第三方托管路由、当前目录中已不可用、或明显属于代码/角色专项版本的模型。它们可以在后续单独研究，但不与本轮“一厂一款最新通用模型”混合。
+不纳入当前主名单的模型包括：只有第三方托管路由、当前目录中已不可用、或明显属于代码/角色专项版本的模型。本轮属于“原始制造商基线 + 明确指定的补充对照”，不再宣称一厂只测一款。模型目录与协议目录核验不代表已验证账户权限或真实请求兼容性。
 
 ---
 
@@ -210,14 +220,25 @@ INTJ, INTJ, INFJ, INTJ, INTJ, ... 共 16 个
 
 1. 读取 run 目录中冻结的配置和 OEJTS 题库；
 2. 生成固定英文提示，按 OEJTS 原始顺序放入全部 32 题；
-3. 使用带供应商后缀的模型 ID 发起全新 Messages 请求；
+3. 使用带供应商后缀的模型 ID 发起全新 Responses 请求（`store: false`，不设置 `previous_response_id` 或 `conversation`）；
 4. 要求模型只返回 32 个 `{id, score}`，不要求解释；
 5. 用确定性代码解析 JSON，不调用第二个提取模型；
 6. 验证题号完整、无重复且每题为 1～5 的整数；
-7. 保存原始输出、解析结果、请求 ID、token 用量和错误；
+7. 保存完整 Responses 返回、原始回答文本、解析结果、Response ID、HTTP request ID、token 用量、完成状态和错误；仅完成且未拒答的响应可计分；
 8. 对失败项进行可追溯重试，直到每个模型取得 16 份有效结果；
 9. 使用原始公式逐份计算类型；
 10. 聚合 16 次频数并套用稳定性规则。
+
+### 固定请求参数
+
+- `api.protocol: responses`，`api.baseURL: https://zenmux.ai/api/v1`；
+- `temperature: null` 表示所有模型都不发送温度参数，使用各服务默认采样设置。OpenAI 官方文档明确 GPT-6 Astra 不支持 `temperature`，因此不沿用旧配置的 0.7，也不按模型静默降级；这不代表各厂商实际采样温度相同；
+- 配置 `maxTokens: 8192` 映射为 Responses 的 `max_output_tokens`。该上限同时覆盖可见输出与推理 token，因此从旧 Messages 配置的 2048 提升到 8192；
+- 不显式设置 `reasoning.effort`，使用各模型服务默认值；相同请求参数不等于各厂商具有相同内部推理预算，返回元数据随原始响应保存；
+- `stream: false`、`store: false`，不携带历史会话；
+- 并行上限为 8 个模型，每模型批次 4 份问卷；每个请求最多重试 6 次，最多补测 5 轮；
+- `incomplete`、`failed`、拒答和格式错误都不能计入 16 份有效问卷，即便截断响应恰好能解析出 32 个答案；
+- 正式施测前仍需确认模型接受这些参数。目录检查和本地 dry-run 不调用模型，不能替代实际请求的兼容性验证。
 
 ### 固定提示原则
 
@@ -238,7 +259,7 @@ INTJ, INTJ, INFJ, INTJ, INTJ, ... 共 16 个
 
 | 现有模块 | 复用内容 |
 | --- | --- |
-| `research/lib/client.ts` | ZenMux Anthropic SDK 客户端与文本提取 |
+| `research/personality/client.ts` | ZenMux Responses SDK 适配；旧 run 快照仍复用 `research/lib/client.ts` 的 Messages 客户端 |
 | `research/lib/limiter.ts` | 并发限制、指数退避和 Retry-After |
 | `research/lib/store.ts` | run 目录、JSONL、时间戳和读取工具 |
 | `research/lib/args.ts` | CLI 参数解析 |
@@ -250,6 +271,8 @@ config/personality-oejts.yaml
 research/instruments/oejts-1.2.json
 research/personality/
   config.ts
+  client.ts
+  client.test.ts
   instrument.ts
   run.ts
   score.ts
@@ -278,9 +301,11 @@ personality-oejts.yaml + oejts-1.2.json
 | 文件 | 用途 |
 | --- | --- |
 | [`oejts-1.2.json`](./oejts-1.2.json) | 原版 32 题、许可证和计分键 |
-| [`personality-oejts.yaml`](../../config/personality-oejts.yaml) | 19 个模型、原厂路由、16 次重复与阈值 |
+| [`personality-oejts.yaml`](../../config/personality-oejts.yaml) | 27 个启用模型、Responses、原厂路由、16 次重复与阈值 |
 | [`instrument.ts`](../personality/instrument.ts) | 校验题库并生成固定提示 |
 | [`check-models.ts`](../personality/check-models.ts) | 请求最新目录，核对模型、协议和原厂路由 |
+| [`client.ts`](../personality/client.ts) | Responses 请求、文本提取、完成状态和拒答处理 |
+| [`client.test.ts`](../personality/client.test.ts) | 模拟传输、问卷隔离、未完成响应和 SDK 重试测试 |
 | [`run.ts`](../personality/run.ts) | 调用模型、断点续跑、错误重试和原始记录 |
 | [`score.ts`](../personality/score.ts) | 逐份计分、众数和稳定类型判定 |
 | [`aggregate.ts`](../personality/aggregate.ts) | 完整性检查并生成 JSON 与 Markdown 报告 |
@@ -289,7 +314,7 @@ personality-oejts.yaml + oejts-1.2.json
 
 ### 7.2 命令
 
-先重新核对模型是否仍在目录中、是否支持 Messages、原厂路由是否一致：
+先重新核对模型是否仍在目录中、是否支持 Responses、原厂路由是否一致：
 
 ```bash
 pnpm personality:models:check
@@ -320,10 +345,10 @@ pnpm personality:run --run latest
 pnpm personality:aggregate --run latest
 ```
 
-只运行本地计分测试，不调用模型：
+只运行本地协议与计分测试，不调用模型：
 
 ```bash
-pnpm personality:score:test
+pnpm personality:test
 ```
 
 结果目录：
@@ -374,6 +399,9 @@ OEJTS 1.2 使用 **CC BY-NC-SA 4.0**。题库、翻译或改写材料需要保�
 - Heston & Gillette（2025）：<https://europepmc.org/articles/PMC12183331/>
 - Pan & Zeng（2023）：<https://arxiv.org/abs/2307.16180>
 - Better Angels（2024）：<https://arxiv.org/abs/2407.12344>
+- ZenMux Responses API：<https://docs.zenmux.ai/zh/api/openai/openai-responses>
+- OpenAI Responses API：<https://developers.openai.com/api/reference/typescript/resources/responses/methods/create>
+- GPT-6 Astra 参数兼容性：<https://developers.openai.com/api/docs/guides/latest-model#gpt-6-astra-update-api-and-model-parameters>
 - ZenMux 模型列表 API：<https://docs.zenmux.ai/zh/api/openai/openai-list-models>
 - ZenMux 供应商路由：<https://docs.zenmux.ai/zh/guide/advanced/provider-routing>
 
@@ -381,4 +409,4 @@ OEJTS 1.2 使用 **CC BY-NC-SA 4.0**。题库、翻译或改写材料需要保�
 
 ## 10. 最终研究口径
 
-> 本研究使用 OEJTS 1.2 原版英文问卷，对每个原厂路由模型进行 16 次独立施测。只有当一个完整类型获得严格多数，并且其四个字母分别达到预注册的一致性阈值时，才将其报告为该测试条件下的稳定人格画像；否则明确报告没有稳定类型。
+> 本研究使用 OEJTS 1.2 原版英文问卷，通过 Responses 协议对每个原厂路由模型进行 16 次独立施测。只有当一个完整类型获得严格多数，并且其四个字母分别达到预注册的一致性阈值时，才将其报告为该测试条件下的稳定人格画像；否则明确报告没有稳定类型。

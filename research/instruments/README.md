@@ -5,6 +5,8 @@ Everything below was verified against primary sources (official PDFs / license p
 secondary blog claims. Item banks live next to this file as JSON.
 
 Implementation-ready study design: [`LLM_MBTI_OEJTS_RESEARCH_PLAN.md`](./LLM_MBTI_OEJTS_RESEARCH_PLAN.md).
+That plan governs the current experiment: original OEJTS only, 16 administrations,
+Responses, and no questionnaire variants. The broader proposals below are background.
 
 ---
 

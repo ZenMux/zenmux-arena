@@ -39,8 +39,18 @@ export function loadPersonalityConfig(
   if (!config.study?.id || !config.study.title) fail("study.id and study.title are required");
   if (!config.catalog?.asOf || !config.catalog.source) fail("catalog snapshot metadata is required");
   if (!config.api?.baseURL || !config.api.apiKeyEnv) fail("api.baseURL and api.apiKeyEnv are required");
-  if (!Number.isFinite(config.api.temperature) || config.api.temperature < 0 || config.api.temperature > 1) {
-    fail("api.temperature must be between 0 and 1");
+  // Existing run snapshots must keep their original protocol when resumed.
+  config.api.protocol ??= "messages";
+  if (!["responses", "messages"].includes(config.api.protocol)) {
+    fail("api.protocol must be responses or messages");
+  }
+  const baseURL = new URL(config.api.baseURL);
+  if (config.api.protocol === "responses" && /\/anthropic\/?$/.test(baseURL.pathname)) {
+    fail("Responses requires the OpenAI-compatible baseURL, not /api/anthropic");
+  }
+  if (config.api.temperature !== null &&
+    (!Number.isFinite(config.api.temperature) || config.api.temperature < 0 || config.api.temperature > 1)) {
+    fail("api.temperature must be null (provider default) or between 0 and 1");
   }
   for (const field of ["maxTokens", "modelConcurrency", "batchSize", "maxRetries"] as const) {
     if (!Number.isInteger(config.api[field]) || config.api[field] < (field === "maxRetries" ? 0 : 1)) {

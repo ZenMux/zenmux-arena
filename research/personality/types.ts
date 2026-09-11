@@ -52,10 +52,13 @@ export interface PersonalityConfig {
     selectionRule: string;
   };
   api: {
+    /** Missing in legacy run snapshots, which used Messages. */
+    protocol: "responses" | "messages";
     baseURL: string;
     apiKeyEnv: string;
     maxTokens: number;
-    temperature: number;
+    /** null omits this parameter and uses the provider's default sampling. */
+    temperature: number | null;
     modelConcurrency: number;
     batchSize: number;
     maxRetries: number;
@@ -96,6 +99,11 @@ export interface PersonalityRecord {
   promptVersion: string;
   promptSha256: string;
   generationId: string | null;
+  apiProtocol?: "responses" | "messages";
+  requestId?: string | null;
+  responseStatus?: string;
+  refusal?: string;
+  rawResponse?: unknown;
   response: string;
   answers?: OejtsAnswer[];
   usage?: { input: number; output: number };

@@ -1,8 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type Anthropic from "@anthropic-ai/sdk";
 import { parseArgs } from "../lib/args";
-import { extractText, makeClient } from "../lib/client";
 import { describeError, makeLimiter, runBatched, withRetry } from "../lib/limiter";
 import { appendJsonl, latestStamp, loadJsonl, newStamp, runPaths } from "../lib/store";
 import {
@@ -11,6 +9,7 @@ import {
 } from "./config";
 import { buildOejtsPrompt, loadOejtsInstrument, sha256 } from "./instrument";
 import { parseOejtsResponse } from "./score";
+import { makePersonalityClient, type PersonalityClient } from "./client";
 import type { PersonalityConfig, PersonalityModelSpec, PersonalityRecord } from "./types";
 
 interface PersonalityTask {
@@ -104,7 +103,7 @@ function loadOrPinPrompt(config: PersonalityConfig, runDir: string, generated: s
 }
 
 async function administer(
-  client: Anthropic,
+  client: PersonalityClient,
   config: PersonalityConfig,
   runId: string,
   task: PersonalityTask,
@@ -124,17 +123,12 @@ async function administer(
     instrumentSha256,
     promptVersion: config.instrument.promptVersion,
     promptSha256: sha256(prompt),
+    apiProtocol: config.api.protocol,
   };
 
   try {
-    const message = await withRetry(
-      () =>
-        client.messages.create({
-          model: task.model.id,
-          max_tokens: config.api.maxTokens,
-          temperature: config.api.temperature,
-          messages: [{ role: "user", content: prompt }],
-        }),
+    const completion = await withRetry(
+      () => client(task.model.id, prompt),
       {
         maxRetries: config.api.maxRetries,
         baseMs: config.api.retryBaseMs,
@@ -146,18 +140,14 @@ async function administer(
       },
     );
 
-    const response = extractText(message);
+    const response = completion.response;
     const common = {
       ...base,
+      ...completion,
       timestamp: new Date().toISOString(),
-      generationId: message.id ?? null,
-      response,
-      stopReason: message.stop_reason ?? null,
-      usage: message.usage
-        ? { input: message.usage.input_tokens, output: message.usage.output_tokens }
-        : undefined,
     };
-    if (!response) return { ...common, error: `empty response (${message.stop_reason ?? "unknown"})` };
+    if (common.error) return common;
+    if (!response) return { ...common, error: `empty response (${common.stopReason ?? "unknown"})` };
 
     try {
       return { ...common, answers: parseOejtsResponse(response) };
@@ -176,7 +166,7 @@ async function administer(
 }
 
 async function runRound(
-  client: Anthropic,
+  client: PersonalityClient,
   config: PersonalityConfig,
   runId: string,
   recordsFile: string,
@@ -239,6 +229,7 @@ async function main() {
     `[personality:run] models=${config.models.length} repeats=${config.repeats} total=${tasks.length}`,
   );
   console.log(`[personality:run] catalogue as of ${config.catalog.asOf}; provider routes are pinned`);
+  console.log(`[personality:run] protocol=${config.api.protocol} baseURL=${config.api.baseURL}`);
   console.log("─".repeat(72));
 
   if (dryRun) {
@@ -246,7 +237,7 @@ async function main() {
     return;
   }
 
-  const client = makeClient(config);
+  const client = makePersonalityClient(config);
   for (let round = 1; round <= maxRounds; round++) {
     const records = loadJsonl<PersonalityRecord>(paths.records);
     const done = completedKeys(records);

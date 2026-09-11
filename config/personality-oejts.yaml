@@ -1,10 +1,11 @@
 # =============================================================================
 # LLM personality profile study — OEJTS 1.2
 #
-# Model catalogue snapshot: 2026-09-11, https://zenmux.ai/api/v1/models
-# Selection rule: one newest general-purpose chat model per manufacturer,
-# excluding image-only, code-only, role-play-only, contributor, and models
-# without a manufacturer-operated provider route on ZenMux.
+# Model catalogue snapshot: 2026-09-11, ZenMux public model and protocol lists.
+# Selection: original manufacturer baseline + nine requested comparison models.
+# All active models must support Responses on a manufacturer-operated route.
+# 27 models x 16 independent administrations = 432 valid questionnaires.
+# Mistral Large 3 is deferred below because its catalogue lacks Responses.
 #
 # Every id is pinned to the manufacturer-operated provider with the
 # `model_slug:provider_slug` syntax. Refresh and review this list immediately
@@ -18,14 +19,18 @@ study:
 
 catalog:
   asOf: "2026-09-11"
-  source: "https://zenmux.ai/api/v1/models"
-  selectionRule: "Newest general-purpose chat model per manufacturer with a manufacturer-operated ZenMux provider route."
+  source: "https://zenmux.ai/api/frontend/model/listByFilter?context_length=&sort=newest&keyword=&supported_protocol=responses"
+  selectionRule: "Original latest-per-manufacturer baseline plus nine requested comparison models; Responses and manufacturer-operated routes required."
 
 api:
-  baseURL: "https://zenmux.ai/api/anthropic"
+  protocol: responses
+  baseURL: "https://zenmux.ai/api/v1"
   apiKeyEnv: "ZENMUX_API_KEY"
-  maxTokens: 2048
-  temperature: 0.7
+  # Responses max_output_tokens includes visible output AND reasoning tokens.
+  maxTokens: 8192
+  # null omits temperature for ALL models (GPT-6 Astra does not support it).
+  # Sampling defaults vary by provider; no per-model fallback is applied.
+  temperature: null
   modelConcurrency: 8
   batchSize: 4
   maxRetries: 6
@@ -162,13 +167,6 @@ models:
     label: "Ling 3.0 Tiny"
     catalogPublishDate: "2026-08-07"
 
-  - id: "mistralai/mistral-large-2512:mistral"
-    baseModelId: "mistralai/mistral-large-2512"
-    manufacturer: mistralai
-    providerSlug: mistral
-    label: "Mistral Large 3"
-    catalogPublishDate: "2025-12-02"
-
   - id: "meta/muse-spark-1.3:meta"
     baseModelId: "meta/muse-spark-1.3"
     manufacturer: meta
@@ -182,3 +180,75 @@ models:
     providerSlug: sapiens-ai
     label: "Agnes 2.5 Flash"
     catalogPublishDate: "2026-08-10"
+
+  - id: "qwen/qwen3.8-flash:alibaba"
+    baseModelId: "qwen/qwen3.8-flash"
+    manufacturer: qwen
+    providerSlug: alibaba
+    label: "Qwen3.8-Flash"
+    catalogPublishDate: "2026-08-27"
+
+  - id: "deepseek/deepseek-v4-pro:deepseek"
+    baseModelId: "deepseek/deepseek-v4-pro"
+    manufacturer: deepseek
+    providerSlug: deepseek
+    label: "DeepSeek V4 Pro 0813"
+    catalogPublishDate: "2026-08-12"
+
+  - id: "anthropic/claude-opus-5:anthropic"
+    baseModelId: "anthropic/claude-opus-5"
+    manufacturer: anthropic
+    providerSlug: anthropic
+    label: "Claude Opus 5"
+    catalogPublishDate: "2026-07-24"
+
+  - id: "inclusionai/ling-3.0-flash:ant-ling"
+    baseModelId: "inclusionai/ling-3.0-flash"
+    manufacturer: inclusionai
+    providerSlug: ant-ling
+    label: "Ling-3.0-flash"
+    catalogPublishDate: "2026-07-23"
+
+  - id: "google/gemini-3.6-flash:google-vertex"
+    baseModelId: "google/gemini-3.6-flash"
+    manufacturer: google
+    providerSlug: google-vertex
+    label: "Gemini 3.6 Flash"
+    catalogPublishDate: "2026-07-22"
+
+  - id: "openai/gpt-5.6-luna:openai"
+    baseModelId: "openai/gpt-5.6-luna"
+    manufacturer: openai
+    providerSlug: openai
+    label: "GPT-5.6 Luna"
+    catalogPublishDate: "2026-07-10"
+
+  - id: "openai/gpt-5.6-terra:openai"
+    baseModelId: "openai/gpt-5.6-terra"
+    manufacturer: openai
+    providerSlug: openai
+    label: "GPT-5.6 Terra"
+    catalogPublishDate: "2026-07-10"
+
+  - id: "openai/gpt-5.6-sol:openai"
+    baseModelId: "openai/gpt-5.6-sol"
+    manufacturer: openai
+    providerSlug: openai
+    label: "GPT-5.6 Sol"
+    catalogPublishDate: "2026-07-10"
+
+  - id: "anthropic/claude-sonnet-5:anthropic"
+    baseModelId: "anthropic/claude-sonnet-5"
+    manufacturer: anthropic
+    providerSlug: anthropic
+    label: "Claude Sonnet 5"
+    catalogPublishDate: "2026-06-30"
+
+  # Deferred: as of 2026-09-11 the catalogue lists only chat.completions,messages.
+  # Re-enable only after Responses support is listed and the route is rechecked.
+  # - id: "mistralai/mistral-large-2512:mistral"
+  #   baseModelId: "mistralai/mistral-large-2512"
+  #   manufacturer: mistralai
+  #   providerSlug: mistral
+  #   label: "Mistral Large 3"
+  #   catalogPublishDate: "2025-12-02"

@@ -1,6 +1,7 @@
 // Concurrency limiting + retry-with-backoff for API calls.
 
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import pLimit from "p-limit";
 
 export type Limiter = ReturnType<typeof pLimit>;
@@ -11,9 +12,13 @@ export function makeLimiter(concurrency: number): Limiter {
 
 const RETRYABLE_STATUS = new Set([408, 409, 429, 500, 502, 503, 504, 529]);
 
+function isAPIError(err: unknown): err is InstanceType<typeof Anthropic.APIError> | InstanceType<typeof OpenAI.APIError> {
+  return err instanceof Anthropic.APIError || err instanceof OpenAI.APIError;
+}
+
 /** Decide whether an error is worth retrying (transient) vs fatal (bad request/auth). */
 function isRetryable(err: unknown): boolean {
-  if (err instanceof Anthropic.APIError) {
+  if (isAPIError(err)) {
     // No status => connection/timeout error (APIConnectionError) => retry.
     if (typeof err.status !== "number") return true;
     return RETRYABLE_STATUS.has(err.status);
@@ -24,11 +29,8 @@ function isRetryable(err: unknown): boolean {
 
 /** Pull a Retry-After header (seconds) off an APIError, if present. */
 function retryAfterMs(err: unknown): number | null {
-  if (err instanceof Anthropic.APIError && err.headers) {
-    const raw =
-      typeof (err.headers as Headers).get === "function"
-        ? (err.headers as Headers).get("retry-after")
-        : (err.headers as Record<string, string>)["retry-after"];
+  if (isAPIError(err) && err.headers) {
+    const raw = err.headers.get("retry-after");
     if (raw) {
       const secs = Number(raw);
       if (Number.isFinite(secs)) return secs * 1000;
@@ -92,7 +94,7 @@ export async function runBatched<T, R>(
 
 /** A short, human-readable description of an error for logging/records. */
 export function describeError(err: unknown): string {
-  if (err instanceof Anthropic.APIError) {
+  if (isAPIError(err)) {
     const status = typeof err.status === "number" ? err.status : "conn";
     return `APIError ${status}: ${err.message}`;
   }
