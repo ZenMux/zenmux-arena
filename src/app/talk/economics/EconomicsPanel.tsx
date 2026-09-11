@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { EconomicsResponse, EconomicsView } from "./types";
+import { deepSeekChallengeHistory } from "./history";
 import styles from "./economics.module.css";
 
 const ValueMap = dynamic(() => import("../../token-economics/ValueMap").then((m) => m.ValueMap), { loading: PanelLoading });
@@ -25,8 +26,8 @@ export function EconomicsPanel({ view }: EconomicsPanelProps) {
       {view === "map" || view === "ladder" ? <ValuePanel view={view} /> : null}
       {view === "live" ? (
         <>
-          <p className={styles.method}>价格拉到同一条参照线，开发者会把 Token 投给谁？切换 Token / Cost，观察真实用量与账单。</p>
-          <div className={styles.live}><LiveLeaderboard presentation /></div>
+          <p className={styles.method}>回看 2026 年 6 月 23 日—8 月 23 日：开发者实际把 Token 投给了谁？切换逐日 / 累计、Token / Cost，查看这段时间的结果。</p>
+          <div className={styles.live}><LiveLeaderboard presentation historicalData={deepSeekChallengeHistory} /></div>
         </>
       ) : null}
       {view === "deals" ? <DealsPanel /> : null}

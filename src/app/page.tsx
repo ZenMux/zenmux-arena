@@ -155,7 +155,7 @@ export default function Home() {
       />
 
       {/* ── Masthead ─────────────────────────────────────────────────────── */}
-      <header className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10">
+      <header className="relative z-10 flex flex-wrap items-center justify-between gap-3 px-6 pt-6 sm:px-10">
         <Image
           src="/maker-logo/ZenMux-Light.png"
           alt="ZenMux"
@@ -165,6 +165,14 @@ export default function Home() {
           className="h-6 w-auto opacity-90"
         />
         <div className="flex items-center gap-2.5">
+          <Link
+            href="/talk"
+            aria-label="Talk · 如果 Token 会说话"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[var(--fg-green)]/40 bg-white/40 px-3 font-(family-name:--font-jost) text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--fg-green)] transition-colors hover:bg-[var(--fg-green)] hover:text-[var(--fg-paper)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--fg-green)]"
+          >
+            Talk
+            <ArrowUpRight className="size-3" aria-hidden="true" />
+          </Link>
           <a
             href="https://github.com/ZenMux/zenmux-arena"
             target="_blank"

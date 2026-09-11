@@ -7,7 +7,7 @@ import { ArrowDown, ArrowRight, Check, ExternalLink, GitBranch, MessageCircle, M
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import type { TalkSlide } from "./story";
+import { CHAPTERS, type TalkSlide } from "./story";
 import styles from "./talk.module.css";
 
 const MARKS = [
@@ -29,8 +29,8 @@ export function Cover({ onStart }: { onStart: () => void }) {
       <h1 className={styles.coverTitle}>如果 <span>Token</span><br />会说话<span className={styles.titleDot}>。</span></h1>
       <p className={styles.coverEnglish}>If tokens could talk.</p>
       <div className={styles.coverLine} />
-      <p className={styles.coverSubtitle}>一些关于身份、选择与性格的观察</p>
-      <div className={styles.author}><span className={styles.authorMark}>t.</span><span><strong>thinkthinking</strong><small>ZenMuxAI & AgentOS 联合创始人 · 产品负责人</small></span></div>
+      <p className={styles.coverSubtitle}>一些关于身份、性格与选择的观察</p>
+      <a className={styles.author} href="https://thinkthinking.ai/" target="_blank" rel="noreferrer"><span className={styles.authorMark}>t.</span><span><strong>thinkthinking</strong><small>ZenMuxAI & AgentOS 联合创始人 · 产品负责人</small></span></a>
       <Button onClick={onStart} className={styles.startButton}>开始倾听 <ArrowRight data-icon="inline-end" /></Button>
     </div>
     <div className={styles.specimen} aria-label="八个模型围绕着同一枚 Token，象征三个研究的共同起点">
@@ -47,11 +47,11 @@ export function Opening({ onJump }: { onJump: (id: string) => void }) {
   const [active, setActive] = useState(0);
   const entries = [
     { number: "01", text: "你是谁？", answer: "有时，我会递出别人的名片。", chapter: "identity", label: "身份的回声" },
-    { number: "02", text: "为什么选你？", answer: "也许，答案写在每一次真实调用里。", chapter: "economics", label: "市场的选择" },
-    { number: "03", text: "你是什么性格？", answer: "问我十六次，再决定怎样描述我。", chapter: "personality", label: "回答的习惯" },
+    { number: "02", text: "你是什么性格？", answer: "问我十六次，再看看回答的习惯。", chapter: "personality", label: "回答的习惯" },
+    { number: "03", text: "选择了谁？", answer: "答案，留在每一次真实调用里。", chapter: "economics", label: "市场的选择" },
   ];
   return <div className={styles.opening}>
-    <div className={styles.openingText}><p className={styles.eyebrow}>THREE QUESTIONS · ONE OBSERVATORY</p><h1>每一次生成，<br />都会留下痕迹。</h1><p>一句自我介绍，一次真实调用，<br />一份反复填写的问卷。</p><span className={styles.smallNote}>Token 是文本处理与生成的基本单位，不总等于一个字或一个词。</span></div>
+    <div className={styles.openingText}><p className={styles.eyebrow}>THREE QUESTIONS · ONE OBSERVATORY</p><h1>每一次生成，<br />都会留下痕迹。</h1><p>一句自我介绍，一份反复填写的问卷，<br />一次真实调用。</p><span className={styles.smallNote}>Token 是文本处理与生成的基本单位，不总等于一个字或一个词。</span></div>
     <div className={styles.questionStack}>{entries.map((entry, i) => <button key={entry.number} className={cn(styles.questionTile, active === i && styles.questionActive)} onClick={() => setActive(i)} aria-pressed={active === i}><span>{entry.number} / {entry.label}</span><strong>{entry.text}</strong>{active === i && <p>{entry.answer}</p>}<MessageCircle aria-hidden="true" /></button>)}<Button variant="ghost" className={styles.textButton} onClick={() => onJump(entries[active].chapter)}>进入这一章 <ArrowRight data-icon="inline-end" /></Button></div>
   </div>;
 }
@@ -61,15 +61,15 @@ export function Observatory() {
     <div className={styles.observatoryHub}><p className={styles.eyebrow}>A SHARED WINDOW</p><Image src="/maker-logo/ZenMux-Light.png" width={248} height={65} alt="ZenMux" style={{ height: "auto" }} unoptimized /><p>让不同模型，在同一个地方相遇。</p><div className={styles.logoRow}>{MARKS.map(([file, name]) => <Image key={name} src={`/model-logo/${file}`} width={37} height={37} alt={name} unoptimized />)}</div><a href="https://zenmux.ai" target="_blank" rel="noreferrer">zenmux.ai <ExternalLink size={14} /></a></div>
     <div className={styles.observationList}>{[
       ["01", "主动提问", "同一套实验，观察不同模型怎样介绍自己。", "Who Are You?"],
-      ["02", "真实选择", "在平台调用里，观察价格与用量流向。", "Token Economics / Deals"],
-      ["03", "重复测量", "在固定问卷里，观察回答模式能否复现。", "OEJTS Personality"],
+      ["02", "重复测量", "在固定问卷里，观察回答模式能否复现。", "OEJTS Personality"],
+      ["03", "真实选择", "从真实调用的结果，看 Token 最后投给了谁。", "Token Economics / Deals"],
     ].map(([n, title, description, english]) => <div key={n}><span>{n}</span><section><small>{english}</small><h2>{title}</h2><p>{description}</p></section></div>)}<p className={styles.scopeNote}>一个平台的观察窗口。所有结论都带着模型版本、时间与实验条件。</p></div>
   </div>;
 }
 
 export function ChapterCard({ slide }: { slide: TalkSlide }) {
-  const number = slide.chapter === "identity" ? "01" : slide.chapter === "economics" ? "02" : "03";
-  const english = slide.chapter === "identity" ? "THE ECHO OF IDENTITY" : slide.chapter === "economics" ? "THE WEIGHT OF A CHOICE" : "THE PATTERN OF AN ANSWER";
+  const number = CHAPTERS.find(chapter => chapter.id === slide.chapter)!.number;
+  const english = slide.chapter === "identity" ? "THE ECHO OF IDENTITY" : slide.chapter === "economics" ? "THE RECORD OF A CHOICE" : "THE PATTERN OF AN ANSWER";
   return <div className={styles.chapterCard}><div className={styles.chapterNumber} aria-hidden="true">{number}</div><p className={styles.eyebrow}>CHAPTER {number} &nbsp; / &nbsp; {english}</p><h1>{slide.title.split("\n").map((line, i) => <span key={i}>{line}<br /></span>)}</h1><p className={styles.chapterSubtitle}>{slide.subtitle}</p><span className={styles.chapterRule} /><span className={styles.chapterEnd}>FROM ZENMUX, WITH CURIOSITY.</span></div>;
 }
 
@@ -142,11 +142,11 @@ export function Reflection({ slide }: { slide: TalkSlide }) {
 }
 
 export function Closing({ onJump }: { onJump: (id: string) => void }) {
-  return <div className={styles.closing}><p className={styles.eyebrow}>THE CONVERSATION CONTINUES</p><h1>如果 Token 会说话，<br />我们愿意继续听<span>。</span></h1><p>名字里的回声，账单上的选择，回答中的习惯。</p><div className={styles.closingLinks}>{[
+  return <div className={styles.closing}><p className={styles.eyebrow}>THE CONVERSATION CONTINUES</p><h1>如果 Token 会说话，<br />我们愿意继续听<span>。</span></h1><p>名字里的回声，回答中的习惯，账单上的选择。</p><div className={styles.closingLinks}>{[
     ["01", "身份关系图", "/who-are-you/studio?run=who-are-you/mix-20260601T062425", "把每一条线，点开看看。"],
-    ["02", "Token 经济学", "/token-economics?view=live", "让时间，继续给出答案。"],
-    ["03", "模型人格图谱", "#mbti-explorer", "比起标签，更值得看的是过程。"],
-  ].map(([n, title, href, desc]) => <a key={n} href={href} target={href.startsWith("#") ? undefined : "_blank"} rel="noreferrer" onClick={href.startsWith("#") ? e => { e.preventDefault(); onJump("mbti-explorer"); } : undefined}><span>{n}</span><h2>{title}<ArrowRight size={22} /></h2><p>{desc}</p></a>)}</div><div className={styles.closingFooter}><span><strong>thinkthinking</strong><small>Ideas Worth Spreading.</small></span><a href="https://github.com/ZenMux/zenmux-arena" target="_blank" rel="noreferrer"><GitBranch size={18} /> 源码、研究与原始数据 <ExternalLink size={14} /></a></div></div>;
+    ["02", "模型人格图谱", "#mbti-explorer", "比起标签，更值得看的是过程。"],
+    ["03", "Token 经济学", "#live", "回看这段时间，Token 投给了谁。"],
+  ].map(([n, title, href, desc]) => <a key={n} href={href} target={href.startsWith("#") ? undefined : "_blank"} rel="noreferrer" onClick={href.startsWith("#") ? e => { e.preventDefault(); onJump(href.slice(1)); } : undefined}><span>{n}</span><h2>{title}<ArrowRight size={22} /></h2><p>{desc}</p></a>)}</div><div className={styles.closingFooter}><span><strong>thinkthinking</strong><small>Ideas Worth Spreading.</small></span><a href="https://github.com/ZenMux/zenmux-arena" target="_blank" rel="noreferrer"><GitBranch size={18} /> 源码、研究与原始数据 <ExternalLink size={14} /></a></div></div>;
 }
 
 export function LoadingPanel() {

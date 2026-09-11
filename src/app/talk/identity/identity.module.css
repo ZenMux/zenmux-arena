@@ -205,3 +205,43 @@
 @media (prefers-reduced-motion: reduce) {
   .panel *, .selectMenu * { animation: none !important; transition: none !important; }
 }
+
+@media (max-width: 900px) {
+  .panel { height: auto; gap: 22px; }
+  .footer,.inlineHeader,.toolbar,.demoActions,.heatDetail { flex-wrap: wrap; gap: 12px; }
+  .footer { margin-top: 16px; }
+  .toolbar .small { margin-left: 0; }
+  .methodGrid,.overviewBottom,.promptsLayout,.casesLayout,.graphLayout { grid-template-columns: minmax(0,1fr); gap: 28px; flex: none; }
+  .methodSetup .choice { flex-wrap: wrap; }
+  .methodSetup .selectTrigger { min-width: 170px; flex: 1; }
+  .methodNumbers strong { font-size: 38px; }
+  .promptBox,.answerBox,.answerWaiting,.fullPrompt,.caseEvidence { padding: 18px; }
+  .answerBox,.answerWaiting { flex: auto; min-height: 180px; }
+  .answerBox blockquote,.caseEvidence blockquote { font-size: 17px; }
+  .answerWaiting p { font-size: 22px; }
+  .answerWaiting > span { font-size: 85px; }
+  .overviewStats { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { padding: 14px 10px; }
+  .stat strong { font-size: 43px; }
+  .largeCopy { font-size: 28px; }
+  .rankRow { grid-template-columns: 80px minmax(0,1fr) 86px; gap: 9px; }
+  .columns { gap: 5px; }
+  .column { padding-inline: 5px; }
+  .columnPlot { height: 220px; }
+  .columnPlot strong { font-size: 25px; }
+  .columnLabel { font-size: 14px; flex-wrap: wrap; gap: 4px; }
+  .fullPrompt { flex: auto; max-height: 340px; font-size: 17px; }
+  .heatScroll { flex: none; height: 400px; overflow: auto; }
+  .heatTable { min-width: 900px; }
+  .heatCell { height: 34px; }
+  .heatMetrics { flex-basis: 100%; flex-wrap: wrap; }
+  .heatLegend { margin-left: 0; }
+  .graphStage { overflow-x: auto; }
+  .graphStage > div { min-width: 850px; }
+  .graphReading { border-left: 0; border-top: 1px solid var(--line); padding: 20px 0 0; }
+  .caseTabs { width: 100%; overflow-x: auto; justify-content: flex-start; flex-shrink: 0; }
+  .panel .caseTabs button { min-height: 44px; flex-shrink: 0; padding-inline: 12px; }
+  .caseAnalysis h3 { font-size: 27px; }
+  .caseStats strong { font-size: 25px; }
+  .caseEvidence { max-height: none; }
+}

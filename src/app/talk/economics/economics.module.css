@@ -87,3 +87,27 @@
 @media (prefers-reduced-motion: reduce) {
   .panel *, .panel *::before, .panel *::after { animation: none !important; transition: none !important; }
 }
+
+@media (max-width: 900px) {
+  .panel { height: auto; gap: 16px; }
+  .toolbar,.warning { flex-wrap: wrap; }
+  .method { flex-basis: 100%; font-size: 13px; }
+  .toolbar button { min-height: 44px; }
+  .provenance { margin-top: 8px; font-size: 11px; overflow-wrap: anywhere; }
+  .value { flex: none; overflow-x: auto; }
+  .map [data-presentation="value-map"] { width: 1050px; height: 510px; }
+  .ladder [data-presentation="value-ladder"] { min-width: 950px; height: 600px; }
+  .live { flex: none; overflow-x: auto; }
+  .live [data-presentation="live"] { min-width: 1000px; }
+  .totals { grid-template-columns: minmax(0,1fr); gap: 8px; }
+  .totals > div { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+  .totals span { font-size: 11px; }
+  .totals strong { font-size: 22px; white-space: nowrap; }
+  .dealBody { grid-template-columns: minmax(0,1fr); flex: none; }
+  .dealList { max-height: 280px; }
+  .dealRow { min-height: 56px; }
+  .dealDetail { overflow: auto; padding: 16px 12px; }
+  .detailHeading { flex-wrap: wrap; gap: 6px; }
+  .dealDetail > div:nth-child(2) { min-width: 560px; }
+  .dealSplit { font-size: 11px; }
+}

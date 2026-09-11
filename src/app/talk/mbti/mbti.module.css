@@ -262,3 +262,53 @@
 @media (prefers-reduced-motion: reduce) {
   .panel [data-slot="button"], .panel [data-slot="badge"], .panel [data-slot="toggle-group-item"] { transition: none; }
 }
+
+@media (max-width: 900px) {
+  .panel { height: auto; max-height: none; grid-template-rows: auto auto; gap: 20px; }
+  .method,.explorerLayout,.explorerBody,.overviewGroups,.comparisonCards,.dimensionsLayout { grid-template-columns: minmax(0,1fr); height: auto; gap: 22px; }
+  .questionSidebar,.modelSidebar { max-height: 240px; }
+  .questionList,.modelList { max-height: 180px; }
+  .protocolStrip { flex-wrap: wrap; gap: 10px; }
+  .protocolStrip > div { gap: 7px; }
+  .protocolStrip strong { font-size: 30px; }
+  .protocolStrip > svg { display: none; }
+  .poles { grid-template-columns: minmax(0,1fr); gap: 18px; padding-top: 20px; }
+  .poles p:last-child { text-align: right; }
+  .responseControl { width: 100%; }
+  .formulaHeading { flex-wrap: wrap; }
+  .formulas { overflow-x: auto; }
+  .formula { min-width: 650px; }
+  .overview,.stability { height: auto; grid-template-rows: auto auto auto; gap: 18px; }
+  .overviewTop { flex-direction: column; align-items: stretch; gap: 18px; }
+  .overviewTop > div:first-child { flex-wrap: wrap; white-space: normal; }
+  .overviewNarrative { border-left: 0; padding-left: 0; }
+  .shareBar { margin-left: 0; }
+  .unstableModels { grid-template-columns: 1fr 1fr; }
+  .overviewModel,.unstableModels .overviewModel { min-height: 50px; }
+  .overviewModel > span,.unstableModels .overviewModel > span { font-size: 12px; }
+  .overviewReadout { flex-wrap: wrap; min-height: 64px; overflow: visible; }
+  .modelHeader { flex-wrap: wrap; }
+  .modelHeader h3 { font-size: 21px; }
+  .replicate { min-height: 44px; gap: 4px; }
+  .dimensionSection { border-left: 0; padding-left: 0; }
+  .dimensionRow { padding-block: 10px; }
+  .modelReason { flex-wrap: wrap; }
+  .rulesStrip { flex-wrap: wrap; gap: 16px; padding: 20px; }
+  .rulesStrip > p { flex-basis: 100%; }
+  .ruleNote { margin-left: 0; padding-left: 0; border-left: 0; }
+  .comparisonCard { padding: 14px; gap: 10px; }
+  .modalResult { flex-wrap: wrap; gap: 12px; }
+  .comparisonVerdict { margin-top: 16px; }
+  .dimensionsHeading { flex-wrap: wrap; gap: 16px; }
+  .dimensionChartHeader,.modelPlotRow { grid-template-columns: 120px minmax(0,1fr) 37px; gap: 8px; padding-inline: 3px; }
+  .modelPlotRow { min-height: 55px; height: auto; }
+  .modelPlotRow > span { font-size: 10px; gap: 5px; }
+  .allModelPlots { flex: none; max-height: 420px; }
+  .plotLegend { flex-wrap: wrap; }
+  .footer { flex-wrap: wrap; padding-top: 12px; gap: 10px; }
+  .notesContent { position: static; width: 100%; margin-top: 12px; padding: 16px; box-shadow: none; }
+}
+@media (max-width: 900px) {
+  .overviewReadout > * { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+  .overviewReadout > span:first-of-type { flex-shrink: 1; }
+}

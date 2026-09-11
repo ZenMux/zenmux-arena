@@ -29,6 +29,7 @@ import { VendorGlyph } from "./components";
 import { LiveSkeletonBoard, LiveSkeletonStyles } from "./LiveSkeletonChart";
 import { useElementHeight } from "./useElementHeight";
 import { cn } from "@/lib/utils";
+import type { HistoricalEconomicsData } from "../talk/economics/history/types";
 
 const LIVE_COLORS = [
   "#4f6ef7",
@@ -436,7 +437,62 @@ async function fetchLivePayload(
   };
 }
 
-export function LiveLeaderboard({ presentation = false }: { presentation?: boolean } = {}) {
+export function LiveLeaderboard({ presentation = false, historicalData }: {
+  presentation?: boolean;
+  historicalData?: HistoricalEconomicsData;
+} = {}) {
+  // Separate component trees: history never mounts the polling effect, even
+  // before hydration or while changing axes/anchors. No live fallback exists.
+  return historicalData
+    ? <HistoricalLeaderboard presentation={presentation} historicalData={historicalData} />
+    : <RealtimeLeaderboard presentation={presentation} />;
+}
+
+const HISTORICAL_METRIC_OPTIONS = [
+  { key: "live", label: "DAILY", title: "Observed tokens or billed cost in each UTC day" },
+  { key: "cumulative", label: "TOTAL", title: "Cumulative usage rebased to June 23, 2026" },
+] as const;
+
+function HistoricalLeaderboard({ presentation, historicalData }: {
+  presentation: boolean;
+  historicalData: HistoricalEconomicsData;
+}) {
+  const [anchorId, setAnchorId] = useState<string | null>(null);
+  const [metric, setMetric] = useState<LiveMetricKey>("cumulative");
+  const [axis, setAxis] = useState<LiveYAxisKey>("tokens");
+  const { payload: data, window: period, provenance } = historicalData;
+  const selected = data.anchors.find((anchor) => anchor.id === anchorId) ?? data.anchors[0];
+  return (
+    <section className={cn(!presentation && "space-y-7")} data-presentation={presentation ? "live" : undefined} data-history-window="">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <SegmentedControl label="Historical usage view" options={HISTORICAL_METRIC_OPTIONS} value={metric} onChange={setMetric} />
+          <SegmentedControl label="Y axis" options={Y_AXIS_OPTIONS} value={axis} onChange={setAxis} />
+        </div>
+        <p className="text-[11px] font-bold tabular-nums text-[#141414]" title={`[${period.from}, ${period.to})`}>
+          <time dateTime={period.from}>{period.from.slice(0, 10)}</time> — <time dateTime={period.endDateInclusive}>{period.endDateInclusive}</time>
+          {" · 含首尾日期 · UTC · "}{period.days} 天
+        </p>
+      </div>
+      <div data-live-provenance="" role="status">
+        <SegmentedControl label="Price anchor" options={data.anchors.map((a) => ({ key: a.id, label: a.label, title: a.label }))}
+          value={selected?.id ?? ""} onChange={setAnchorId} />
+        <span className="text-[10px] text-[#6f6a5f]">
+          固定历史记录 · ZenMux 平台用量 · {period.days} 天逐日汇总
+          {" · 源快照生成 "}<time dateTime={provenance.sourceGeneratedAt}>{provenance.sourceGeneratedAt.slice(0, 10)}</time>
+        </span>
+      </div>
+      <div className="space-y-9">
+        {(presentation ? selected ? [selected] : [] : data.anchors).map((anchor) => (
+          <AnchorBoard key={anchor.id} anchor={anchor} bucket="1-day UTC" bucketSeconds={data.bucketSeconds}
+            metric={metric} axis={axis} nowMs={Date.parse(period.to) - 1} presentation={presentation} historical />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function RealtimeLeaderboard({ presentation }: { presentation: boolean }) {
   const [anchorId, setAnchorId] = useState<string | null>(null);
   const [range, setRange] = useState<LiveRangeKey>(DEFAULT_LIVE_RANGE);
   const [metric, setMetric] = useState<LiveMetricKey>("cumulative");
@@ -743,6 +799,7 @@ function AnchorBoard({
   axis,
   nowMs,
   presentation = false,
+  historical = false,
 }: {
   anchor: LiveAnchorSeries;
   bucket: string;
@@ -751,6 +808,7 @@ function AnchorBoard({
   axis: LiveYAxisKey;
   nowMs: number;
   presentation?: boolean;
+  historical?: boolean;
 }) {
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [chartRef, chartHeight] = useElementHeight<HTMLDivElement>();
@@ -803,6 +861,7 @@ function AnchorBoard({
             axis={axis}
             nowMs={nowMs}
             presentation={presentation}
+            historical={historical}
           />
         </div>
         <PriceAdjustmentPanel anchor={anchor} chartHeight={chartHeight} nowMs={nowMs} />
@@ -1075,6 +1134,7 @@ function TimeSeriesChart({
   axis,
   nowMs,
   presentation = false,
+  historical = false,
 }: {
   anchor: LiveAnchorSeries;
   visible: LiveModelSeries[];
@@ -1083,6 +1143,7 @@ function TimeSeriesChart({
   axis: LiveYAxisKey;
   nowMs: number;
   presentation?: boolean;
+  historical?: boolean;
 }) {
   const CHART = presentation ? PRESENTATION_CHART : FULL_CHART;
   const [hover, setHover] = useState<HoverTarget | null>(null);
@@ -1203,20 +1264,22 @@ function TimeSeriesChart({
   const hoverInterval =
     hoverIndex == null
       ? ""
-      : formatChartHoverInterval(points, hoverIndex, bucketSeconds, metric);
+      : historical
+        ? `[${(metric === "live" ? points[hoverIndex].t : points[0].t).slice(0, 10)}, ${addBucketSecondsIso(points[hoverIndex].t, bucketSeconds).slice(0, 10)}) UTC`
+        : formatChartHoverInterval(points, hoverIndex, bucketSeconds, metric);
   const tooltipW = 320;
   const hoverX = hoverIndex == null ? 0 : xForIndex(hoverIndex);
   const tooltipX =
     hoverX > CHART.left + CHART.plotW * 0.62 ? hoverX - tooltipW - 14 : hoverX + 14;
   const tooltipH = 44 + hoverRows.length * 16;
-  const hoverMetricLabel = metric === "live" ? "LIVE" : "TOTAL";
+  const hoverMetricLabel = metric === "live" ? historical ? "DAILY" : "LIVE" : "TOTAL";
   const hoverAxisLabel = axis === "cost" ? "COST" : "TOKENS";
 
   return (
     <div className="bg-[#fbf9f4]">
       <div className="mb-1 flex items-center justify-between gap-2 px-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[#6f6a5f]">
         <span>{axis === "cost" ? "Y Axis · Billed Cost" : "Y Axis · Tokens"}</span>
-        <span>{metric === "live" ? "Latest Bucket" : "Cumulative Total"}</span>
+        <span>{metric === "live" ? historical ? "Daily · UTC" : "Latest Bucket" : "Cumulative Total"}</span>
       </div>
       <div className="overflow-x-auto">
         <svg
@@ -1291,7 +1354,7 @@ function TimeSeriesChart({
           {xTicks.map((idx) => {
             const x = xForIndex(idx);
             const tick = points[idx]
-              ? bucketEndTickLines(points[idx].t, bucketSeconds)
+              ? historical ? { date: points[idx].t.slice(0, 10), time: null } : bucketEndTickLines(points[idx].t, bucketSeconds)
               : null;
             // When the time row is present, lift the date row up so the two
             // sit stacked within the bottom margin (date ~30px, time ~16px
@@ -1337,8 +1400,7 @@ function TimeSeriesChart({
             const y = yForValue(values[lastIndex] ?? 0);
             const seriesTitle = (
               <title>
-                {m.model}: {formatAxisValue(metricValue(m, metric, axis), axis)} {metric === "live" ? "latest bucket" : "cumulative"}
-                {endIndex != null && m.endDate ? ` · campaign ended ${formatDealDate(m.endDate)}` : ""}
+                {`${m.model}: ${formatAxisValue(metricValue(m, metric, axis), axis)} ${metric === "live" ? historical ? "last UTC day" : "latest bucket" : "cumulative"}${endIndex != null && m.endDate ? ` · campaign ended ${formatDealDate(m.endDate)}` : ""}`}
               </title>
             );
 
@@ -1387,7 +1449,7 @@ function TimeSeriesChart({
                     strokeWidth="2"
                   >
                     <title>
-                      {m.model}: campaign ended{m.endDate ? ` ${formatDealDate(m.endDate)}` : ""}
+                      {`${m.model}: campaign ended${m.endDate ? ` ${formatDealDate(m.endDate)}` : ""}`}
                     </title>
                   </rect>
                 </g>
@@ -1408,7 +1470,7 @@ function TimeSeriesChart({
                 >
                   {seriesTitle}
                 </path>
-                <circle
+                {!historical && <circle
                   className="te-live-pulse"
                   cx={x}
                   cy={y}
@@ -1429,7 +1491,7 @@ function TimeSeriesChart({
                     dur="1.35s"
                     repeatCount="indefinite"
                   />
-                </circle>
+                </circle>}
                 <circle
                   cx={x}
                   cy={y}

@@ -1,12 +1,15 @@
 # 如果 Token 会说话
 
-Interactive Chinese research talk at `/talk`. Thirty scenes follow the identity
-article, Token Economics article, and the completed OEJTS study. The data-driven
+Interactive Chinese research talk at `/talk`. Thirty scenes follow identity, the completed OEJTS study, then Token Economics:
+“你是谁 → 你是什么性格 → 选择了谁”. The data-driven
 charts remain interactive; the deck does not make new research/model calls.
 
 ## Presenting
 
 - Open `/talk` in a desktop browser. A 1440 × 900 stage fits the available window.
+- At 900px and below, each slide becomes a vertically scrollable reading page
+  with a fixed touch pager. Wide charts scroll horizontally; chapter lists and
+  model/question controls remain accessible without shrinking the whole slide.
 - Arrow keys, Space, PageUp/PageDown navigate; Home/End go to first/last scene.
 - G opens the outline, F toggles fullscreen, N opens speaker notes, ? opens help.
 - Notes are visible in the projected page. They are not a private presenter window.
@@ -24,10 +27,14 @@ The count/degree scene follows the article: counts include all cross-identity
 answers; degree counts only canonical vendor nodes, excluding `other:*` targets.
 The existing `RelationshipGraph` is rendered directly.
 
+The DeepSeek challenge replays the frozen 2026-06-23 through 2026-08-23
+UTC window (inclusive dates), with no live fetch or polling during the talk.
+
 The Value Map and Value Ladder use the existing parsing/computation code.
 The listing is live per fetch; bounded launch-window usage uses the same 24-hour
-Next Data Cache policy as Token Economics. `LiveLeaderboard` and Deals' feed and
-trend chart read existing shared-snapshot APIs. `to`, stale/degraded state, and
+Next Data Cache policy as Token Economics. The talk passes its fixed artifact
+to `LiveLeaderboard`; the regular research page still polls as before. Deals'
+feed and trend chart continue reading the shared-snapshot API. `to`, stale/degraded state, and
 PAYG/subscription accounting are preserved. A successful fetch does not imply
 fresh coverage. Method calculators are clearly labeled teaching examples.
 
@@ -56,6 +63,6 @@ Validation:
 ```sh
 pnpm lint
 pnpm exec tsc --noEmit
-pnpm exec tsx --test src/app/talk/mbti/data.test.ts src/app/talk/economics/data/loader.test.ts
+pnpm exec tsx --test src/app/talk/mbti/data.test.ts src/app/talk/economics/data/loader.test.ts src/app/talk/economics/history/history.test.tsx
 pnpm build
 ```

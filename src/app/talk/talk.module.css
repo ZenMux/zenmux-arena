@@ -39,7 +39,8 @@
 .progressStep::after { content: ""; position: absolute; inset: -7px 0; }
 .progressDone { background: color-mix(in srgb,var(--chapter-accent) 38%,var(--paper)); }
 .progressCurrent { background: var(--chapter-accent); }
-.darkStage { --paper: #172b29; --ink: #f1eee1; --muted: #b0beb6; --line: #3c514c; --teal: #8bc9b9; }
+.darkStage { --paper: #172b29; --ink: #f1eee1; --muted: #c1d0c8; --line: #3c514c; --teal: #8bc9b9; color: var(--ink); }
+.darkStage .chapterCard h1 { color: var(--ink); }
 .darkStage .chapterButton > span { color: #8bc9b9; }
 .darkStage .footerTools button:hover,.darkStage .chapterButton:hover { background: #29403b; color: #f1eee1; }
 .darkStage .progressStep { background: #30443e; }
@@ -58,6 +59,7 @@
 .author { display: flex; align-items: center; gap: 13px; margin-top: 30px; }
 .authorMark { width: 38px; height: 38px; display: grid; place-items: center; background: #e6eae0; border-radius: 50%; font-family: var(--font-fraunces),serif; font-size: 26px; color: #4b6452; }
 .author strong { display: block; font-size: 15px; letter-spacing: .02em; font-weight: 500; }
+.author:hover strong { color: var(--teal); text-decoration: underline; text-underline-offset: 4px; }
 .author small { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }
 .startButton { margin-top: 32px; height: 46px; padding: 0 21px; border-radius: 4px; background: var(--teal); color: #fff; font-size: 14px; gap: 25px; box-shadow: none; }
 .startButton:hover { background: #0c6964; }
@@ -273,3 +275,110 @@
 .relationConclusion > div:last-child p { display: inline-block; margin: 10px 15px 7px 0; }
 .relationConclusion > div:last-child > span { display: block; }
 .relationConclusion > div:last-child > small { display: block; color: var(--muted); font-size: 10px; }
+
+/* Phone reading mode: natural-sized content between a fixed header and pager.
+   The 1440×900 desktop stage above remains untouched. */
+.mobileHint { display: none; }
+@media (max-width: 900px) {
+  .viewport { height: 100dvh; background: var(--paper); }
+  .stage { position: relative; inset: auto; width: 100%; height: 100%; transform: none; box-shadow: none; grid-template-rows: auto minmax(0,1fr) auto; }
+  .stage :is(button,a) { touch-action: manipulation; }
+  .topbar { min-height: 58px; padding: max(6px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 6px max(16px,env(safe-area-inset-left)); gap: 12px; }
+  .topbarTitle { display: none; }
+  .chapterButton { min-height: 44px; font-size: 10px; gap: 8px; letter-spacing: .04em; }
+  .slide { padding: 24px 18px 32px; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; scrollbar-width: thin; }
+  .slideHeading { margin-bottom: 24px; gap: 8px; }
+  .slideHeading h1 { font-size: 30px; line-height: 1.4; }
+  .slideHeading p { font-size: 14px; line-height: 1.75; }
+  .figureIndex { display: none; }
+  .slideBody { flex: none; min-width: 0; }
+  .boundary { height: auto; min-width: 0; }
+  .fullBleed { padding: 0; }
+  .footer { padding: 8px max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); border-top: 1px solid var(--line); background: var(--paper); }
+  .footerUpper { height: 46px; margin: 0; justify-content: center; }
+  .cue,.presenterTool,.progress,.toolDivider { display: none; }
+  .footerTools { width: 100%; justify-content: space-evenly; gap: 4px; }
+  .footerTools button,.footerTools a { min-width: 44px; height: 44px; }
+  .pageCounter { min-width: 55px; font-size: 14px; }
+  .mobileHint { display: block; margin: -10px 0 20px; font-size: 12px; line-height: 1.7; color: var(--muted); }
+  .cover { display: flex; flex-direction: column; align-items: stretch; gap: 30px; height: auto; padding: 34px 24px 28px; }
+  .coverCopy { align-self: auto; padding: 0; }
+  .eyebrow { font-size: 9px; letter-spacing: .12em; }
+  .coverTitle { font-size: clamp(44px,12vw,64px); margin-top: 24px; }
+  .coverTitle > span:first-child { font-size: clamp(51px,14vw,75px); }
+  .coverEnglish { font-size: 19px; }
+  .coverLine { margin: 25px 0 20px; }
+  .coverSubtitle { font-size: 16px; letter-spacing: .03em; }
+  .author { margin-top: 22px; }
+  .author small { font-size: 10px; line-height: 1.7; }
+  .startButton { margin-top: 24px; }
+  .specimen { width: 100%; max-width: 330px; height: 330px; margin: 5px auto 0; }
+  .specimenRing { inset: 12px 5px 30px; }
+  .specimenRingInner { inset: 43px 36px 61px; }
+  .specimen::before,.specimen::after { height: 260px; top: 22px; }
+  .tokenObject { width: 158px; height: 158px; border-radius: 30px; }
+  .tokenObject > span { font-size: 43px; }
+  .tokenObject > svg { width: 27px; height: 27px; }
+  .tokenObject small { font-size: 9px; margin-top: 7px; }
+  .orbitMark { min-width: 48px; padding: 5px; }
+  .orbitMark img { width: 29px; height: 29px; }
+  .orbitMark span { font-size: 8px; margin-top: 5px; }
+  .specimenCaption { font-size: 8px; }
+  .coverFootnote { position: static; font-size: 10px; line-height: 1.8; }
+  .opening,.observatory,.formulaLayout,.priceLayout,.valueMethod,.challengeLayout { height: auto; grid-template-columns: minmax(0,1fr); gap: 32px; padding: 0; align-items: stretch; }
+  .opening { padding: 32px 24px; }
+  .openingText h1 { font-size: 38px; margin: 23px 0; }
+  .openingText > p:not(.eyebrow) { font-size: 17px; }
+  .openingText > .smallNote { margin-top: 22px; }
+  .questionTile { padding: 22px; }
+  .observationList { gap: 22px; }
+  .observatoryHub { min-height: 350px; }
+  .observatoryHub > img { max-width: 70%; }
+  .chapterCard { min-height: 520px; height: auto; padding: 64px 26px 86px; }
+  .chapterCard h1 { font-size: clamp(48px,12vw,76px); margin: 64px 0 26px; }
+  .chapterSubtitle { font-size: 20px; line-height: 1.8; }
+  .chapterNumber { font-size: 340px; top: 45px; right: 20px; }
+  .chapterRule { left: 26px; bottom: 40px; }
+  .chapterEnd { right: 24px; bottom: 35px; font-size: 8px; }
+  .methodExplanation,.priceStatement,.valueMethod > div:first-child,.challengeList { padding: 0; min-width: 0; }
+  .formula { max-width: 100%; overflow-x: auto; font-size: 22px; padding: 20px 0; }
+  .formulaSmall { font-size: 15px; }
+  .methodDemo,.valueExamples { min-width: 0; border-left: 0; border-top: 1px solid var(--line); padding: 22px 0 0; }
+  .demoTop { flex-wrap: wrap; gap: 8px; }
+  .dayChart { gap: 5px; }
+  .basketNumbers { gap: 14px; }
+  .basketNumbers span { font-size: 62px; }
+  .basketNumbers small { font-size: 12px; margin-left: 3px; }
+  .priceStatement > p:not(.eyebrow):not(.smallNote) { font-size: 17px; }
+  .priceStatement .formula { font-size: 21px; }
+  .calculator,.anchorExperiment { padding: 23px 18px; }
+  .valueMethod .formula { font-size: 56px; margin: 16px 0; }
+  .exampleChoices { flex-wrap: wrap; }
+  .exampleChoices button { min-height: 44px; }
+  .valueEquation { gap: 6px; }
+  .valueEquation > span { font-size: 28px; }
+  .valueEquation small { font-size: 8px; }
+  .anchorPrices { gap: 9px; flex-wrap: wrap; }
+  .anchorPrices strong { font-size: 34px; }
+  .reflection,.closing { height: auto; padding: 36px 24px; }
+  .reflection h1,.closing h1 { font-size: clamp(32px,8.5vw,52px); }
+  .reflectionSubtitle,.closing > p:not(.eyebrow) { font-size: 16px; }
+  .reflectionNotes,.closingLinks,.relationsGrid,.relationConclusion { grid-template-columns: minmax(0,1fr); gap: 24px; margin-top: 28px; }
+  .closingLinks { gap: 0; }
+  .closingFooter { align-items: flex-start; flex-direction: column; gap: 24px; }
+  .relationsTop { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .relations { height: auto; }
+  .relationRow { gap: 8px; padding-inline: 0; }
+  .relationName { width: 78px; }
+  .relationRow > strong { min-width: 54px; }
+  .notes { position: absolute; left: 12px; right: 12px; width: auto; bottom: calc(70px + env(safe-area-inset-bottom)); max-height: calc(100% - 150px); overflow-y: auto; padding: 18px; }
+  .notesBottom { flex-wrap: wrap; }
+  .toast { width: calc(100% - 32px); bottom: 85px; }
+  .overviewDialog,.helpDialog { width: calc(100vw - 24px); max-height: calc(100dvh - 32px); padding: 24px 20px; overscroll-behavior: contain; }
+  .dialogTitle { font-size: 25px; padding-right: 16px; }
+  .chapterGrid,.shortcuts { grid-template-columns: minmax(0,1fr); }
+  .chapterGrid { gap: 28px; }
+  .chapterGrid h2 > span { display: inline; margin-right: 12px; }
+  .overviewSlide { min-height: 44px; }
+  .overviewSlide > p { font-size: 14px; }
+}
