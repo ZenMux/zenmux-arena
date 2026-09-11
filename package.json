@@ -1,6 +1,6 @@
 {
   "name": "zenmux-arena",
-  "version": "0.55.0",
+  "version": "0.56.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -23,6 +23,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",
     "@resvg/resvg-js": "^2.6.2",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "html-to-image": "^1.11.13",

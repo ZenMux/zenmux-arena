@@ -26,7 +26,7 @@
       "computedHash": "16c001056132edfaef994ef9f6202df6519c3b47588d1a3cd5703bb75e4c330c"
     },
     "morphe-economics": {
-      "source": "local",
+      "source": "./local",
       "sourceType": "local",
       "skillPath": "skills/morphe-economics/SKILL.md",
       "computedHash": "9b7a4e90bc9bbc84f76101f3e6d1478e21ac1af7ce5c732a7c9866410838b4e1"
@@ -54,6 +54,18 @@
       "sourceType": "github",
       "skillPath": "skills/shadcn/SKILL.md",
       "computedHash": "80a6226e78f6d1fe464214ae0ef449d49d8ffaa3e7704f011e9b418c678ad4d1"
+    },
+    "supabase": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase/SKILL.md",
+      "computedHash": "583344c20e90f3654dbb0632f088d89fd9f1dde8ac85e8a644dd12eee59b1380"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
+      "computedHash": "e14e276241805c97dbcfe40dcbea1a3035269cc7293cac4b1832dda41a835e60"
     },
     "ui-ux-pro-max": {
       "source": "nextlevelbuilder/ui-ux-pro-max-skill",
