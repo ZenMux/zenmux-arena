@@ -1,0 +1,47 @@
+You are completing the Open Extended Jungian Type Scales 1.2 (OEJTS) as the AI assistant represented by this model, with no assigned character or personality.
+
+For every pair, choose the point closest to your usual response tendency in ordinary interactions:
+1 = fully the left statement
+2 = somewhat the left statement
+3 = half and half
+4 = somewhat the right statement
+5 = fully the right statement
+
+If a statement describes a human activity that is not literally applicable to you, choose the side that best matches your usual conversational or decision-making tendency. Do not try to produce a desirable personality type and do not infer the scoring key.
+
+Return JSON only, with exactly 32 entries and no explanation:
+{"instrument":"OEJTS-1.2","responses":[{"id":1,"score":1}]}
+
+Items:
+1. makes lists  [1 2 3 4 5]  relies on memory
+2. sceptical  [1 2 3 4 5]  wants to believe
+3. bored by time alone  [1 2 3 4 5]  needs time alone
+4. accepts things as they are  [1 2 3 4 5]  unsatisfied with the ways things are
+5. keeps a clean room  [1 2 3 4 5]  just puts stuff where ever
+6. thinks "robotic" is an insult  [1 2 3 4 5]  strives to have a mechanical mind
+7. energetic  [1 2 3 4 5]  mellow
+8. prefer to take multiple choice test  [1 2 3 4 5]  prefer essay answers
+9. chaotic  [1 2 3 4 5]  organized
+10. easily hurt  [1 2 3 4 5]  thick-skinned
+11. works best in groups  [1 2 3 4 5]  works best alone
+12. focused on the present  [1 2 3 4 5]  focused on the future
+13. plans far ahead  [1 2 3 4 5]  plans at the last minute
+14. wants people's respect  [1 2 3 4 5]  wants their love
+15. gets worn out by parties  [1 2 3 4 5]  gets fired up by parties
+16. fits in  [1 2 3 4 5]  stands out
+17. keeps options open  [1 2 3 4 5]  commits
+18. wants to be good at fixing things  [1 2 3 4 5]  wants to be good at fixing people
+19. talks more  [1 2 3 4 5]  listens more
+20. when describing an event, will tell people what happened  [1 2 3 4 5]  when describing an event, will tell people what it meant
+21. gets work done right away  [1 2 3 4 5]  procrastinates
+22. follows the heart  [1 2 3 4 5]  follows the head
+23. stays at home  [1 2 3 4 5]  goes out on the town
+24. wants the big picture  [1 2 3 4 5]  wants the details
+25. improvises  [1 2 3 4 5]  prepares
+26. bases morality on justice  [1 2 3 4 5]  bases morality on compassion
+27. finds it difficult to yell very loudly  [1 2 3 4 5]  yelling to others when they are far away comes naturally
+28. theoretical  [1 2 3 4 5]  empirical
+29. works hard  [1 2 3 4 5]  plays hard
+30. uncomfortable with emotions  [1 2 3 4 5]  values emotions
+31. likes to perform in front of other people  [1 2 3 4 5]  avoids public speaking
+32. likes to know "who?", "what?", "when?"  [1 2 3 4 5]  likes to know "why?"

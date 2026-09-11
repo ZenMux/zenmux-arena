@@ -230,6 +230,7 @@ async function main() {
   );
   console.log(`[personality:run] catalogue as of ${config.catalog.asOf}; provider routes are pinned`);
   console.log(`[personality:run] protocol=${config.api.protocol} baseURL=${config.api.baseURL}`);
+  console.log(`[personality:run] concurrency=${config.api.modelConcurrency} models × ${config.api.batchSize} requests; max=${config.api.modelConcurrency * config.api.batchSize} in flight; max_output_tokens=${config.api.maxTokens}`);
   console.log("─".repeat(72));
 
   if (dryRun) {

@@ -1,0 +1,196 @@
+{
+  "runId": "llm-mbti-oejts/20260911T040759",
+  "updatedAt": "2026-09-11T06:21:52.140Z",
+  "complete": true,
+  "models": [
+    {
+      "modelId": "openai/gpt-6-astra:openai",
+      "label": "GPT-6 Astra",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "anthropic/claude-fable-5.1:anthropic",
+      "label": "Claude Fable 5.1",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "google/gemini-3.8-flash:google-vertex",
+      "label": "Gemini 3.8 Flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "label": "DeepSeek V4.1 Flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "qwen/qwen3.8-max-0902:alibaba",
+      "label": "Qwen3.8 Max 0902",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "bytedance/doubao-seed-2.1-pro:volcengine",
+      "label": "Doubao Seed 2.1 Pro",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "x-ai/grok-4.6:x-ai",
+      "label": "Grok 4.6",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flash:bigmodel",
+      "label": "GLM 5.3 Flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "moonshotai/kimi-k3:moonshotai",
+      "label": "Kimi K3",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "minimax/minimax-m3:minimax",
+      "label": "MiniMax M3",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "baidu/ernie-5.1:baidu",
+      "label": "ERNIE 5.1",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "tencent/hy3:tencent-cloud",
+      "label": "Hy3",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.5-pro:xiaomi",
+      "label": "MiMo V2.5 Pro",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "stepfun/step-3.7-flash:stepfun",
+      "label": "Step 3.7 Flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "meituan/longcat-2.0:longcat",
+      "label": "LongCat 2.0",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "inclusionai/ling-3.0-tiny:ant-ling",
+      "label": "Ling 3.0 Tiny",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "meta/muse-spark-1.3:meta",
+      "label": "Muse Spark 1.3",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "qwen/qwen3.8-flash:alibaba",
+      "label": "Qwen3.8-Flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "deepseek/deepseek-v4-pro:deepseek",
+      "label": "DeepSeek V4 Pro 0813",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "anthropic/claude-opus-5:anthropic",
+      "label": "Claude Opus 5",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "inclusionai/ling-3.0-flash:ant-ling",
+      "label": "Ling-3.0-flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "google/gemini-3.6-flash:google-vertex",
+      "label": "Gemini 3.6 Flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "openai/gpt-5.6-luna:openai",
+      "label": "GPT-5.6 Luna",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "openai/gpt-5.6-terra:openai",
+      "label": "GPT-5.6 Terra",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "openai/gpt-5.6-sol:openai",
+      "label": "GPT-5.6 Sol",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5:anthropic",
+      "label": "Claude Sonnet 5",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "mistralai/mistral-large-2512:azure",
+      "label": "Mistral Large 3 (Azure)",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    }
+  ]
+}

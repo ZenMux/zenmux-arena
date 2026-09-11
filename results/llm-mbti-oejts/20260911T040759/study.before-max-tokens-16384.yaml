@@ -26,12 +26,12 @@ api:
   baseURL: "https://zenmux.ai/api/v1"
   apiKeyEnv: "ZENMUX_API_KEY"
   # Responses max_output_tokens includes visible output AND reasoning tokens.
-  maxTokens: 16384
+  maxTokens: 8192
   # null omits temperature for ALL models (GPT-6 Astra does not support it).
   # Sampling defaults vary by provider; no per-model fallback is applied.
   temperature: null
-  modelConcurrency: 16
-  batchSize: 8
+  modelConcurrency: 8
+  batchSize: 4
   maxRetries: 6
   retryBaseMs: 1000
   retryCapMs: 60000

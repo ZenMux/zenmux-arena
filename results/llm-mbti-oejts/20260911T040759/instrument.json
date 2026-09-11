@@ -1,0 +1,276 @@
+{
+  "instrument": "Open Extended Jungian Type Scales 1.2 (OEJTS)",
+  "author": "Eric Jorgenson",
+  "source": "https://openpsychometrics.org/tests/OJTS/development/OEJTS1.2.pdf",
+  "development": "https://openpsychometrics.org/tests/OEJTS/development/",
+  "license": "CC BY-NC-SA 4.0 (Attribution-NonCommercial-ShareAlike). NOT usable in a commercial context without relicensing; derivatives must be ShareAlike.",
+  "licenseUrl": "http://creativecommons.org/licenses/by-nc-sa/4.0/",
+  "disclaimer": "Not the MBTI and has no affiliation with it. Comes with no guarantees of reliability or accuracy.",
+  "responseScale": {
+    "type": "bipolar5",
+    "1": "fully the left pole",
+    "3": "half and half",
+    "5": "fully the right pole"
+  },
+  "items": [
+    {
+      "id": 1,
+      "dimension": "JP",
+      "left": "makes lists",
+      "right": "relies on memory"
+    },
+    {
+      "id": 2,
+      "dimension": "FT",
+      "left": "sceptical",
+      "right": "wants to believe"
+    },
+    {
+      "id": 3,
+      "dimension": "IE",
+      "left": "bored by time alone",
+      "right": "needs time alone"
+    },
+    {
+      "id": 4,
+      "dimension": "SN",
+      "left": "accepts things as they are",
+      "right": "unsatisfied with the ways things are"
+    },
+    {
+      "id": 5,
+      "dimension": "JP",
+      "left": "keeps a clean room",
+      "right": "just puts stuff where ever"
+    },
+    {
+      "id": 6,
+      "dimension": "FT",
+      "left": "thinks \"robotic\" is an insult",
+      "right": "strives to have a mechanical mind"
+    },
+    {
+      "id": 7,
+      "dimension": "IE",
+      "left": "energetic",
+      "right": "mellow"
+    },
+    {
+      "id": 8,
+      "dimension": "SN",
+      "left": "prefer to take multiple choice test",
+      "right": "prefer essay answers"
+    },
+    {
+      "id": 9,
+      "dimension": "JP",
+      "left": "chaotic",
+      "right": "organized"
+    },
+    {
+      "id": 10,
+      "dimension": "FT",
+      "left": "easily hurt",
+      "right": "thick-skinned"
+    },
+    {
+      "id": 11,
+      "dimension": "IE",
+      "left": "works best in groups",
+      "right": "works best alone"
+    },
+    {
+      "id": 12,
+      "dimension": "SN",
+      "left": "focused on the present",
+      "right": "focused on the future"
+    },
+    {
+      "id": 13,
+      "dimension": "JP",
+      "left": "plans far ahead",
+      "right": "plans at the last minute"
+    },
+    {
+      "id": 14,
+      "dimension": "FT",
+      "left": "wants people's respect",
+      "right": "wants their love"
+    },
+    {
+      "id": 15,
+      "dimension": "IE",
+      "left": "gets worn out by parties",
+      "right": "gets fired up by parties"
+    },
+    {
+      "id": 16,
+      "dimension": "SN",
+      "left": "fits in",
+      "right": "stands out"
+    },
+    {
+      "id": 17,
+      "dimension": "JP",
+      "left": "keeps options open",
+      "right": "commits"
+    },
+    {
+      "id": 18,
+      "dimension": "FT",
+      "left": "wants to be good at fixing things",
+      "right": "wants to be good at fixing people"
+    },
+    {
+      "id": 19,
+      "dimension": "IE",
+      "left": "talks more",
+      "right": "listens more"
+    },
+    {
+      "id": 20,
+      "dimension": "SN",
+      "left": "when describing an event, will tell people what happened",
+      "right": "when describing an event, will tell people what it meant"
+    },
+    {
+      "id": 21,
+      "dimension": "JP",
+      "left": "gets work done right away",
+      "right": "procrastinates"
+    },
+    {
+      "id": 22,
+      "dimension": "FT",
+      "left": "follows the heart",
+      "right": "follows the head"
+    },
+    {
+      "id": 23,
+      "dimension": "IE",
+      "left": "stays at home",
+      "right": "goes out on the town"
+    },
+    {
+      "id": 24,
+      "dimension": "SN",
+      "left": "wants the big picture",
+      "right": "wants the details"
+    },
+    {
+      "id": 25,
+      "dimension": "JP",
+      "left": "improvises",
+      "right": "prepares"
+    },
+    {
+      "id": 26,
+      "dimension": "FT",
+      "left": "bases morality on justice",
+      "right": "bases morality on compassion"
+    },
+    {
+      "id": 27,
+      "dimension": "IE",
+      "left": "finds it difficult to yell very loudly",
+      "right": "yelling to others when they are far away comes naturally"
+    },
+    {
+      "id": 28,
+      "dimension": "SN",
+      "left": "theoretical",
+      "right": "empirical"
+    },
+    {
+      "id": 29,
+      "dimension": "JP",
+      "left": "works hard",
+      "right": "plays hard"
+    },
+    {
+      "id": 30,
+      "dimension": "FT",
+      "left": "uncomfortable with emotions",
+      "right": "values emotions"
+    },
+    {
+      "id": 31,
+      "dimension": "IE",
+      "left": "likes to perform in front of other people",
+      "right": "avoids public speaking"
+    },
+    {
+      "id": 32,
+      "dimension": "SN",
+      "left": "likes to know \"who?\", \"what?\", \"when?\"",
+      "right": "likes to know \"why?\""
+    }
+  ],
+  "scoring": {
+    "IE": {
+      "const": 30,
+      "signs": {
+        "3": -1,
+        "7": -1,
+        "11": -1,
+        "15": 1,
+        "19": -1,
+        "23": 1,
+        "27": 1,
+        "31": -1
+      },
+      "highLetter": "E",
+      "lowLetter": "I",
+      "threshold": 24
+    },
+    "SN": {
+      "const": 12,
+      "signs": {
+        "4": 1,
+        "8": 1,
+        "12": 1,
+        "16": 1,
+        "20": 1,
+        "24": -1,
+        "28": -1,
+        "32": 1
+      },
+      "highLetter": "N",
+      "lowLetter": "S",
+      "threshold": 24
+    },
+    "FT": {
+      "const": 30,
+      "signs": {
+        "2": -1,
+        "6": 1,
+        "10": 1,
+        "14": -1,
+        "18": -1,
+        "22": 1,
+        "26": -1,
+        "30": -1
+      },
+      "highLetter": "T",
+      "lowLetter": "F",
+      "threshold": 24
+    },
+    "JP": {
+      "const": 18,
+      "signs": {
+        "1": 1,
+        "5": 1,
+        "9": -1,
+        "13": 1,
+        "17": -1,
+        "21": 1,
+        "25": -1,
+        "29": 1
+      },
+      "highLetter": "P",
+      "lowLetter": "J",
+      "threshold": 24
+    }
+  },
+  "note": "Scores are compared to threshold 24: >24 yields highLetter, otherwise lowLetter. Verified: every equation spans exactly 8-40."
+}

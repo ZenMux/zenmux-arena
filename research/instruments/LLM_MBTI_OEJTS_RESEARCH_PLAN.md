@@ -28,7 +28,7 @@
 按当前候选名单计算：
 
 ```text
-27 个模型 × 16 次 = 432 份有效问卷（失败与重试会增加实际请求数）
+28 个模型 × 16 次 = 448 份有效问卷（失败与重试会增加实际请求数）
 ```
 
 ---
@@ -203,8 +203,9 @@ INTJ, INTJ, INFJ, INTJ, INTJ, ... 共 16 个
 | OpenAI | GPT-5.6 Terra | `openai/gpt-5.6-terra:openai` | 2026-07-10 |
 | OpenAI | GPT-5.6 Sol | `openai/gpt-5.6-sol:openai` | 2026-07-10 |
 | Anthropic | Claude Sonnet 5 | `anthropic/claude-sonnet-5:anthropic` | 2026-06-30 |
+| Mistral | Mistral Large 3 | `mistralai/mistral-large-2512:mistral` | 2025-12-02 |
 
-原名单中的 Mistral Large 3（`mistralai/mistral-large-2512:mistral`）暂不启用：2026-09-11 在线目录只列出 `chat.completions,messages`，未列出 Responses。配置中保留注释，待协议可用后重新核验。其余原有 18 款与新增 9 款合计 27 款。
+2026-09-11 研究者确认 Mistral Large 3 支持 Responses，已恢复其原厂路由。协议目录可能滞后，实际支持情况由本轮真实请求验证；原有 19 款与新增 9 款合计 28 款。
 
 配置文件已经落在：
 
@@ -233,10 +234,11 @@ INTJ, INTJ, INFJ, INTJ, INTJ, ... 共 16 个
 
 - `api.protocol: responses`，`api.baseURL: https://zenmux.ai/api/v1`；
 - `temperature: null` 表示所有模型都不发送温度参数，使用各服务默认采样设置。OpenAI 官方文档明确 GPT-6 Astra 不支持 `temperature`，因此不沿用旧配置的 0.7，也不按模型静默降级；这不代表各厂商实际采样温度相同；
-- 配置 `maxTokens: 8192` 映射为 Responses 的 `max_output_tokens`。该上限同时覆盖可见输出与推理 token，因此从旧 Messages 配置的 2048 提升到 8192；
+- 配置 `maxTokens: 16384` 映射为 Responses 的 `max_output_tokens`，该上限同时覆盖可见输出与推理 token。首批曾使用 8192，后按研究者要求提高到 16384；本批次保留此前有效问卷，并通过 run 目录的 `config-amendments.jsonl`、原配置备份和 `RUN_NOTES.md` 记录参数变更，报告须披露两种上限；
 - 不显式设置 `reasoning.effort`，使用各模型服务默认值；相同请求参数不等于各厂商具有相同内部推理预算，返回元数据随原始响应保存；
 - `stream: false`、`store: false`，不携带历史会话；
-- 并行上限为 8 个模型，每模型批次 4 份问卷；每个请求最多重试 6 次，最多补测 5 轮；
+- 并行上限为 16 个模型，每模型批次 8 份问卷，最多 128 个请求同时在途；每个请求最多重试 6 次，最多补测 5 轮。此前上限为 8 × 4，调整记录保存在 run 的 `config-amendments.jsonl` 中；
+- Node 响应头及响应体等待上限与 SDK 请求时限统一为 10 分钟，避免非流式长推理请求被底层默认约 5 分钟的等待限制提前中断；
 - `incomplete`、`failed`、拒答和格式错误都不能计入 16 份有效问卷，即便截断响应恰好能解析出 32 个答案；
 - 正式施测前仍需确认模型接受这些参数。目录检查和本地 dry-run 不调用模型，不能替代实际请求的兼容性验证。
 
@@ -301,7 +303,7 @@ personality-oejts.yaml + oejts-1.2.json
 | 文件 | 用途 |
 | --- | --- |
 | [`oejts-1.2.json`](./oejts-1.2.json) | 原版 32 题、许可证和计分键 |
-| [`personality-oejts.yaml`](../../config/personality-oejts.yaml) | 27 个启用模型、Responses、原厂路由、16 次重复与阈值 |
+| [`personality-oejts.yaml`](../../config/personality-oejts.yaml) | 28 个启用模型、Responses、原厂路由、16 次重复与阈值 |
 | [`instrument.ts`](../personality/instrument.ts) | 校验题库并生成固定提示 |
 | [`check-models.ts`](../personality/check-models.ts) | 请求最新目录，核对模型、协议和原厂路由 |
 | [`client.ts`](../personality/client.ts) | Responses 请求、文本提取、完成状态和拒答处理 |
