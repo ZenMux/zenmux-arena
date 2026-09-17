@@ -57,7 +57,7 @@
 .coverLine { width: 43px; height: 2px; background: var(--teal); margin: 35px 0 23px; }
 .coverSubtitle { font-size: 20px; line-height: 1.6; letter-spacing: .12em; margin: 0; }
 .author { display: flex; align-items: center; gap: 13px; margin-top: 30px; }
-.authorMark { width: 38px; height: 38px; display: grid; place-items: center; background: #e6eae0; border-radius: 50%; font-family: var(--font-fraunces),serif; font-size: 26px; color: #4b6452; }
+.authorAvatar { width: 38px; height: 38px; flex-shrink: 0; object-fit: cover; background: #e6eae0; border-radius: 50%; }
 .author strong { display: block; font-size: 15px; letter-spacing: .02em; font-weight: 500; }
 .author:hover strong { color: var(--teal); text-decoration: underline; text-underline-offset: 4px; }
 .author small { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; }

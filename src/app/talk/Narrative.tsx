@@ -30,7 +30,7 @@ export function Cover({ onStart }: { onStart: () => void }) {
       <p className={styles.coverEnglish}>If tokens could talk.</p>
       <div className={styles.coverLine} />
       <p className={styles.coverSubtitle}>一些关于身份、性格与选择的观察</p>
-      <a className={styles.author} href="https://thinkthinking.ai/" target="_blank" rel="noreferrer"><span className={styles.authorMark}>t.</span><span><strong>thinkthinking</strong><small>ZenMuxAI & AgentOS 联合创始人 · 产品负责人</small></span></a>
+      <a className={styles.author} href="https://thinkthinking.ai/" target="_blank" rel="noreferrer"><Image className={styles.authorAvatar} src="/thinkthinking/selfie.jpg" width={38} height={38} sizes="38px" alt="thinkthinking 的头像" loading="eager" /><span><strong>thinkthinking</strong><small>ZenMux.ai 联合创始人·产品负责人</small></span></a>
       <Button onClick={onStart} className={styles.startButton}>开始倾听 <ArrowRight data-icon="inline-end" /></Button>
     </div>
     <div className={styles.specimen} aria-label="八个模型围绕着同一枚 Token，象征三个研究的共同起点">
