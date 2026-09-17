@@ -75,7 +75,6 @@ export interface PersonalityConfig {
   repeats: 16;
   classification: {
     minModalCount: number;
-    minLetterCount: number;
   };
   models: PersonalityModelSpec[];
 }

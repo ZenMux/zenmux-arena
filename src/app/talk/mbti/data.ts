@@ -24,6 +24,9 @@ export async function loadMbtiTalkData(): Promise<MbtiTalkData> {
     readFile(path.join(process.cwd(), "results/llm-mbti-oejts/20260911T040759/RUN_NOTES.md"), "utf8"),
   ]);
   const aggregate = JSON.parse(aggregateRaw) as PersonalityAggregate;
+  if (aggregate.classification.minModalCount !== 9 || "minLetterCount" in aggregate.classification) {
+    throw new Error("Reaggregate the MBTI run with the revised majority-only rule before presenting it.");
+  }
   const source = JSON.parse(instrumentRaw) as OejtsInstrument;
   if (source.items.length !== 32 || aggregate.repeats !== 16 || !aggregate.models.length) {
     throw new Error("The MBTI talk requires the complete frozen OEJTS 1.2 run.");
@@ -61,8 +64,8 @@ export async function loadMbtiTalkData(): Promise<MbtiTalkData> {
   for (const model of models) {
     if (model.stableType) groups.set(model.stableType, [...(groups.get(model.stableType) ?? []), model.id]);
   }
-  const failures = (model: MbtiModel) => DIMENSIONS.filter((d, index) =>
-    model.modalType && (model.letterCounts[model.modalType[index]] ?? 0) < aggregate.classification.minLetterCount,
+  const variations = (model: MbtiModel) => DIMENSIONS.filter((d) =>
+    model.dimensions[d].lowLetterCount > 0 && model.dimensions[d].highLetterCount > 0,
   );
   const stableCount = models.filter((m) => m.status === "stable").length;
   return {
@@ -76,19 +79,18 @@ export async function loadMbtiTalkData(): Promise<MbtiTalkData> {
       stableGroups: [...groups].sort((a, b) => b[1].length - a[1].length).map(([type, modelIds]) => ({
         type, modelIds, count: modelIds.length, illustration: `/mbti/${type.toLowerCase()}.svg`,
       })),
-      onlySnFailureCount: models.filter((m) => {
-        const failed = failures(m);
-        return m.status === "no_stable_type" && m.modalCount >= aggregate.classification.minModalCount
-          && m.distribution.filter((t) => t.count === m.modalCount).length === 1
-          && failed.length === 1 && failed[0] === "SN";
+      onlySnVariationCount: models.filter((m) => {
+        const varied = variations(m);
+        return varied.length === 1 && varied[0] === "SN";
       }).length,
-      dimensionFailures: DIMENSIONS.map((dimension) => ({
-        dimension, count: models.filter((m) => failures(m).includes(dimension)).length,
+      dimensionVariations: DIMENSIONS.map((dimension) => ({
+        dimension, count: models.filter((m) => variations(m).includes(dimension)).length,
       })),
     },
     // Editorial summaries of the pinned RUN_NOTES.md, checked above. These are
     // methodological context, never inferred from the original plan's defaults.
     runNotes: [
+      { title: "判据修订 · 2026-09-17", detail: "仅保留完整类型唯一众数严格过半（≥9/16）。四字母频数只用于描述，不再参与判定。本页是既有 432 份问卷的重新分析，不是新增测试，也不是原始预注册判据。" },
       { title: "三档输出上限", detail: "8192 → 16384 → 50000。保留首批 50 份有效问卷；Doubao 与 Azure Mistral 续跑使用 50000。上限含推理与可见输出，不等于实际用量。" },
       { title: "供应商例外", detail: "最终包含 Azure 托管的 Mistral Large 3；Agnes 与原厂 :mistral 失败路由已排除。不能将本批次描述为全部原厂供应商。" },
       { title: "续跑与传输修订", detail: "并发从 8×4 增至 16×8，等待上限为 10 分钟；后续 Responses 改为 SSE。提示与题库保持冻结，失败或未完成响应不计分。" },

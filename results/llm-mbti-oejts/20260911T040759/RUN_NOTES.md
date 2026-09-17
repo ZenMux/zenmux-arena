@@ -45,3 +45,10 @@
 - Changed at: 2026-09-11T05:35:00.000Z
 - The runner now prints `response.reasoning_text.delta` and `response.reasoning_summary_text.delta` events with a model label to the terminal, so liveness is visible while a long response is in progress.
 - Reasoning text is terminal-only: it is neither accumulated as questionnaire output nor written to `records.jsonl`. Final `rawResponse` is sanitized to remove reasoning output items before persistence.
+
+## Majority-only reanalysis (2026-09-17)
+
+- At the user's request, the only stability criterion is now a unique complete-type mode strictly above half: at least 9 of 16 valid questionnaires. The former per-letter threshold no longer participates in classification; letter counts and dimension statistics remain descriptive.
+- This is a retrospective analysis-rule amendment, not a new experiment or the original preregistered rule. Raw records, instrument, prompt, provider routes, and historical `study*.yaml` snapshots are unchanged. The loader deliberately excludes the retired `minLetterCount` when producing the current classification configuration.
+- Regenerated aggregate/report: **22/27 stable** (13 INTJ, 9 ISTJ), **5/27 no stable type**, based on the same 432 valid questionnaires. Ten models change from no stable type to stable; no questionnaire, type distribution, or dimension score changed.
+- Potential cache effects have not been excluded. Follow-up tests should compare controlled, meaning-preserving prompt perturbations with unperturbed runs, record available cache-hit metadata, and use provider-supported cache bypass controls where possible. Prompt/KV caching does not by itself mean a whole answer was replayed. Perturbations may independently affect answers, so changed distributions alone do not establish a cache effect.

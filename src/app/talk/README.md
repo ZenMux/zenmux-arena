@@ -39,7 +39,13 @@ PAYG/subscription accounting are preserved. A successful fetch does not imply
 fresh coverage. Method calculators are clearly labeled teaching examples.
 
 OEJTS is pinned to `llm-mbti-oejts/20260911T040759`: 27 models, 432 valid
-administrations, 12 stable profiles. Its loader discloses Azure Mistral and the
+administrations, 22 stable profiles (13 INTJ, 9 ISTJ), and 5 without a stable type.
+The 2026-09-17 reanalysis uses only a unique complete-type mode above half
+(≥9/16); per-letter statistics are descriptive, not additional gates. The
+original questionnaires and pinned study snapshots are unchanged.
+`/talk#mbti-gallery` shows all 27 models with local MBTI illustrations, type
+shares (count / 16, not confidence), and explicit unstable labels. The closing
+MBTI scene includes prompt-perturbation/cache controls as unperformed follow-up work. Its loader discloses Azure Mistral and the
 8192/16384/50000 output budgets. The score/distribution tests re-score every
 questionnaire. Original OEJTS 1.2 attribution and CC BY-NC-SA 4.0 remain visible.
 
@@ -63,6 +69,6 @@ Validation:
 ```sh
 pnpm lint
 pnpm exec tsc --noEmit
-pnpm exec tsx --test src/app/talk/mbti/data.test.ts src/app/talk/economics/data/loader.test.ts src/app/talk/economics/history/history.test.tsx
+pnpm exec tsx --test src/app/talk/mbti/*.test.ts src/app/talk/mbti/*.test.tsx src/app/talk/economics/data/loader.test.ts src/app/talk/economics/history/history.test.tsx
 pnpm build
 ```

@@ -4,7 +4,7 @@ import type {
   OejtsInstrument,
 } from "@research/personality/types";
 
-export type MbtiView = "method" | "overview" | "explorer" | "stability" | "dimensions";
+export type MbtiView = "method" | "overview" | "gallery" | "explorer" | "stability" | "dimensions";
 export type MbtiDimension = OejtsDimension;
 
 export interface MbtiModel {
@@ -33,7 +33,7 @@ export interface MbtiTalkData {
   runId: string;
   generatedAt: string;
   repeats: number;
-  classification: { minModalCount: number; minLetterCount: number };
+  classification: { minModalCount: number };
   instrument: OejtsInstrument;
   models: MbtiModel[];
   summary: {
@@ -43,8 +43,8 @@ export interface MbtiTalkData {
     unstableCount: number;
     unanimousCount: number;
     stableGroups: { type: string; count: number; modelIds: string[]; illustration: string }[];
-    onlySnFailureCount: number;
-    dimensionFailures: { dimension: MbtiDimension; count: number }[];
+    onlySnVariationCount: number;
+    dimensionVariations: { dimension: MbtiDimension; count: number }[];
   };
   runNotes: { title: string; detail: string }[];
 }

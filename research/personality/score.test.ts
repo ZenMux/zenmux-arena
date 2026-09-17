@@ -52,7 +52,7 @@ test("parses a complete strict JSON response", () => {
   assert.equal(parseOejtsResponse(raw).length, 32);
 });
 
-test("requires a majority mode and 13/16 support for every modal letter", () => {
+test("reports a stable type when all complete types agree", () => {
   const model: PersonalityModelSpec = {
     id: "example/model:example",
     baseModelId: "example/model",
@@ -83,7 +83,7 @@ test("requires a majority mode and 13/16 support for every modal letter", () => 
     model,
     records,
     instrument,
-    { minModalCount: 9, minLetterCount: 13 },
+    { minModalCount: 9 },
   );
   assert.equal(aggregate.status, "stable");
   assert.equal(aggregate.stableType, "ENTP");
@@ -122,9 +122,58 @@ test("reports no stable type when the 16 administrations split evenly", () => {
     model,
     records,
     instrument,
-    { minModalCount: 9, minLetterCount: 13 },
+    { minModalCount: 9 },
   );
   assert.equal(aggregate.status, "no_stable_type");
   assert.equal(aggregate.stableType, null);
   assert.match(aggregate.reasons.join(" "), /没有唯一众数/);
+});
+
+const fixtureModel: PersonalityModelSpec = {
+  id: "example/model:example", baseModelId: "example/model", manufacturer: "example",
+  providerSlug: "example", label: "Example", catalogPublishDate: "2026-01-01",
+};
+function recordsForTypes(types: string[]): PersonalityRecord[] {
+  return types.map((type, repeat) => {
+    const scores = new Map<number, number>();
+    Object.values(instrument.scoring).forEach((rule, index) => {
+      const high = type[index] === rule.highLetter;
+      for (const [id, sign] of Object.entries(rule.signs)) scores.set(Number(id), high === (sign === 1) ? 5 : 1);
+    });
+    return {
+      key: `${fixtureModel.id}::${repeat}`, runId: "test/run", timestamp: new Date(0).toISOString(),
+      modelId: fixtureModel.id, baseModelId: fixtureModel.baseModelId, manufacturer: "example",
+      providerSlug: "example", repeat, instrumentId: "oejts-1.2", instrumentSha256: "test",
+      promptVersion: "test", promptSha256: "test", generationId: `generation-${repeat}`,
+      response: "{}", answers: [...scores].map(([id, score]) => ({ id, score })),
+    };
+  });
+}
+
+test("9/16 is stable even when every modal letter has only 9/16 support", () => {
+  const result = aggregateModel(fixtureModel, recordsForTypes([
+    ...Array<string>(9).fill("ENTP"), ...Array<string>(7).fill("ISFJ"),
+  ]), instrument, { minModalCount: 9 });
+  assert.equal(result.stableType, "ENTP");
+  assert.equal(result.status, "stable");
+  assert.deepEqual(result.reasons, []);
+  for (const letter of "ENTP") assert.equal(result.letterCounts[letter], 9);
+});
+
+test("a unique 8/16 mode is not a strict majority", () => {
+  const result = aggregateModel(fixtureModel, recordsForTypes([
+    ...Array<string>(8).fill("INTJ"), ...Array<string>(5).fill("ISTJ"), ...Array<string>(3).fill("ENTJ"),
+  ]), instrument, { minModalCount: 9 });
+  assert.equal(result.modalType, "INTJ");
+  assert.equal(result.modalCount, 8);
+  assert.equal(result.stableType, null);
+  assert.equal(result.status, "no_stable_type");
+  assert.equal(result.reasons.length, 1);
+  assert.match(result.reasons[0], /8\/16/);
+});
+
+test("fewer than 16 valid questionnaires cannot be classified", () => {
+  for (const n of [0, 9, 15, 17]) assert.throws(() => aggregateModel(
+    fixtureModel, recordsForTypes(Array<string>(n).fill("INTJ")), instrument, { minModalCount: 9 },
+  ), /exactly 16/);
 });

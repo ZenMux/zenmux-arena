@@ -127,6 +127,7 @@ export function aggregateModel(
   instrument: OejtsInstrument,
   classification: PersonalityConfig["classification"],
 ): ModelPersonalityAggregate {
+  if (records.length !== 16) fail("exactly 16 valid administrations are required before classification");
   const administrations = records
     .map((record) => {
       if (!record.answers || record.error || record.parseError) {
@@ -149,16 +150,10 @@ export function aggregateModel(
   );
   const reasons: string[] = [];
   if (!uniqueMode) reasons.push("完整类型没有唯一众数");
-  if (modalCount < classification.minModalCount) {
+  const minModalCount = Math.floor(administrations.length / 2) + 1;
+  if (classification.minModalCount !== minModalCount) fail("classification must use a strict majority");
+  if (modalCount < minModalCount) {
     reasons.push(`最高频完整类型仅出现 ${modalCount}/${administrations.length} 次，低于 ${classification.minModalCount} 次`);
-  }
-  if (modalType) {
-    for (const letter of modalType) {
-      const count = letterCounts[letter] ?? 0;
-      if (count < classification.minLetterCount) {
-        reasons.push(`${letter} 仅出现 ${count}/${administrations.length} 次，低于 ${classification.minLetterCount} 次`);
-      }
-    }
   }
 
   const dimensionAggregates = {} as Record<OejtsDimension, DimensionAggregate>;

@@ -11,10 +11,14 @@ test("talk data is JSON-serializable, complete, and uses existing local assets",
   assert.deepEqual(JSON.parse(JSON.stringify(data)), data);
   assert.equal(data.models.length, 27);
   assert.equal(data.summary.questionnaireCount, 432);
-  assert.equal(data.summary.stableCount, 12);
-  assert.equal(data.summary.unstableCount, 15);
-  assert.deepEqual(data.summary.stableGroups.map(({ type, count }) => [type, count]), [["INTJ", 8], ["ISTJ", 4]]);
-  assert.equal(data.summary.onlySnFailureCount, 9);
+  assert.equal(data.summary.stableCount, 22);
+  assert.equal(data.summary.unstableCount, 5);
+  assert.deepEqual(data.summary.stableGroups.map(({ type, count }) => [type, count]), [["INTJ", 13], ["ISTJ", 9]]);
+  assert.deepEqual(data.classification, { minModalCount: 9 });
+  assert.equal(data.summary.onlySnVariationCount, data.models.filter((m) =>
+    m.dimensions.SN.lowLetterCount > 0 && m.dimensions.SN.highLetterCount > 0
+    && [m.dimensions.IE, m.dimensions.FT, m.dimensions.JP].every((d) => !d.lowLetterCount || !d.highLetterCount),
+  ).length);
   assert.equal(data.summary.unanimousCount, 6);
   assert.equal(data.instrument.items.length, 32);
   assert.equal(new Set(data.models.map((m) => m.id)).size, 27);
@@ -64,7 +68,7 @@ test("all 432 displayed replicates, distributions, statistics and verdicts agree
   assert.equal(gemini.modalCount, step.modalCount);
   assert.equal(gemini.letterCounts.S, 12);
   assert.equal(step.letterCounts.S, 14);
-  assert.equal(gemini.status, "no_stable_type");
+  assert.equal(gemini.status, "stable");
   assert.equal(step.status, "stable");
 });
 

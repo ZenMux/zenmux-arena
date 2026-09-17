@@ -45,13 +45,11 @@ instrument:
 
 repeats: 16
 
-# A model gets a stable type only when BOTH rules pass:
-# 1. one unique full type occurs in a strict majority: at least 9/16;
-# 2. each of that type's four letters occurs at least 13/16 times.
+# A stable type is the unique complete-type mode with a strict majority: at least 9/16.
+# Letter frequencies remain descriptive only; they do not affect classification.
 # Otherwise aggregate reports `no_stable_type`, while retaining the modal type.
 classification:
   minModalCount: 9
-  minLetterCount: 13
 
 models:
   - id: "openai/gpt-6-astra:openai"

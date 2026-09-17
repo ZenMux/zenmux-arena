@@ -18,9 +18,10 @@ const DIMENSION_NAMES: Record<MbtiDimension, string> = {
   IE: "内向 / 外向", SN: "实感 / 直觉", FT: "情感 / 思考", JP: "判断 / 感知",
 };
 const VIEW_LABELS: Record<MbtiView, string> = {
-  method: "问卷与计分", overview: "研究总览", explorer: "模型探索", stability: "稳定性判定", dimensions: "连续维度",
+  method: "问卷与计分", overview: "研究总览", gallery: "全模型人格一览", explorer: "模型探索", stability: "稳定性判定", dimensions: "连续维度",
 };
 const percent = (n: number, total: number) => `${(100 * n / total).toFixed(1)}%`;
+const exactPercent = (n: number, total: number) => `${Number((100 * n / total).toFixed(2))}%`;
 const position = (score: number) => `${(score - 8) / 32 * 100}%`;
 const typeTone = (type: string) => type[1] === "N" ? (type[2] === "T" ? "analyst" : "diplomat") : type[3] === "J" ? "sentinel" : "explorer";
 
@@ -141,7 +142,7 @@ function Overview({ data }: { data: MbtiTalkData }) {
     <div className={s.overviewGroups}>
       {data.summary.stableGroups.map((group) => <section key={group.type} className={s.typeGroup} data-tone={typeTone(group.type)}>
         <div className={s.typeGroupHeader}>
-          <div><span className={s.eyebrow}>STABLE PROFILE</span><h3>{group.type}<small>{group.count} 款</small></h3><span>通过完整类型与字母双重门槛</span></div>
+          <div><span className={s.eyebrow}>STABLE PROFILE</span><h3>{group.type}<small>{group.count} 款</small></h3><span>完整类型唯一众数 ≥9/16</span></div>
           <Image src={group.illustration} width={105} height={116} alt={`${group.type} 类型插画`} unoptimized />
         </div>
         <div className={s.stableModels}>{group.modelIds.map((id) => {
@@ -160,7 +161,39 @@ function Overview({ data }: { data: MbtiTalkData }) {
         </div>
       </section>
     </div>
-    <div className={s.overviewReadout} aria-live="polite">{selected ? <><Logo model={selected} size={22} /><b>{selected.name}</b><span>众数 {selected.modalType} · {selected.modalCount}/{selected.n}</span><span>{selected.status === "stable" ? "完整类型与四个字母均通过门槛" : selected.reasons.join("；")}</span></> : <><ArrowUpRight size={17} aria-hidden="true" /><span>点击任意模型，查看稳定性依据。未稳定不是能力评价，也不等于没有答题倾向。</span></>}</div>
+    <div className={s.overviewReadout} aria-live="polite">{selected ? <><Logo model={selected} size={22} /><b>{selected.name}</b><span>众数 {selected.modalType} · {selected.modalCount}/{selected.n}</span><span>{selected.status === "stable" ? "完整类型唯一众数严格超过半数" : selected.reasons.join("；")}</span></> : <><ArrowUpRight size={17} aria-hidden="true" /><span>点击任意模型，查看稳定性依据。未稳定不是能力评价，也不等于没有答题倾向。</span></>}</div>
+  </div>;
+}
+
+function Gallery({ data }: { data: MbtiTalkData }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = data.models.find((model) => model.id === selectedId);
+  const sorted = [...data.models].sort((a, b) =>
+    Number(b.status === "stable") - Number(a.status === "stable")
+    || (a.modalType ?? "").localeCompare(b.modalType ?? "") || b.modalCount - a.modalCount,
+  );
+  return <div className={s.gallery}>
+    <div className={s.galleryHeading}>
+      <span><b>{data.summary.modelCount}</b> 款模型 <i /> 每款 {data.repeats} 次完整问卷</span>
+      <span>按稳定状态与类型分组 <i /> <b>{data.summary.stableCount}</b> 稳定 · <b>{data.summary.unstableCount}</b> 未稳定</span>
+    </div>
+    <div className={s.galleryGrid} aria-label="全部模型的最高频 MBTI 类型与占比">
+      {sorted.map((model) => {
+        const modes = model.distribution.filter((item) => item.count === model.modalCount);
+        return <button type="button" key={model.id} className={cn(s.personalityCard, selectedId === model.id && s.personalitySelected)}
+          data-tone={typeTone(modes[0].type)} data-stable={model.status === "stable"} aria-pressed={selectedId === model.id}
+          aria-label={`${model.name}，${model.status === "stable" ? "稳定类型" : "未稳定，最高频类型"} ${modes.map((m) => m.type).join("、")}，各 ${model.modalCount}/${model.n}，${exactPercent(model.modalCount, model.n)}`}
+          onClick={() => setSelectedId(model.id)}>
+          <span className={s.personalityModel}><Logo model={model} size={18} /><span>{model.name}</span></span>
+          <span className={s.personalityIdentity}>
+            <Image src={modes[0].illustration} width={58} height={64} alt="" unoptimized />
+            <span><b>{modes.length === 1 ? modes[0].type : "并列"}</b><strong>{exactPercent(model.modalCount, model.n)}</strong><small>{model.modalCount}/{model.n} 次</small></span>
+          </span>
+          <span className={s.personalityStatus}>{model.status === "stable" ? <><Check size={11} aria-hidden="true" /> 稳定类型</> : "未稳定 · 仅展示最高频"}</span>
+        </button>;
+      })}
+    </div>
+    <div className={s.galleryReadout} aria-live="polite">{selected ? <><Logo model={selected} size={20} /><b>{selected.name}</b><span>{selected.distribution.map((item) => `${item.type} ${item.count}/${selected.n}`).join(" · ")}</span></> : <><ArrowUpRight size={16} aria-hidden="true" /><span>点击模型查看完整分布。百分比 = 该完整类型出现次数 ÷ 16；不是人格置信度。虚线卡片未达到稳定标准。</span></>}</div>
   </div>;
 }
 
@@ -206,36 +239,28 @@ function Explorer({ data }: { data: MbtiTalkData }) {
         </div>
       </div>
       <div className={cn(s.modelReason, model.status !== "stable" && s.reasonAmber)} aria-live="polite">
-        <b>{model.status === "stable" ? "通过判定" : "未通过原因"}</b><span>{model.reasons.length ? model.reasons.join("；") : `唯一众数 ≥${data.classification.minModalCount}/${model.n}，四个字母均 ≥${data.classification.minLetterCount}/${model.n}。`}</span>
+        <b>{model.status === "stable" ? "通过判定" : "未通过原因"}</b><span>{model.reasons.length ? model.reasons.join("；") : `完整类型唯一众数 ≥${data.classification.minModalCount}/${model.n}，严格超过半数。`}</span>
       </div>
     </div>
   </div>;
 }
 
-function CountMeter({ letter, count, total, threshold }: { letter: string; count: number; total: number; threshold: number }) {
-  return <div className={s.countMeter} data-passed={count >= threshold}>
-    <b>{letter}</b><div className={s.countTrack}><span style={{ width: percent(count, total) }} /><i style={{ left: percent(threshold, total) }} /></div><strong>{count}<small>/{total}</small></strong>
-  </div>;
-}
-
 function Stability({ data }: { data: MbtiTalkData }) {
-  const comparison = ["google/gemini-3.8-flash", "stepfun/step-3.7-flash"].map((id) => data.models.find((m) => m.id.startsWith(`${id}:`)));
+  const comparison = ["anthropic/claude-fable-5.1", "baidu/ernie-5.1"].map((id) => data.models.find((m) => m.id.startsWith(`${id}:`)));
   return <div className={s.stability}>
     <div className={s.rulesStrip}>
-      <p>同样的众数，<br /><em>不同的稳定性。</em></p>
-      <div><strong>{data.classification.minModalCount}<small>/{data.repeats}</small></strong><span>完整类型：唯一众数<small>至少超过半数</small></span></div>
-      <span className={s.ruleAnd}>且</span>
-      <div><strong>{data.classification.minLetterCount}<small>/{data.repeats}</small></strong><span>四个字母：分别一致<small>每一维都必须达标</small></span></div>
-      <span className={s.ruleNote}>本研究预设规则<br />非 OEJTS 官方标准</span>
+      <p>只看完整类型，<br /><em>是否严格过半。</em></p>
+      <div><strong>{data.classification.minModalCount}<small>/{data.repeats}</small></strong><span>完整类型：唯一众数<small>至少超过半数 · 8/16 不算</small></span></div>
+      <span className={s.ruleNote}>先取得 16 份有效问卷<br />修订后研究规则，非官方 MBTI 标准</span>
     </div>
     <div className={s.comparisonCards}>{comparison.map((model) => model ? <section className={s.comparisonCard} key={model.id}>
-      <div className={s.modelHeader}><Logo model={model} size={40} /><div><h3>{model.name}</h3><span>相同的完整类型众数</span></div><Status model={model} /></div>
-      <div className={s.modalResult}><b>{model.modalType}</b><strong>{model.modalCount}<small>/{model.n}</small></strong><span><Check size={16} aria-hidden="true" />唯一众数 ≥ {data.classification.minModalCount} 次</span></div>
-      <div className={s.letterMeters}>{model.modalType?.split("").map((letter) => <CountMeter key={letter} letter={letter} count={model.letterCounts[letter] ?? 0} total={model.n} threshold={data.classification.minLetterCount} />)}</div>
-      <p className={s.meterLegend}>虚线为每个字母 {data.classification.minLetterCount}/{model.n} 的门槛</p>
-      <div className={cn(s.comparisonVerdict, model.status !== "stable" && s.reasonAmber)}>{model.status === "stable" ? <><Check size={18} aria-hidden="true" /><b>四个字母全部通过 → 稳定 {model.stableType}</b></> : <><span aria-hidden="true">↳</span><b>{model.reasons.join("；")} → 未稳定</b></>}</div>
+      <div className={s.modelHeader}><Logo model={model} size={40} /><div><h3>{model.name}</h3><span>真实问卷 · 边界对照</span></div><Status model={model} /></div>
+      <div className={s.modalResult}><b>{model.modalType}</b><strong>{model.modalCount}<small>/{model.n}</small></strong><span>{exactPercent(model.modalCount, model.n)} · 最高频完整类型</span></div>
+      <Distribution model={model} />
+      <p className={s.meterLegend}>四字母频数和连续分数保留作描述，不再决定是否稳定。</p>
+      <div className={cn(s.comparisonVerdict, model.status !== "stable" && s.reasonAmber)}>{model.status === "stable" ? <><Check size={18} aria-hidden="true" /><b>唯一众数超过半数 → 稳定 {model.stableType}</b></> : <><span aria-hidden="true">↳</span><b>恰好半数，不是严格多数 → 未稳定</b></>}</div>
     </section> : null)}</div>
-    <p className={s.stabilityFoot}>频率最高的标签只是候选。只有完整类型与四个维度同时通过，才报告为本次条件下的稳定画像。</p>
+    <p className={s.stabilityFoot}>本次仅修订分析判据，未重新调用模型。并列众数或最高频类型 ≤8/16，均报告「未观察到稳定类型」。</p>
   </div>;
 }
 
@@ -245,7 +270,7 @@ function Dimensions({ data }: { data: MbtiTalkData }) {
   const model = data.models.find((m) => m.id === modelId)!;
   const stats = model.dimensions[dimension];
   const rule = data.instrument.scoring[dimension];
-  const failureCount = data.summary.dimensionFailures.find((entry) => entry.dimension === dimension)!.count;
+  const variationCount = data.summary.dimensionVariations.find((entry) => entry.dimension === dimension)!.count;
   return <div className={s.dimensionsLayout}>
     <div className={s.dimensionsMain}>
       <div className={s.dimensionsHeading}><div><span className={s.eyebrow}>CONTINUOUS SCORES</span><h3>标签之间，只有一条分界线。</h3></div>
@@ -266,20 +291,20 @@ function Dimensions({ data }: { data: MbtiTalkData }) {
     </div>
     <aside className={s.dimensionInsight}>
       <span className={s.eyebrow}>WHERE TYPES SHIFT</span>
-      <div className={s.insightNumber}>{data.summary.onlySnFailureCount}<span>款模型<br />仅因 S/N 未达标</span></div>
-      <p>它们的 I、T、J 较一致，<br />却在实感与直觉之间摆动。</p>
-      <div className={s.failureCounts} aria-label="众数字母未达标模型数，维度可重叠">
-        {data.summary.dimensionFailures.map((entry) => <div key={entry.dimension} data-current={entry.dimension === dimension}>
+      <div className={s.insightNumber}>{data.summary.onlySnVariationCount}<span>款模型<br />仅在 S/N 间变化</span></div>
+      <p>它们的另外三个字母保持一致，<br />却在实感与直觉之间摆动。</p>
+      <div className={s.failureCounts} aria-label="出现两侧字母的模型数，维度可重叠">
+        {data.summary.dimensionVariations.map((entry) => <div key={entry.dimension} data-current={entry.dimension === dimension}>
           <b>{entry.dimension}</b><span style={{ "--count": `${entry.count / data.summary.modelCount * 100}%` } as CSSProperties} /><strong>{entry.count}</strong>
         </div>)}
-        <small>众数字母低于 {data.classification.minLetterCount}/{data.repeats} · 各维度可重叠</small>
+        <small>16 次中两侧字母均出现 · 仅描述波动，不作稳定门槛</small>
       </div>
       <div className={s.selectedDimension} aria-live="polite">
         <div><Logo model={model} /><b>{model.name}</b></div>
         <p>{stats.lowLetter} <strong>{stats.lowLetterCount}</strong><span> : </span>{stats.highLetter} <strong>{stats.highLetterCount}</strong></p>
         <span>均值 {stats.mean.toFixed(2)} · SD {stats.standardDeviation.toFixed(2)}<br />范围 {stats.min}–{stats.max} · 恰好 24 分：{stats.boundaryCount} 次</span>
       </div>
-      <p className={s.thresholdNote}><b>24 → {rule.lowLetter}，25 → {rule.highLetter}</b><br />小幅波动也会改变字母。当前维度有 {failureCount} 款模型的众数字母未达标。</p>
+      <p className={s.thresholdNote}><b>24 → {rule.lowLetter}，25 → {rule.highLetter}</b><br />小幅波动也会改变字母。当前维度有 {variationCount} 款模型出现过两侧字母；不影响完整类型判定。</p>
     </aside>
   </div>;
 }
@@ -304,7 +329,7 @@ export function MbtiPanel({ data, view }: { data: MbtiTalkData; view: MbtiView }
   }
   return <section className={s.panel} aria-label={`OEJTS · ${VIEW_LABELS[view]}`} data-mbti-view={view} onKeyDown={containControlKeys}>
     <div className={s.content}>
-      {view === "method" ? <Method data={data} /> : view === "overview" ? <Overview data={data} /> : view === "explorer" ? <Explorer data={data} /> : view === "stability" ? <Stability data={data} /> : <Dimensions data={data} />}
+      {view === "method" ? <Method data={data} /> : view === "overview" ? <Overview data={data} /> : view === "gallery" ? <Gallery data={data} /> : view === "explorer" ? <Explorer data={data} /> : view === "stability" ? <Stability data={data} /> : <Dimensions data={data} />}
     </div>
     <Footnote data={data} view={view} />
   </section>;

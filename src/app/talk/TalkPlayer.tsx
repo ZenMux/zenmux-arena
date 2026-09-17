@@ -112,7 +112,7 @@ export function TalkPlayer({ identity, mbti }: { identity: IdentityTalkData; mbt
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || overview || help) return;
       const target = event.target as HTMLElement;
       // Give controls, editable fields, chart sliders and menus their own keyboard semantics.
-      if (target.closest("input,textarea,select,summary,[role='slider'],[role='tab'],[role='radio'],[role='checkbox'],[role='switch'],[role='menuitem'],[role='combobox'],[contenteditable='true'],[role='dialog']")) return;
+      if (target.closest("input,textarea,select,summary,button[aria-pressed],[role='slider'],[role='tab'],[role='radio'],[role='checkbox'],[role='switch'],[role='menuitem'],[role='combobox'],[contenteditable='true'],[role='dialog']")) return;
       if (event.key === " " && target.closest("button,a")) return;
       if (["ArrowRight", "PageDown", " "].includes(event.key)) { event.preventDefault(); go(index + 1); }
       else if (["ArrowLeft", "PageUp"].includes(event.key)) { event.preventDefault(); go(index - 1); }

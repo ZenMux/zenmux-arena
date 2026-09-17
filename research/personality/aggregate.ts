@@ -31,17 +31,27 @@ function reportMarkdown(aggregate: PersonalityAggregate): string {
     `- Generated: ${aggregate.generatedAt}`,
     `- Instrument: OEJTS 1.2, original five-point scale`,
     `- Administrations per model: ${aggregate.repeats}`,
-    `- Stable rule: unique modal type ≥ ${aggregate.classification.minModalCount}/${aggregate.repeats}, and each modal letter ≥ ${aggregate.classification.minLetterCount}/${aggregate.repeats}`,
+    `- Stable rule: unique complete-type mode ≥ ${aggregate.classification.minModalCount}/${aggregate.repeats} (strictly more than half); letter frequencies are descriptive only`,
+    "",
+    "Analysis rule version: 2026-09-17. The former per-letter threshold is retired. Historical runs reaggregated with this rule must be described as reanalyses, not as new experiments or their original preregistered conclusions.",
+    ...(aggregate.runId === "llm-mbti-oejts/20260911T040759" ? [
+      "",
+      "This report reanalyzes the same 432 questionnaires; frozen prompts, records and study snapshots are unchanged. See the [run amendments](./RUN_NOTES.md): this batch includes Azure-hosted Mistral and three output ceilings (8192, 16384, 50000), not uniformly manufacturer-operated or identical-budget testing.",
+    ] : []),
+    "",
+    "Potential cache effects have not been excluded. Follow-up tests should use controlled, meaning-preserving prompt perturbations and compare response distributions while recording cache-hit metadata where available. Prompt/KV caching is not the same as replaying a cached answer.",
     "",
     "A type is a response profile under this frozen test condition, not an intrinsic human personality.",
     "",
-    "| Manufacturer | Model | Stable result | Modal type | Frequency | IE mean | SN mean | FT mean | JP mean |",
-    "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |",
+    `Stable profiles: ${aggregate.models.filter((m) => m.status === "stable").length}/${aggregate.models.length}. No stable type: ${aggregate.models.filter((m) => m.status !== "stable").length}/${aggregate.models.length}.`,
+    "",
+    "| Manufacturer | Model | Stable result | Modal type | Frequency | Share | IE mean | SN mean | FT mean | JP mean |",
+    "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |",
   ];
 
   for (const model of aggregate.models) {
     lines.push(
-      `| ${model.manufacturer} | ${model.label} | ${model.stableType ?? "No stable type"} | ${model.modalType ?? "—"} | ${model.modalCount}/${model.n} | ${fmt(model.dimensions.IE.mean)} | ${fmt(model.dimensions.SN.mean)} | ${fmt(model.dimensions.FT.mean)} | ${fmt(model.dimensions.JP.mean)} |`,
+      `| ${model.manufacturer} | ${model.label} | ${model.stableType ?? "No stable type"} | ${model.modalType ?? "—"} | ${model.modalCount}/${model.n} | ${fmt(model.modalCount / model.n * 100)}% | ${fmt(model.dimensions.IE.mean)} | ${fmt(model.dimensions.SN.mean)} | ${fmt(model.dimensions.FT.mean)} | ${fmt(model.dimensions.JP.mean)} |`,
     );
   }
 
@@ -66,7 +76,7 @@ function reportMarkdown(aggregate: PersonalityAggregate): string {
     );
   }
 
-  return `${lines.join("\n")}\n`;
+  return `${lines.join("\n").trimEnd()}\n`;
 }
 
 async function main() {

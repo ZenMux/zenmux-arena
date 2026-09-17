@@ -135,10 +135,10 @@ export function Reflection({ slide }: { slide: TalkSlide }) {
     ["边界", "ZenMux 平台观测；用量不是能力分数，也不是全网份额。"],
   ] : [
     ["测到了", "固定英文问卷与本轮参数下，重复出现的自我描述。"],
-    ["未验证", "跨语言、跨提示、选项翻转，以及实际任务中的行为。"],
-    ["下一步", "把四字母当作可检验的假设，继续寻找反例。"],
+    ["未排除", "缓存、单一措辞与固定题序，对重复结果的影响。"],
+    ["下一步", "用保持语义的提示词扰动与缓存对照，再检验画像是否仍然稳定。"],
   ];
-  return <div className={styles.reflection}><Quote className={styles.reflectionQuote} aria-hidden="true" /><h1>{lines.map(line => <span key={line}>{line}<br /></span>)}</h1><p className={styles.reflectionSubtitle}>{slide.subtitle}</p><div className={styles.reflectionNotes}>{annotations.map(([label, text]) => <div key={label}><small>{label}</small><p>{text}</p></div>)}</div>{slide.kind === "identity-end" && <p className={styles.cacheNote}>关于缓存：Prompt / KV 缓存复用输入计算，不等于复用整段生成答案；本研究没有验证响应缓存对分布的影响。</p>}</div>;
+  return <div className={styles.reflection}><Quote className={styles.reflectionQuote} aria-hidden="true" /><h1>{lines.map(line => <span key={line}>{line}<br /></span>)}</h1><p className={styles.reflectionSubtitle}>{slide.subtitle}</p><div className={styles.reflectionNotes}>{annotations.map(([label, text]) => <div key={label}><small>{label}</small><p>{text}</p></div>)}</div>{slide.kind === "identity-end" && <p className={styles.cacheNote}>关于缓存：Prompt / KV 缓存复用输入计算，不等于复用整段生成答案；本研究没有验证响应缓存对分布的影响。</p>}{slide.kind === "mbti-end" && <p className={styles.cacheNote}>缓存仍是待排除项：后续记录缓存命中信息，并用提示词扰动与必要的绕缓存对照比较分布。Prompt / KV 缓存不等于复用整段答案；本轮未验证其影响。</p>}</div>;
 }
 
 export function Closing({ onJump }: { onJump: (id: string) => void }) {

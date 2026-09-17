@@ -1,6 +1,6 @@
 {
   "runId": "llm-mbti-oejts/20260911T040759",
-  "generatedAt": "2026-09-11T06:35:26.454Z",
+  "generatedAt": "2026-09-17T04:33:34.373Z",
   "study": {
     "id": "llm-mbti-oejts",
     "title": "LLM Personality Profiles with OEJTS 1.2",
@@ -15,8 +15,7 @@
   },
   "repeats": 16,
   "classification": {
-    "minModalCount": 9,
-    "minLetterCount": 13
+    "minModalCount": 9
   },
   "models": [
     {
@@ -730,11 +729,9 @@
       },
       "modalType": "INTJ",
       "modalCount": 9,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "N 仅出现 9/16 次，低于 13 次"
-      ],
+      "stableType": "INTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 16,
         "N": 9,
@@ -1432,11 +1429,9 @@
       },
       "modalType": "ISTJ",
       "modalCount": 12,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "S 仅出现 12/16 次，低于 13 次"
-      ],
+      "stableType": "ISTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 16,
         "N": 4,
@@ -2834,11 +2829,9 @@
       },
       "modalType": "ISTJ",
       "modalCount": 10,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "J 仅出现 12/16 次，低于 13 次"
-      ],
+      "stableType": "ISTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 16,
         "N": 3,
@@ -4939,11 +4932,9 @@
       },
       "modalType": "INTJ",
       "modalCount": 10,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "N 仅出现 10/16 次，低于 13 次"
-      ],
+      "stableType": "INTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 16,
         "N": 10,
@@ -6347,10 +6338,7 @@
       "stableType": null,
       "status": "no_stable_type",
       "reasons": [
-        "最高频完整类型仅出现 5/16 次，低于 9 次",
-        "I 仅出现 12/16 次，低于 13 次",
-        "N 仅出现 7/16 次，低于 13 次",
-        "F 仅出现 12/16 次，低于 13 次"
+        "最高频完整类型仅出现 5/16 次，低于 9 次"
       ],
       "letterCounts": {
         "I": 12,
@@ -7057,8 +7045,7 @@
       "stableType": null,
       "status": "no_stable_type",
       "reasons": [
-        "最高频完整类型仅出现 8/16 次，低于 9 次",
-        "S 仅出现 11/16 次，低于 13 次"
+        "最高频完整类型仅出现 8/16 次，低于 9 次"
       ],
       "letterCounts": {
         "I": 14,
@@ -7759,11 +7746,9 @@
       },
       "modalType": "ISTJ",
       "modalCount": 11,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "S 仅出现 11/16 次，低于 13 次"
-      ],
+      "stableType": "ISTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 16,
         "S": 11,
@@ -8468,9 +8453,7 @@
       "stableType": null,
       "status": "no_stable_type",
       "reasons": [
-        "最高频完整类型仅出现 7/16 次，低于 9 次",
-        "I 仅出现 12/16 次，低于 13 次",
-        "N 仅出现 11/16 次，低于 13 次"
+        "最高频完整类型仅出现 7/16 次，低于 9 次"
       ],
       "letterCounts": {
         "I": 12,
@@ -9876,11 +9859,9 @@
       },
       "modalType": "ISTJ",
       "modalCount": 11,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "S 仅出现 11/16 次，低于 13 次"
-      ],
+      "stableType": "ISTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 16,
         "S": 11,
@@ -10591,11 +10572,7 @@
       "stableType": null,
       "status": "no_stable_type",
       "reasons": [
-        "最高频完整类型仅出现 3/16 次，低于 9 次",
-        "E 仅出现 11/16 次，低于 13 次",
-        "S 仅出现 9/16 次，低于 13 次",
-        "F 仅出现 6/16 次，低于 13 次",
-        "J 仅出现 11/16 次，低于 13 次"
+        "最高频完整类型仅出现 3/16 次，低于 9 次"
       ],
       "letterCounts": {
         "I": 5,
@@ -11298,11 +11275,9 @@
       },
       "modalType": "INTJ",
       "modalCount": 10,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "N 仅出现 10/16 次，低于 13 次"
-      ],
+      "stableType": "INTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 15,
         "N": 10,
@@ -12701,11 +12676,9 @@
       },
       "modalType": "INTJ",
       "modalCount": 9,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "N 仅出现 9/16 次，低于 13 次"
-      ],
+      "stableType": "INTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 16,
         "S": 7,
@@ -14115,11 +14088,7 @@
       "stableType": null,
       "status": "no_stable_type",
       "reasons": [
-        "最高频完整类型仅出现 3/16 次，低于 9 次",
-        "I 仅出现 10/16 次，低于 13 次",
-        "S 仅出现 8/16 次，低于 13 次",
-        "T 仅出现 10/16 次，低于 13 次",
-        "J 仅出现 10/16 次，低于 13 次"
+        "最高频完整类型仅出现 3/16 次，低于 9 次"
       ],
       "letterCounts": {
         "I": 10,
@@ -14821,11 +14790,9 @@
       },
       "modalType": "ISTJ",
       "modalCount": 10,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "S 仅出现 10/16 次，低于 13 次"
-      ],
+      "stableType": "ISTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 16,
         "S": 10,
@@ -18317,11 +18284,9 @@
       },
       "modalType": "INTJ",
       "modalCount": 11,
-      "stableType": null,
-      "status": "no_stable_type",
-      "reasons": [
-        "N 仅出现 11/16 次，低于 13 次"
-      ],
+      "stableType": "INTJ",
+      "status": "stable",
+      "reasons": [],
       "letterCounts": {
         "I": 16,
         "N": 11,

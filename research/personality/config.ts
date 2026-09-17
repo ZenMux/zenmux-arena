@@ -62,12 +62,12 @@ export function loadPersonalityConfig(
   if (config.instrument.responseScale !== 5) fail("only the original five-point OEJTS scale is supported");
   if (config.repeats !== 16) fail("this protocol requires exactly 16 administrations per model");
   if (!Array.isArray(config.models) || config.models.length === 0) fail("models must be a non-empty list");
-  if (config.classification.minModalCount < 9 || config.classification.minModalCount > 16) {
-    fail("classification.minModalCount must be between 9 and 16");
+  if (config.classification?.minModalCount !== 9) {
+    fail("classification.minModalCount must be 9: a strict majority of 16 administrations");
   }
-  if (config.classification.minLetterCount < 9 || config.classification.minLetterCount > 16) {
-    fail("classification.minLetterCount must be between 9 and 16");
-  }
+  // Reanalysis uses the revised majority-only rule. Do not rewrite historical
+  // study.yaml snapshots; their retired minLetterCount is deliberately ignored.
+  config.classification = { minModalCount: 9 };
 
   const ids = new Set<string>();
   for (const model of config.models) {
