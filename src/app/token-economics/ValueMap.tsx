@@ -16,7 +16,8 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import type { ModelEconomics, TokenEconomicsData } from "@research/token-economics/types";
 import type { VendorId } from "@research/lib/types";
-import { usd, tokens, perDay, perDollarDay, vendorColor, logoPath, PANEL_SCROLLBAR } from "./lib";
+import { usd, tokens, perDay, perDollarDay, vendorColor, PANEL_SCROLLBAR } from "./lib";
+import { hasVendorIcon } from "@/components/ZenMuxIcons";
 import { VendorGlyph } from "./components";
 import { useElementHeight } from "./useElementHeight";
 
@@ -506,7 +507,7 @@ function VendorControlRow({
   onToggleFocus: (id: VendorId) => void;
   onHover: (id: VendorId | null) => void;
 }) {
-  const hasLogo = logoPath(vendor.vendor) != null;
+  const hasLogo = hasVendorIcon(vendor.vendor);
   return (
     <div
       onMouseEnter={() => onHover(vendor.vendor)}

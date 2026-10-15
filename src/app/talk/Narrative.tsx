@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { VendorIcon, ZenMuxWordmark } from "@/components/ZenMuxIcons";
 import { useMemo, useState } from "react";
 import katex from "katex";
 import { ArrowDown, ArrowRight, Check, ExternalLink, GitBranch, MessageCircle, MousePointer2, Quote } from "lucide-react";
@@ -11,10 +12,10 @@ import { CHAPTERS, type TalkSlide } from "./story";
 import styles from "./talk.module.css";
 
 const MARKS = [
-  ["claude_color.svg", "Claude"], ["chatgpt_color.svg", "OpenAI"],
-  ["gemini_color.svg", "Gemini"], ["deepeek_color.svg", "DeepSeek"],
-  ["qwen_color.svg", "Qwen"], ["kimi_color.svg", "Kimi"],
-  ["minimax_color.svg", "MiniMax"], ["doubao_color.svg", "Doubao"],
+  ["claude", "Claude"], ["openai", "OpenAI"],
+  ["gemini", "Gemini"], ["deepseek", "DeepSeek"],
+  ["qwen", "Qwen"], ["kimi", "Kimi"],
+  ["minimax", "MiniMax"], ["doubao", "Doubao"],
 ] as const;
 
 export function Formula({ tex, small = false }: { tex: string; small?: boolean }) {
@@ -36,7 +37,7 @@ export function Cover({ onStart }: { onStart: () => void }) {
     <div className={styles.specimen} aria-label="八个模型围绕着同一枚 Token，象征三个研究的共同起点">
       <div className={styles.specimenRing} /><div className={styles.specimenRingInner} />
       <div className={styles.tokenObject}><Quote aria-hidden="true" /><span>token</span><small>一枚小小的回声</small></div>
-      {MARKS.map(([file, name], i) => <div key={name} className={styles.orbitMark} style={{ left: `${50 + 42 * Math.cos((i * Math.PI) / 4 - Math.PI / 2)}%`, top: `${47 + 42 * Math.sin((i * Math.PI) / 4 - Math.PI / 2)}%` }}><Image src={`/model-logo/${file}`} width={44} height={44} alt={name} unoptimized /><span>{name}</span></div>)}
+      {MARKS.map(([file, name], i) => <div key={name} className={styles.orbitMark} style={{ left: `${50 + 42 * Math.cos((i * Math.PI) / 4 - Math.PI / 2)}%`, top: `${47 + 42 * Math.sin((i * Math.PI) / 4 - Math.PI / 2)}%` }}><VendorIcon vendor={file} alt={name} size={44} /><span>{name}</span></div>)}
       <span className={styles.specimenCaption}>FIG. 00 &nbsp; THE SMALLEST WITNESS</span>
     </div>
     <p className={styles.coverFootnote}>灵感致意《如果国宝会说话》 &nbsp; / &nbsp; 研究、图表与故事来自 ZenMux Arena</p>
@@ -58,7 +59,7 @@ export function Opening({ onJump }: { onJump: (id: string) => void }) {
 
 export function Observatory() {
   return <div className={styles.observatory}>
-    <div className={styles.observatoryHub}><p className={styles.eyebrow}>A SHARED WINDOW</p><Image src="/maker-logo/ZenMux-Light.png" width={248} height={65} alt="ZenMux" style={{ height: "auto" }} unoptimized /><p>让不同模型，在同一个地方相遇。</p><div className={styles.logoRow}>{MARKS.map(([file, name]) => <Image key={name} src={`/model-logo/${file}`} width={37} height={37} alt={name} unoptimized />)}</div><a href="https://zenmux.ai" target="_blank" rel="noreferrer">zenmux.ai <ExternalLink size={14} /></a></div>
+    <div className={styles.observatoryHub}><p className={styles.eyebrow}>A SHARED WINDOW</p><ZenMuxWordmark surface="light" size={58} alt="ZenMux" /><p>让不同模型，在同一个地方相遇。</p><div className={styles.logoRow}>{MARKS.map(([file, name]) => <VendorIcon key={name} vendor={file} alt={name} size={37} />)}</div><a href="https://zenmux.ai" target="_blank" rel="noreferrer">zenmux.ai <ExternalLink size={14} /></a></div>
     <div className={styles.observationList}>{[
       ["01", "主动提问", "同一套实验，观察不同模型怎样介绍自己。", "Who Are You?"],
       ["02", "重复测量", "在固定问卷里，观察回答模式能否复现。", "OEJTS Personality"],
@@ -108,11 +109,11 @@ export function ValueMethod() {
 }
 
 const HISTORIC_PRICES = [
-  { name: "Qwen3.7 Max", price: .2575, logo: "qwen_color.svg" },
-  { name: "GLM 5.2", price: .1444, logo: "zai_color.svg" },
-  { name: "Kimi K2.7 Code", price: .099, logo: "kimi_color.svg" },
-  { name: "Qwen3.7 Plus", price: .0416, logo: "qwen_color.svg" },
-  { name: "MiniMax M3", price: .0312, logo: "minimax_color.svg" },
+  { name: "Qwen3.7 Max", price: .2575, logo: "qwen" },
+  { name: "GLM 5.2", price: .1444, logo: "zai" },
+  { name: "Kimi K2.7 Code", price: .099, logo: "kimi" },
+  { name: "Qwen3.7 Plus", price: .0416, logo: "qwen" },
+  { name: "MiniMax M3", price: .0312, logo: "minimax" },
 ];
 
 export function Challenge() {
@@ -120,7 +121,7 @@ export function Challenge() {
   const model = HISTORIC_PRICES[selected];
   const anchor = model.price > .04437 ? .04437 : model.price > .01428 ? .01428 : model.price;
   const pro = model.price > .04437;
-  return <div className={styles.challengeLayout}><div className={styles.challengeList}><p className={styles.eyebrow}>THE DEEPSEEK ANCHOR CHALLENGE</p><p>选一个模型，看看它的价格落向哪里。</p>{HISTORIC_PRICES.map((item, i) => <button key={item.name} className={cn(styles.challengeModel, selected === i && styles.challengeSelected)} onClick={() => setSelected(i)} aria-pressed={selected === i}><Image src={`/model-logo/${item.logo}`} width={30} height={30} alt="" unoptimized /><span>{item.name}</span><small>${item.price.toFixed(4)}</small><ArrowRight size={16} /></button>)}</div><div className={styles.anchorExperiment}><div className={styles.demoTop}><span>标准篮子成本的变化</span><span className={styles.demoLabel}>文章实验快照 · 非当前报价</span></div><div className={styles.anchorPrices}><div><small>原价格</small><strong>${model.price.toFixed(4)}</strong></div><ArrowRight size={34} /><div><small>对齐 DeepSeek V4 {pro ? "Pro" : "Flash"}</small><strong>${anchor.toFixed(5)}</strong></div></div><div className={styles.priceReduction}>−{((1 - anchor / model.price) * 100).toFixed(1)}<span>%</span></div><p>把价格尽量压平，<br /><strong>然后，观察真实选择。</strong></p><div className={styles.anchorRules}><span><Check size={15} /> 高于 Pro → 对齐 Pro</span><span><Check size={15} /> Flash 与 Pro 之间 → 对齐 Flash</span><span><Check size={15} /> 低于 Flash → 保持原价</span></div><p className={styles.smallNote}>模型能力、工具生态、用户群与时间仍不同；这不是随机对照实验。</p></div></div>;
+  return <div className={styles.challengeLayout}><div className={styles.challengeList}><p className={styles.eyebrow}>THE DEEPSEEK ANCHOR CHALLENGE</p><p>选一个模型，看看它的价格落向哪里。</p>{HISTORIC_PRICES.map((item, i) => <button key={item.name} className={cn(styles.challengeModel, selected === i && styles.challengeSelected)} onClick={() => setSelected(i)} aria-pressed={selected === i}><VendorIcon vendor={item.logo} size={30} /><span>{item.name}</span><small>${item.price.toFixed(4)}</small><ArrowRight size={16} /></button>)}</div><div className={styles.anchorExperiment}><div className={styles.demoTop}><span>标准篮子成本的变化</span><span className={styles.demoLabel}>文章实验快照 · 非当前报价</span></div><div className={styles.anchorPrices}><div><small>原价格</small><strong>${model.price.toFixed(4)}</strong></div><ArrowRight size={34} /><div><small>对齐 DeepSeek V4 {pro ? "Pro" : "Flash"}</small><strong>${anchor.toFixed(5)}</strong></div></div><div className={styles.priceReduction}>−{((1 - anchor / model.price) * 100).toFixed(1)}<span>%</span></div><p>把价格尽量压平，<br /><strong>然后，观察真实选择。</strong></p><div className={styles.anchorRules}><span><Check size={15} /> 高于 Pro → 对齐 Pro</span><span><Check size={15} /> Flash 与 Pro 之间 → 对齐 Flash</span><span><Check size={15} /> 低于 Flash → 保持原价</span></div><p className={styles.smallNote}>模型能力、工具生态、用户群与时间仍不同；这不是随机对照实验。</p></div></div>;
 }
 
 export function Reflection({ slide }: { slide: TalkSlide }) {

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,8 +23,15 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@research/*": ["./research/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@research/*": [
+        "./research/*"
+      ],
+      "@zenmux/icons": [
+        "./node_modules/@zenmux/icons/dist/index"
+      ]
     }
   },
   "include": [
@@ -31,5 +42,7 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

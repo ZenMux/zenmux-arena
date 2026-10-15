@@ -1,4 +1,4 @@
-// Canonical vendor registry: display names, logo filenames (under public/maker-logo/),
+// Canonical vendor registry: display names, @zenmux/icons logo filenames,
 // and the aliases used to map free-text model/company names back to a canonical vendor.
 
 import fs from "node:fs";
@@ -8,31 +8,31 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   anthropic: {
     id: "anthropic",
     name: "Anthropic",
-    logo: "anthropic.png",
+    logo: "claude_color.svg",
     aliases: ["anthropic", "claude"],
   },
   openai: {
     id: "openai",
     name: "OpenAI",
-    logo: "openai.png",
+    logo: "openai_light.svg",
     aliases: ["openai", "gpt", "chatgpt", "chat gpt"],
   },
   google: {
     id: "google",
     name: "Google",
-    logo: "google.png",
+    logo: "gemini_color.svg",
     aliases: ["google", "gemini", "deepmind", "bard", "palm"],
   },
   deepseek: {
     id: "deepseek",
     name: "DeepSeek",
-    logo: "deepseek.png",
+    logo: "deepseek_color.svg",
     aliases: ["deepseek", "深度求索"],
   },
   qwen: {
     id: "qwen",
     name: "Qwen",
-    logo: "qwen.png",
+    logo: "qwen_color.svg",
     aliases: [
       "qwen",
       "qwq",
@@ -54,7 +54,7 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   baidu: {
     id: "baidu",
     name: "ERNIE",
-    logo: "baidu.png",
+    logo: "ernie_color.svg",
     aliases: [
       "ernie",
       "ernie bot",
@@ -70,7 +70,7 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   bytedance: {
     id: "bytedance",
     name: "Doubao",
-    logo: "bytedance.png",
+    logo: "doubao_color.svg",
     aliases: [
       "doubao",
       "豆包",
@@ -87,13 +87,13 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   moonshot: {
     id: "moonshot",
     name: "Moonshot",
-    logo: "moonshot.png",
+    logo: "kimi_color-light.svg",
     aliases: ["moonshot", "moonshot ai", "kimi", "月之暗面"],
   },
   "z-ai": {
     id: "z-ai",
     name: "z-ai",
-    logo: "z-ai.png",
+    logo: "zai_light.svg",
     aliases: [
       "z-ai",
       "z.ai",
@@ -109,25 +109,25 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   stepfun: {
     id: "stepfun",
     name: "StepFun",
-    logo: "stepfun.png",
+    logo: "stepfun_color.svg",
     aliases: ["stepfun", "step-", "step fun", "阶跃", "阶跃星辰", "step star"],
   },
   "x-ai": {
     id: "x-ai",
     name: "xAI",
-    logo: "x-ai.png",
+    logo: "grok_light.svg",
     aliases: ["x-ai", "x.ai", "grok"],
   },
   minimax: {
     id: "minimax",
     name: "MiniMax",
-    logo: "minimax.png",
+    logo: "minimax_color.svg",
     aliases: ["minimax", "abab", "海螺", "hailuo"],
   },
   kwai: {
     id: "kwai",
     name: "Kwai",
-    logo: "kwai.png",
+    logo: "kwaikat_color.svg",
     aliases: [
       "kwai",
       "kwaipilot",
@@ -145,19 +145,19 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   xiaomi: {
     id: "xiaomi",
     name: "Xiaomi",
-    logo: "xiaomi.png",
+    logo: "xiaomi_color.svg",
     aliases: ["xiaomi", "mimo", "小米", "mi "],
   },
   tencent: {
     id: "tencent",
     name: "Tencent",
-    logo: "tencent.png",
+    logo: "hunyuan_color.svg",
     aliases: ["tencent", "hunyuan", "混元", "腾讯", "腾讯混元","Hy", "HY"],
   },
   inclusionai: {
     id: "inclusionai",
     name: "inclusionAI",
-    logo: "inclusionai.png",
+    logo: "inclusionai_color-light.svg",
     aliases: [
       "inclusionai",
       "inclusion ai",
@@ -178,7 +178,7 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   meituan: {
     id: "meituan",
     name: "LongCat",
-    logo: "longcat.png",
+    logo: "longcat_color.svg",
     aliases: [
       "meituan",
       "longcat",
@@ -189,19 +189,19 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
   meta: {
     id: "meta",
     name: "Meta",
-    logo: "meta.png",
+    logo: "meta_color.svg",
     aliases: ["meta", "llama", "facebook", "meta ai"],
   },
   mistral: {
     id: "mistral",
     name: "Mistral",
-    logo: "mistral.png",
+    logo: "mistral_color.svg",
     aliases: ["mistral", "mixtral", "le chat"],
   },
   agnes: {
     id: "agnes",
     name: "Agnes",
-    logo: "agnes.png",
+    logo: "agnes_light.svg",
     aliases: ["agnes"],
   },
   // Pseudo-vendors: analytical buckets, no logo.
@@ -295,36 +295,134 @@ export function vendorFromText(
 }
 
 // ---------------------------------------------------------------------------
-// Logo data URIs (for embedding into the static SVG)
+// Logo resolution + data URIs (for embedding into the static SVG)
 // ---------------------------------------------------------------------------
 
-const LOGO_DIR = `${process.cwd()}/public/maker-logo`;
+const LOGO_DIR = `${process.cwd()}/public/model-logo`;
 const dataUriCache = new Map<string, string>();
 
-/** Read a logo PNG and return a `data:image/png;base64,...` URI. Cached per process. */
+const DARK_CHIP_LOGO: Record<string, string> = {
+  anthropic: "claude_color.svg",
+  openai: "openai_light.svg",
+  google: "gemini_color.svg",
+  deepseek: "deepseek_color.svg",
+  qwen: "qwen_color.svg",
+  baidu: "ernie_color.svg",
+  bytedance: "doubao_color.svg",
+  moonshot: "kimi_color-light.svg",
+  "z-ai": "zai_light.svg",
+  stepfun: "stepfun_color.svg",
+  "x-ai": "grok_light.svg",
+  minimax: "minimax_color.svg",
+  kwai: "kwaikat_color.svg",
+  xiaomi: "xiaomi_color.svg",
+  tencent: "hunyuan_color.svg",
+  inclusionai: "inclusionai_color-light.svg",
+  meituan: "longcat_color.svg",
+  meta: "meta_color.svg",
+  mistral: "mistral_color.svg",
+  agnes: "agnes_light.svg",
+  "other:microsoft": "microsoft-copilot_color.svg",
+  "other:nvidia": "nvidia_color.svg",
+  "other:alibaba": "alibaba_color.svg",
+  "other:alibaba-cloud": "alibaba-cloud_color.svg",
+  "other:aliyun": "alibaba-cloud_color.svg",
+};
+
+const LIGHT_SURFACE_LOGO: Record<string, string> = {
+  anthropic: "claude_color.svg",
+  openai: "openai_dark.svg",
+  google: "gemini_color.svg",
+  deepseek: "deepseek_color.svg",
+  qwen: "qwen_color.svg",
+  baidu: "ernie_color.svg",
+  bytedance: "doubao_color.svg",
+  moonshot: "kimi_color.svg",
+  "z-ai": "zai_dark.svg",
+  stepfun: "stepfun_color.svg",
+  "x-ai": "grok_dark.svg",
+  minimax: "minimax_color.svg",
+  kwai: "kwaikat_color.svg",
+  xiaomi: "xiaomi_color.svg",
+  tencent: "hunyuan_color.svg",
+  inclusionai: "inclusionai_color.svg",
+  meituan: "longcat_color.svg",
+  meta: "meta_color.svg",
+  mistral: "mistral_color.svg",
+  agnes: "agnes_dark.svg",
+  "other:microsoft": "microsoft-copilot_color.svg",
+  "other:nvidia": "nvidia_color.svg",
+  "other:alibaba": "alibaba_color.svg",
+  "other:alibaba-cloud": "alibaba-cloud_color.svg",
+  "other:aliyun": "alibaba-cloud_color.svg",
+};
+
+const LEGACY_FILE_ALIAS: Record<string, string> = {
+  "ZenMux.png": "zenmux-combine-light.svg",
+  "ZenMux-Light.png": "zenmux-combine-dark.svg",
+  "zenmux-single-black-bg.png": "zenmux-light.svg",
+  "zenmux-single-light-bg.png": "zenmux-dark.svg",
+  "anthropic.png": "claude_color.svg",
+  "openai.png": "openai_light.svg",
+  "google.png": "gemini_color.svg",
+  "deepseek.png": "deepseek_color.svg",
+  "qwen.png": "qwen_color.svg",
+  "baidu.png": "ernie_color.svg",
+  "bytedance.png": "doubao_color.svg",
+  "moonshot.png": "kimi_color-light.svg",
+  "z-ai.png": "zai_light.svg",
+  "stepfun.png": "stepfun_color.svg",
+  "x-ai.png": "grok_light.svg",
+  "minimax.png": "minimax_color.svg",
+  "kwai.png": "kwaikat_color.svg",
+  "kling.png": "kling_color.svg",
+  "xiaomi.png": "xiaomi_color.svg",
+  "tencent.png": "hunyuan_color.svg",
+  "inclusionai.png": "inclusionai_color-light.svg",
+  "longcat.png": "longcat_color.svg",
+  "meta.png": "meta_color.svg",
+  "mistral.png": "mistral_color.svg",
+  "agnes.png": "agnes_light.svg",
+};
+
+/** Read a vendor logo SVG and return a `data:image/svg+xml;base64,...` URI. Cached per process. */
 export function logoDataUri(vendorId: VendorId): string | null {
-  const meta = VENDORS[vendorId];
-  if (!meta || !meta.logo) return null;
-  return logoFileDataUri(meta.logo);
+  const file = DARK_CHIP_LOGO[vendorId] ?? VENDORS[vendorId]?.logo;
+  if (!file) return null;
+  return logoFileDataUri(file);
 }
 
-/** Read any file under public/maker-logo as a base64 PNG data URI. Cached. */
+/** Read any logo file under public/model-logo as a base64 data URI. Cached. */
 export function logoFileDataUri(filename: string): string | null {
-  const cached = dataUriCache.get(filename);
+  const resolved = LEGACY_FILE_ALIAS[filename] ?? filename;
+  const cached = dataUriCache.get(resolved);
   if (cached) return cached;
   try {
-    const buf = fs.readFileSync(`${LOGO_DIR}/${filename}`);
+    if (resolved.endsWith(".svg")) {
+      const clean = fs
+        .readFileSync(`${LOGO_DIR}/${resolved}`, "utf8")
+        .replace(/(?:fill|stroke|stop-color):color\(display-p3[^;"]*\);?/g, "");
+      const uri = `data:image/svg+xml;base64,${Buffer.from(clean, "utf8").toString("base64")}`;
+      dataUriCache.set(resolved, uri);
+      return uri;
+    }
+    const buf = fs.readFileSync(`${LOGO_DIR}/${resolved}`);
     const uri = `data:image/png;base64,${buf.toString("base64")}`;
-    dataUriCache.set(filename, uri);
+    dataUriCache.set(resolved, uri);
     return uri;
   } catch {
     return null;
   }
 }
 
-/** Public web path for a vendor logo (URL-encoded for spaces), for the Next.js page. */
-export function logoWebPath(vendorId: VendorId): string | null {
-  const meta = VENDORS[vendorId];
-  if (!meta || !meta.logo) return null;
-  return `/maker-logo/${encodeURIComponent(meta.logo)}`;
+/** Public web path for a vendor logo (defaults to the dark-chip variant used on circular badges). */
+export function logoWebPath(
+  vendorId: VendorId,
+  surface: "dark" | "light" = "dark",
+): string | null {
+  const map = surface === "light" ? LIGHT_SURFACE_LOGO : DARK_CHIP_LOGO;
+  const file = map[vendorId] ?? VENDORS[vendorId]?.logo;
+  if (!file) return null;
+  const resolved = LEGACY_FILE_ALIAS[file] ?? file;
+  return `/model-logo/${encodeURIComponent(resolved)}`;
 }

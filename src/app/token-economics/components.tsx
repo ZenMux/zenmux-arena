@@ -7,10 +7,10 @@
 
 import type { ModelEconomics } from "@research/token-economics/types";
 import type { VendorId } from "@research/lib/types";
-import { logoPath } from "./lib";
+import { VendorIcon } from "@/components/ZenMuxIcons";
 
-/** A model's vendor logo as a small brand-colored glyph. Keyed off the canonical
-    vendor id; the SVGs under /model-logo are already in color, so no invert. */
+/** A model's vendor logo rendered via @zenmux/icons. Keyed off the canonical
+    vendor id. */
 export function VendorGlyph({
   vendor,
   alt,
@@ -20,17 +20,12 @@ export function VendorGlyph({
   alt: string;
   className?: string;
 }) {
-  const src = logoPath(vendor);
-  if (!src) return null;
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
+    <VendorIcon
+      vendor={vendor}
       alt={alt}
-      className={`${className} shrink-0 object-contain`}
-      onError={(e) => {
-        (e.currentTarget as HTMLImageElement).style.display = "none";
-      }}
+      surface="light"
+      className={`${className} shrink-0`}
     />
   );
 }

@@ -3,6 +3,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useMemo, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { VendorIcon, ZenMuxWordmark, hasVendorIcon } from "@/components/ZenMuxIcons";
 import {
   apexToCurve,
   curvedArrow,
@@ -43,43 +44,8 @@ import type { GraphData, VendorId } from "@research/lib/types";
 // Theme-aware ZenMux wordmark, matching StudyBadge.tsx's counterintuitive naming:
 // ZenMux-Light.png is the DARK wordmark (for light backgrounds) and ZenMux.png is
 // the WHITE one (for dark backgrounds).
-const WORDMARK = {
-  light: "/maker-logo/ZenMux-Light.png",
-  dark: "/maker-logo/ZenMux.png",
-};
-
-const LOGO: Record<string, string> = {
-  anthropic: "anthropic.png",
-  openai: "openai.png",
-  google: "google.png",
-  deepseek: "deepseek.png",
-  qwen: "qwen.png",
-  baidu: "baidu.png",
-  bytedance: "bytedance.png",
-  moonshot: "moonshot.png",
-  "z-ai": "z-ai.png",
-  stepfun: "stepfun.png",
-  "x-ai": "x-ai.png",
-  minimax: "minimax.png",
-  kwai: "kwai.png",
-  xiaomi: "xiaomi.png",
-  tencent: "tencent.png",
-  inclusionai: "inclusionai.png",
-  meta: "meta.png",
-  mistral: "mistral.png",
-  agnes: "agnes.png",
-};
-
-/**
- * Resolve a vendor's logo URL. Prefers the `logo` filename carried in the loaded
- * aggregate (so dynamically-discovered vendors — e.g. `other:yandex`, `other:baai`
- * — light up the moment a logo is dropped under public/maker-logo/), and falls
- * back to the static map keyed by id. Returns null when no logo is known, in
- * which case callers render a text/initial fallback.
- */
-function logoSrc(id: VendorId, logo?: string): string | null {
-  const f = logo || LOGO[id];
-  return f ? `/maker-logo/${encodeURIComponent(f)}` : null;
+function hasLogoFor(id: VendorId, logo?: string): boolean {
+  return hasVendorIcon(id) || hasVendorIcon(logo);
 }
 
 interface HoverEdge {
@@ -174,13 +140,12 @@ function BadgeChrome({ cx, pal, dark }: { cx: number; pal: Palette; dark: boolea
         </text>
       </a>
       <a href={ZENMUX_URL} target="_blank" rel="noopener noreferrer">
-        <image
-          href={dark ? WORDMARK.dark : WORDMARK.light}
+        <ZenMuxWordmark
+          surface={dark ? "dark" : "light"}
           x={b.logo.x}
           y={b.logo.y}
           width={b.logo.w}
           height={b.logo.h}
-          preserveAspectRatio="xMidYMid meet"
         />
       </a>
       {/* Line 2: GitHub mark + repo label → source repo. */}
@@ -679,7 +644,7 @@ export default function RelationshipGraph({
           const p = pos.get(v.id)!;
           const nr = layout.nodeRadius;
           const active = nodeActive(v.id);
-          const src = logoSrc(v.id, v.logo);
+          const hasLogo = hasLogoFor(v.id, v.logo);
           return (
             <g
               key={v.id}
@@ -694,16 +659,16 @@ export default function RelationshipGraph({
                   discovered from the data without a logo (e.g. other:yandex,
                   other:baai) fall back to a colored chip + initials so they're
                   still distinguishable on the ring. */}
-              {src ? (
+              {hasLogo ? (
                 <>
                   <circle cx={p.x} cy={p.y} r={nr} fill={pal.chip} stroke={pal.chipStroke} strokeWidth={1.5} />
-                  <image
-                    href={src}
+                  <VendorIcon
+                    vendor={v.id || v.logo}
+                    surface="dark"
                     x={p.x - (nr * 1.15) / 2}
                     y={p.y - (nr * 1.15) / 2}
                     width={nr * 1.15}
                     height={nr * 1.15}
-                    preserveAspectRatio="xMidYMid meet"
                   />
                 </>
               ) : (
@@ -833,7 +798,7 @@ function VendorPicker({
           const checked = !hidden.has(v.id);
           const isFocused = focused.has(v.id);
           const dimmed = hoverNode != null && hoverNode !== v.id;
-          const src = logoSrc(v.id, v.logo);
+          const hasLogo = hasLogoFor(v.id, v.logo);
           return (
             <div
               key={v.id}
@@ -852,10 +817,9 @@ function VendorPicker({
                   onChange={() => onToggle(v.id)}
                   className="size-3.5 shrink-0 accent-neutral-900 dark:accent-neutral-100"
                 />
-                {src ? (
+                {hasLogo ? (
                   <span className="flex size-5 shrink-0 items-center justify-center rounded bg-neutral-900">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="size-4 object-contain" />
+                    <VendorIcon vendor={v.id || v.logo} surface="dark" size={16} className="size-4" />
                   </span>
                 ) : (
                   <span

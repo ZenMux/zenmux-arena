@@ -10,7 +10,7 @@
 // fall back to <Link>s into the main page (the About page has no live surfaces).
 
 import type { Metadata } from "next";
-import Image from "next/image";
+import { ZenMuxWordmark } from "@/components/ZenMuxIcons";
 import QRCode from "qrcode";
 import { TokenEconNav } from "../TokenEconNav";
 import { AuthorCard } from "./AuthorCard";
@@ -48,14 +48,7 @@ export default async function TokenEconomicsAboutPage() {
           {/* ── Masthead: rule · wordmark · rule (the nof1 signature) ── */}
           <header className="mb-12 flex items-center justify-center gap-5">
             <span className="h-px w-16 bg-[#141414] sm:w-24" aria-hidden />
-            <Image
-              src="/maker-logo/ZenMux-Light.png"
-              alt="ZenMux"
-              width={512}
-              height={125}
-              priority
-              className="h-6 w-auto"
-            />
+            <ZenMuxWordmark surface="light" size={24} className="h-6 w-auto" />
             <span className="h-px w-16 bg-[#141414] sm:w-24" aria-hidden />
           </header>
 

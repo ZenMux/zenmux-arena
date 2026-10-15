@@ -7,7 +7,7 @@
 // behind it (see loading.tsx) instead of blocking the whole click.
 
 import Link from "next/link";
-import Image from "next/image";
+import { ZenMuxWordmark } from "@/components/ZenMuxIcons";
 import { usePathname } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { GITHUB_MARK_PATH, REPO_URL } from "@research/lib/branding";
@@ -43,14 +43,7 @@ export function TokenDealsNav() {
         {/* Wordmark → back to the Arena hub. ZenMux.png is the WHITE wordmark,
             for dark backgrounds (see src/app/page.tsx). */}
         <Link href="/" className="flex min-w-0 items-center gap-2.5">
-          <Image
-            src="/maker-logo/ZenMux.png"
-            alt="ZenMux"
-            width={512}
-            height={125}
-            priority
-            className="h-5 w-auto"
-          />
+          <ZenMuxWordmark surface="dark" size={20} className="h-5 w-auto" />
           <span className="hidden truncate border-l border-white/25 pl-2.5 text-[11px] font-bold uppercase tracking-[0.2em] text-white sm:inline">
             Token Deals
           </span>

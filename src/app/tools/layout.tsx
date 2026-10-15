@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import { ZenMuxWordmark } from "@/components/ZenMuxIcons";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -16,22 +16,7 @@ export default function ToolsLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="flex min-w-0 items-center gap-2.5">
-            <Image
-              src="/maker-logo/ZenMux-Light.png"
-              alt="ZenMux"
-              width={512}
-              height={125}
-              priority
-              className="h-5 w-auto dark:hidden"
-            />
-            <Image
-              src="/maker-logo/ZenMux.png"
-              alt="ZenMux"
-              width={2000}
-              height={512}
-              priority
-              className="hidden h-5 w-auto dark:block"
-            />
+            <ZenMuxWordmark surface="auto" size={20} className="h-5 w-auto" />
             <span className="hidden border-l border-border pl-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground sm:inline">
               Tools
             </span>

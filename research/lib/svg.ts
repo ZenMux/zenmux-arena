@@ -152,7 +152,7 @@ export function buildGraphSvg(graph: GraphData, options: SvgOptions = {}): strin
     // data URI — pick the variant that reads on the current background
     // (ZenMux-Light.png is the DARK ink for light bg, ZenMux.png the light one).
     const b = badgeLayout(width / 2);
-    const wordmark = logoFileDataUri(isDarkBackground(cfg.background) ? "ZenMux.png" : "ZenMux-Light.png");
+    const wordmark = logoFileDataUri(isDarkBackground(cfg.background) ? "zenmux-combine-light.svg" : "zenmux-combine-dark.svg");
     if (wordmark) {
       parts.push(
         `<a href="${AUTHOR_URL}" target="_blank" rel="noopener noreferrer"><text x="${r2(b.attr.x)}" y="${r2(b.attr.y)}" font-size="${b.attr.fontSize}" fill="${pal.muted}">${esc(BADGE_TEXT)}</text></a>`,

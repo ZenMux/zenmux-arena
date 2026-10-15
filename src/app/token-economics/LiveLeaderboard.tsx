@@ -24,7 +24,8 @@ import {
   type LiveUsagePoint,
   type LiveYAxisKey,
 } from "@research/token-economics/live-config";
-import { logoPath, tokens, usd, PANEL_SCROLLBAR } from "./lib";
+import { tokens, usd, PANEL_SCROLLBAR } from "./lib";
+import { VendorIcon, hasVendorIcon } from "@/components/ZenMuxIcons";
 import { VendorGlyph } from "./components";
 import { LiveSkeletonBoard, LiveSkeletonStyles } from "./LiveSkeletonChart";
 import { useElementHeight } from "./useElementHeight";
@@ -1507,7 +1508,7 @@ function TimeSeriesChart({
           {endLabels.map((row) => {
             const index = indexBySlug.get(row.slug) ?? 0;
             const x = CHART.left + CHART.plotW;
-            const logo = logoPath(row.model.vendor);
+            const hasLogo = hasVendorIcon(row.model.vendor);
             // Ended campaigns invert the pill: paper fill, muted ink text, and
             // a dashed leader — the value is now a record, not a live reading.
             const ended = row.ended;
@@ -1544,15 +1545,15 @@ function TimeSeriesChart({
                   stroke={pillStroke}
                   strokeWidth="1"
                 />
-                {logo && (
-                  <image
-                    href={logo}
+                {hasLogo && (
+                  <VendorIcon
+                    vendor={row.model.vendor}
+                    surface="light"
                     x={x + 16}
                     y={row.labelY - 7}
-                    width="14"
-                    height="14"
+                    width={14}
+                    height={14}
                     opacity={ended ? 0.65 : 1}
-                    preserveAspectRatio="xMidYMid meet"
                   />
                 )}
                 <text

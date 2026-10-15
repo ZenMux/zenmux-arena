@@ -19,7 +19,7 @@
 // SSR and hydration agree. Math.random() only runs inside click handlers.
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { VendorIcon } from "@/components/ZenMuxIcons";
 import { cn } from "@/lib/utils";
 import { TokenPosterDialog } from "./token-poster-dialog";
 
@@ -35,22 +35,22 @@ interface Specimen {
    `as const` keeps the `file` literals so PLUMAGE below is checked against
    this list at compile time — add a specimen and tsc demands its colours. */
 const SPECIMENS = [
-  { file: "chatgpt", name: "OpenAI GPT" },
+  { file: "openai", name: "OpenAI GPT" },
   { file: "gemini", name: "Google Gemini" },
   { file: "grok", name: "xAI Grok" },
   { file: "qwen", name: "Alibaba Qwen" },
   { file: "hunyuan", name: "Tencent Hunyuan" },
   { file: "doubao", name: "ByteDance Doubao" },
   { file: "minimax", name: "MiniMax" },
-  { file: "moonshot", name: "Moonshot AI" },
-  { file: "kwai", name: "Kwai" },
+  { file: "moonshot-ai", name: "Moonshot AI" },
+  { file: "kwaikat", name: "KwaiKAT" },
   { file: "zai", name: "Z.ai GLM" },
   { file: "kimi", name: "Kimi" },
   { file: "inclusionai", name: "inclusionAI" },
   { file: "stepfun", name: "StepFun" },
   { file: "xiaomi", name: "Xiaomi MiMo" },
-  { file: "deepeek", name: "DeepSeek" },
-  { file: "wenxin", name: "Baidu ERNIE" },
+  { file: "deepseek", name: "DeepSeek" },
+  { file: "ernie", name: "Baidu ERNIE" },
   { file: "mistral", name: "Mistral" },
   { file: "claude", name: "Anthropic Claude" },
 ] as const satisfies readonly Specimen[];
@@ -71,22 +71,22 @@ interface Plumage {
 /* `satisfies Record<SpecimenFile, …>` = every specimen MUST have plumage;
    a missing (or misspelled) entry is a compile error, not a click-time crash. */
 const PLUMAGE = {
-  chatgpt: { ink: "#191919", stops: ["#191919"] }, // black-ink mark
+  openai: { ink: "#191919", stops: ["#191919"] }, // black-ink mark
   gemini: { ink: "#3186FF", stops: ["#3186FF", "#08B962", "#FABC12", "#F94543"] },
   grok: { ink: "#131418", stops: ["#131418"] }, // black-ink mark
   qwen: { ink: "#6336E7", stops: ["#6336E7", "#6F69F7"] },
   hunyuan: { ink: "#0055E9", stops: ["#0055E9", "#00BCFF", "#A8DFF5"] },
   doubao: { ink: "#1E37FC", stops: ["#1E37FC", "#A569FF", "#37E1BE"] },
   minimax: { ink: "#E2167E", stops: ["#E2167E", "#FE603C"] },
-  moonshot: { ink: "#101010", stops: ["#101010"] }, // black-ink mark
-  kwai: { ink: "#FF421C", stops: ["#FF421C"] },
+  "moonshot-ai": { ink: "#101010", stops: ["#101010"] }, // black-ink mark
+  kwaikat: { ink: "#0A67FF", stops: ["#0A67FF"] },
   zai: { ink: "#141414", stops: ["#141414"] }, // black-ink mark
   kimi: { ink: "#027AFF", stops: ["#027AFF"] },
-  inclusionai: { ink: "#181818", stops: ["#181818"] }, // black-ink mark
+  inclusionai: { ink: "#2766FF", stops: ["#2766FF", "#75B5F5", "#BABEED"] },
   stepfun: { ink: "#36A4F4", stops: ["#36A4F4", "#00F5E6", "#B2FF8B"] },
   xiaomi: { ink: "#EA6606", stops: ["#EA6606"] },
-  deepeek: { ink: "#4D6BFE", stops: ["#4D6BFE"] },
-  wenxin: { ink: "#0A51C3", stops: ["#012F8D", "#0A51C3", "#23A4FB"] },
+  deepseek: { ink: "#4D6BFE", stops: ["#4D6BFE"] },
+  ernie: { ink: "#0A51C3", stops: ["#012F8D", "#0A51C3", "#23A4FB"] },
   mistral: { ink: "#FA500F", stops: ["#E10500", "#FA500F", "#FF8205", "#FFAF00", "#FFD700"] },
   claude: { ink: "#D97757", stops: ["#D97757"] },
 } satisfies Record<SpecimenFile, Plumage>;
@@ -353,12 +353,9 @@ export function SpecimenPlate() {
               }}
               className="fg-egg-mark flex size-11 cursor-pointer touch-manipulation items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--fg-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fg-paper)]"
             >
-              <Image
-                src={`/model-logo/${s.file}_color.svg`}
-                alt=""
-                width={30}
-                height={30}
-                unoptimized
+              <VendorIcon
+                vendor={s.file}
+                size={26}
                 className="h-[26px] w-[26px] drop-shadow-[0_1px_4px_rgba(33,29,22,0.12)]"
               />
             </button>
@@ -401,12 +398,9 @@ export function SpecimenPlate() {
                   }}
                   className="fg-egg-mark pointer-events-auto cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-[var(--fg-ink)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fg-paper)]"
                 >
-                  <Image
-                    src={`/model-logo/${s.file}_color.svg`}
-                    alt=""
-                    width={s.size}
-                    height={s.size}
-                    unoptimized
+                  <VendorIcon
+                    vendor={s.file}
+                    size={s.size}
                     className="drop-shadow-[0_2px_6px_rgba(33,29,22,0.12)]"
                     style={{ width: s.size, height: s.size }}
                   />
@@ -503,12 +497,10 @@ export function SpecimenPlate() {
                         <span className={cn(hit && "opacity-0")}>{ch}</span>
                         {hit && (
                           <span key={`perch-${egg!.count}`} className="fg-letter-perch absolute inset-0 flex items-center justify-center">
-                            <Image
-                              src={`/model-logo/${egg!.file}_color.svg`}
+                            <VendorIcon
+                              vendor={egg!.file}
                               alt={specimen?.name ?? ""}
-                              width={96}
-                              height={96}
-                              unoptimized
+                              size="0.74em"
                               className="h-[0.74em] w-[0.74em] drop-shadow-[0_3px_10px_rgba(33,29,22,0.25)]"
                             />
                           </span>
@@ -527,12 +519,9 @@ export function SpecimenPlate() {
               key={egg!.count}
               className="fg-egg-tag absolute -bottom-14 left-1/2 flex items-center gap-2 whitespace-nowrap rounded-full border border-[var(--fg-ink)]/10 bg-[var(--fg-paper)]/85 px-4 py-1.5 backdrop-blur-sm"
             >
-              <Image
-                src={`/model-logo/${egg!.file}_color.svg`}
-                alt=""
-                width={16}
-                height={16}
-                unoptimized
+              <VendorIcon
+                vendor={egg!.file}
+                size={16}
                 className="h-4 w-4"
               />
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--fg-ink-soft)]">
@@ -566,12 +555,9 @@ export function SpecimenPlate() {
             } as React.CSSProperties
           }
         >
-          <Image
-            src={`/model-logo/${egg.file}_color.svg`}
-            alt=""
-            width={egg.flight.startSize}
-            height={egg.flight.startSize}
-            unoptimized
+          <VendorIcon
+            vendor={egg.file}
+            size={egg.flight.startSize}
             className="h-full w-full drop-shadow-[0_4px_12px_rgba(33,29,22,0.3)]"
           />
         </span>

@@ -2,7 +2,7 @@
 
 import { Activity, Component, type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
+import { ZenMuxWordmark } from "@/components/ZenMuxIcons";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, BookOpen, Check, Expand, ExternalLink, Grid2X2, Keyboard, Minimize, Pause, Play, RotateCcw, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -149,7 +149,7 @@ export function TalkPlayer({ identity, mbti }: { identity: IdentityTalkData; mbt
 
   return <div ref={viewport} className={styles.viewport} lang="zh-CN">
     <div ref={stage} className={cn(styles.stage, slide.kind === "chapter" && styles.darkStage)} style={{ "--chapter-accent": chapter.color, "--slide-direction": direction } as CSSProperties}>
-      <header className={styles.topbar}><Link href="/" aria-label="返回 ZenMux Arena" className={styles.brand}><Image src={slide.kind === "chapter" ? "/maker-logo/ZenMux.png" : "/maker-logo/ZenMux-Light.png"} width={90} height={25} alt="ZenMux" style={{ height: "auto" }} unoptimized /><span>ARENA</span></Link><span className={styles.topbarTitle}>如果 Token 会说话</span><Button variant="ghost" onClick={() => setOverview(true)} className={styles.chapterButton} aria-label="打开章节总览"><span>{chapter.number}</span> {chapter.english}<Grid2X2 data-icon="inline-end" /></Button></header>
+      <header className={styles.topbar}><Link href="/" aria-label="返回 ZenMux Arena" className={styles.brand}><ZenMuxWordmark surface={slide.kind === "chapter" ? "dark" : "light"} size={21} alt="ZenMux" /><span>ARENA</span></Link><span className={styles.topbarTitle}>如果 Token 会说话</span><Button variant="ghost" onClick={() => setOverview(true)} className={styles.chapterButton} aria-label="打开章节总览"><span>{chapter.number}</span> {chapter.english}<Grid2X2 data-icon="inline-end" /></Button></header>
       <main className={styles.main} aria-label="演讲舞台" tabIndex={-1}>
         {mounted.map(i => <Activity key={SLIDES[i].id} mode={i === index ? "visible" : "hidden"}><article className={cn(styles.slide, FULL_BLEED.has(SLIDES[i].kind) && styles.fullBleed)} data-slide={SLIDES[i].id} aria-label={`${i + 1} / ${SLIDES.length}：${SLIDES[i].title}`}>
           {!FULL_BLEED.has(SLIDES[i].kind) && <div className={styles.slideHeading}><div><h1>{SLIDES[i].title}</h1><p>{SLIDES[i].subtitle}</p></div><span className={styles.figureIndex}>FIG. {String(i).padStart(2, "0")}</span></div>}

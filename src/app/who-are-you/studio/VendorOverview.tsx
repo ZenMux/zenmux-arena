@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { VendorIcon } from "@/components/ZenMuxIcons";
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -128,24 +128,7 @@ export function emphasizeRate(rate: number, isInverted = false): string {
 
 function VendorLogo({ src, alt }: { src: string | null; alt: string }) {
   if (!src) return null;
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      width={28}
-      height={28}
-      // The wordmarks in /public/maker-logo/ are white-on-transparent (designed
-      // for the dark studio graph canvas). On the data page's light cards we
-      // invert them so they read as dark on light, and undo the invert in dark
-      // mode where the originals look correct. No border/ring — render the
-      // original pixel shape, matching the studio graph's logo style.
-      className="size-7 object-contain invert dark:invert-0"
-      // If the image fails to load (e.g. 404), hide it gracefully.
-      onError={(e) => {
-        (e.currentTarget as HTMLImageElement).style.display = "none";
-      }}
-    />
-  );
+  return <VendorIcon vendor={src} alt={alt} surface="auto" size={28} className="size-7" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -298,22 +281,7 @@ function VendorCard({
                           className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/30 py-0.5 pl-1 pr-1.5 text-xs"
                           title={`${c.vendorName}: ${pct(c.rate)}`}
                         >
-                          {c.logoPath && (
-                            <Image
-                              src={c.logoPath}
-                              alt=""
-                              width={16}
-                              height={16}
-                              // Same invert dance as <VendorLogo> — white
-                              // wordmarks need flipping on the light card.
-                              // No ring/border; the chip's own rounded-full
-                              // border is the visual frame.
-                              className="size-4 object-contain invert dark:invert-0"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).style.display = "none";
-                              }}
-                            />
-                          )}
+                          <VendorIcon vendor={c.vendor} surface="auto" size={16} className="size-4" />
                           <span className="font-medium">{c.vendorName}</span>
                           <span
                             className={cn(
@@ -347,7 +315,7 @@ export default function VendorOverview({ graph }: { graph: GraphData }) {
     const vendorLogos = new Map<VendorId, string | null>();
     for (const v of graph.vendors) {
       vendorNames.set(v.id, v.name);
-      vendorLogos.set(v.id, v.logo ? `/maker-logo/${encodeURIComponent(v.logo)}` : null);
+      vendorLogos.set(v.id, v.id);
     }
 
     const byVendor = new Map<VendorId, ModelSpec[]>();

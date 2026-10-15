@@ -6,7 +6,7 @@
 // repo line. Pure presentational markup (no hooks) so it works as a server
 // component on both /who-are-you and /who-are-you/browse.
 
-import Image from "next/image";
+import { ZenMuxWordmark } from "@/components/ZenMuxIcons";
 import {
   AUTHOR_URL,
   REPO_LABEL,
@@ -64,20 +64,7 @@ export default function StudyBadge({
           aria-label="ZenMux"
           className="inline-flex items-center transition-opacity hover:opacity-80"
         >
-          <Image
-            src="/maker-logo/ZenMux-Light.png"
-            alt="ZenMux"
-            width={512}
-            height={125}
-            className="h-5 w-auto dark:hidden"
-          />
-          <Image
-            src="/maker-logo/ZenMux.png"
-            alt="ZenMux"
-            width={2000}
-            height={512}
-            className="hidden h-5 w-auto dark:block"
-          />
+          <ZenMuxWordmark surface="auto" size={20} className="h-5 w-auto" />
         </a>
       </div>
 

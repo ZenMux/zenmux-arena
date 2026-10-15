@@ -21,6 +21,7 @@
 // All numbers come from the GraphData the parent already loaded — no new I/O.
 
 import { useMemo } from "react";
+import { VendorIcon, hasVendorIcon } from "@/components/ZenMuxIcons";
 import {
   Card,
   CardContent,
@@ -172,7 +173,7 @@ function computeLanguageRows(graph: GraphData): LanguageRow[] {
   const vendorLogos = new Map<VendorId, string | null>();
   for (const v of graph.vendors) {
     vendorNames.set(v.id, v.name);
-    vendorLogos.set(v.id, v.logo ? `/maker-logo/${encodeURIComponent(v.logo)}` : null);
+    vendorLogos.set(v.id, hasVendorIcon(v.id) ? v.id : null);
   }
 
   const rows: LanguageRow[] = graph.languages.map((lang) => {
@@ -216,15 +217,7 @@ function TopConfusionChip({
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/30 py-0.5 pl-1 pr-1.5 text-xs">
       {top.logoPath && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={top.logoPath}
-          alt=""
-          className="size-4 object-contain invert dark:invert-0"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
+        <VendorIcon vendor={top.vendor} surface="auto" size={16} className="size-4" />
       )}
       <span className="font-medium">{top.name}</span>
       <span
@@ -346,7 +339,7 @@ function computeVendorRows(graph: GraphData): VendorRow[] {
   const vendorLogos = new Map<VendorId, string | null>();
   for (const v of graph.vendors) {
     vendorNames.set(v.id, v.name);
-    vendorLogos.set(v.id, v.logo ? `/maker-logo/${encodeURIComponent(v.logo)}` : null);
+    vendorLogos.set(v.id, hasVendorIcon(v.id) ? v.id : null);
   }
 
   const rows: VendorRow[] = [];
@@ -434,9 +427,7 @@ function ByVendorCard({ rows }: { rows: VendorRow[] }) {
             </thead>
             <tbody>
               {rows.map((row) => {
-                const logoPath = row.vendor.logo
-                  ? `/maker-logo/${encodeURIComponent(row.vendor.logo)}`
-                  : null;
+                const logoPath = hasVendorIcon(row.vendor.id) ? row.vendor.id : null;
                 return (
                   <tr
                     key={row.vendor.id}
@@ -445,15 +436,7 @@ function ByVendorCard({ rows }: { rows: VendorRow[] }) {
                     <td className="px-4 py-2 whitespace-nowrap">
                       <span className="flex items-center gap-2">
                         {logoPath && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={logoPath}
-                            alt=""
-                            className="size-5 object-contain invert dark:invert-0"
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).style.display = "none";
-                            }}
-                          />
+                          <VendorIcon vendor={row.vendor.id} surface="auto" size={20} className="size-5" />
                         )}
                         <span className="font-medium">{row.vendor.name}</span>
                       </span>

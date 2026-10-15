@@ -8,7 +8,7 @@
 // shareable without a round-trip. See TokenEconClient for the rationale.
 
 import Link from "next/link";
-import Image from "next/image";
+import { ZenMuxWordmark } from "@/components/ZenMuxIcons";
 import { ArrowUpRight } from "lucide-react";
 import { GITHUB_MARK_PATH, REPO_URL } from "@research/lib/branding";
 
@@ -104,14 +104,7 @@ export function TokenEconNav({
       <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6">
         {/* Wordmark → back to the Arena hub (a real route nav — keep as Link). */}
         <Link href="/" className="flex items-center gap-2.5">
-          <Image
-            src="/maker-logo/ZenMux-Light.png"
-            alt="ZenMux"
-            width={512}
-            height={125}
-            priority
-            className="h-5 w-auto"
-          />
+          <ZenMuxWordmark surface="light" size={20} className="h-5 w-auto" />
           <span className="hidden border-l border-[#141414]/30 pl-2.5 text-[11px] font-bold uppercase tracking-[0.18em] text-[#141414] sm:inline">
             Token Economics
           </span>

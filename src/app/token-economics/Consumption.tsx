@@ -11,7 +11,8 @@
 
 import { useMemo, useState } from "react";
 import type { ModelEconomics, TokenEconomicsData } from "@research/token-economics/types";
-import { tokens, usd, perDay, vendorColor, logoPath } from "./lib";
+import { tokens, usd, perDay, vendorColor } from "./lib";
+import { VendorGlyph } from "./components";
 import { ModelPill } from "./components";
 
 const TOP_N = [12, 24, 48] as const;
@@ -174,7 +175,6 @@ function VendorShare({ data, metric }: { data: TokenEconomicsData; metric: Metri
       <div className="space-y-1.5 border border-[#141414] bg-[#fbf9f4] p-4">
         {vendors.map((v) => {
           const w = (valueOf(v) / max) * 100;
-          const src = logoPath(v.vendor);
           return (
             <div
               key={v.vendor}
@@ -182,17 +182,7 @@ function VendorShare({ data, metric }: { data: TokenEconomicsData; metric: Metri
               title={`${v.name}: ${fmt(valueOf(v))} (${(shareOf(v) * 100).toFixed(1)}%) across ${v.modelCount} models`}
             >
               <div className="flex w-28 shrink-0 items-center gap-1.5 sm:w-36">
-                {src && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={src}
-                    alt=""
-                    className="size-4 shrink-0 object-contain"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                )}
+                <VendorGlyph vendor={v.vendor} alt="" className="size-4 shrink-0" />
                 <span className="truncate font-bold">{v.name}</span>
               </div>
               <div className="h-4 flex-1 border border-[#141414] bg-[#f4f1ea]">

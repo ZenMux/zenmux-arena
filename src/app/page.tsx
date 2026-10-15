@@ -23,7 +23,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Suspense } from "react";
-import Image from "next/image";
+import { ZenMuxWordmark } from "@/components/ZenMuxIcons";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -168,14 +168,7 @@ export default function Home() {
 
       {/* ── Masthead ─────────────────────────────────────────────────────── */}
       <header className="relative z-10 flex flex-wrap items-center justify-between gap-3 px-6 pt-6 sm:px-10">
-        <Image
-          src="/maker-logo/ZenMux-Light.png"
-          alt="ZenMux"
-          width={512}
-          height={125}
-          priority
-          className="h-6 w-auto opacity-90"
-        />
+        <ZenMuxWordmark surface="light" size={24} className="h-6 w-auto opacity-90" />
         <div className="flex items-center gap-2.5">
           <a
             href="https://github.com/ZenMux/zenmux-arena"

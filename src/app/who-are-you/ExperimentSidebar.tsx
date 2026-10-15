@@ -12,7 +12,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { ZenMuxMark } from "@/components/ZenMuxIcons";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   BarChart3,
@@ -87,20 +87,7 @@ export function ExperimentSidebar() {
             >
               <Link href="/">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center">
-                  <Image
-                    src="/maker-logo/zenmux-single-light-bg.png"
-                    alt="ZenMux"
-                    width={64}
-                    height={64}
-                    className="h-8 w-8 dark:hidden"
-                  />
-                  <Image
-                    src="/maker-logo/zenmux-single-black-bg.png"
-                    alt="ZenMux"
-                    width={64}
-                    height={64}
-                    className="hidden h-8 w-8 dark:block"
-                  />
+                  <ZenMuxMark surface="auto" size={32} className="h-8 w-8" />
                 </span>
                 <span className="grid flex-1 text-left leading-tight">
                   <span className="truncate text-sm font-semibold">

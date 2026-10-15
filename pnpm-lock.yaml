@@ -17,6 +17,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.116.0
         version: 2.116.0
+      '@zenmux/icons':
+        specifier: 0.1.6
+        version: 0.1.6(react@19.2.4)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -1962,6 +1965,11 @@ packages:
     resolution: {integrity: sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA==}
     cpu: [x64]
     os: [win32]
+
+  '@zenmux/icons@0.1.6':
+    resolution: {integrity: sha512-X6vZDtisAMGs/o/GeojGWlCeJqZ2axuS2o4qEcuN9JhD7QHnxFKPccNZjcltXMit+BqTrV9e8Z2q/ybi9+9PaQ==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
 
   accepts@2.0.0:
     resolution: {integrity: sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==}
@@ -6043,6 +6051,10 @@ snapshots:
 
   '@unrs/resolver-binding-win32-x64-msvc@1.12.2':
     optional: true
+
+  '@zenmux/icons@0.1.6(react@19.2.4)':
+    dependencies:
+      react: 19.2.4
 
   accepts@2.0.0:
     dependencies:

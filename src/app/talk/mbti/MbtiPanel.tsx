@@ -2,6 +2,7 @@
 
 import { useId, useState, type CSSProperties, type KeyboardEvent } from "react";
 import Image from "next/image";
+import { VendorIcon } from "@/components/ZenMuxIcons";
 import { ArrowUpRight, Check, ChevronRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ const position = (score: number) => `${(score - 8) / 32 * 100}%`;
 const typeTone = (type: string) => type[1] === "N" ? (type[2] === "T" ? "analyst" : "diplomat") : type[3] === "J" ? "sentinel" : "explorer";
 
 function Logo({ model, size = 28 }: { model: MbtiModel; size?: number }) {
-  return <Image src={model.logo} width={size} height={size} alt="" className={s.logo} unoptimized />;
+  return <VendorIcon vendor={model.logo} size={size} className={s.logo} />;
 }
 
 function Status({ model }: { model: MbtiModel }) {

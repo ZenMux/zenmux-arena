@@ -164,7 +164,7 @@ function build(
   const display = (id: VendorId): VendorDisplay => {
     const meta = VENDORS[id] ?? vendorMeta.get(id);
     const logo =
-      logoWebPath(id) ?? (meta?.logo ? `/maker-logo/${encodeURIComponent(meta.logo)}` : null);
+      logoWebPath(id, "dark");
     const name = id === "self" ? "Self (correct)" : meta?.name ?? String(id);
     return { id, name, logo, color: vendorColor(id) };
   };

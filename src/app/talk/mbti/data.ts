@@ -8,10 +8,10 @@ import type { MbtiDimension, MbtiModel, MbtiTalkData } from "./types";
 const DIMENSIONS: MbtiDimension[] = ["IE", "SN", "FT", "JP"];
 // Asset aliases only; the model roster and every result come from the frozen aggregate.
 const LOGOS: Record<string, string> = {
-  openai: "chatgpt", anthropic: "claude", google: "gemini", deepseek: "deepeek",
+  openai: "openai", anthropic: "claude", google: "gemini", deepseek: "deepseek",
   qwen: "qwen", bytedance: "doubao", "x-ai": "grok", "z-ai": "zai",
-  moonshotai: "kimi", minimax: "minimax", baidu: "wenxin", tencent: "hunyuan",
-  xiaomi: "xiaomi", stepfun: "stepfun", meituan: "longcat", inclusionai: "ling",
+  moonshotai: "kimi", minimax: "minimax", baidu: "ernie", tencent: "hunyuan",
+  xiaomi: "xiaomi", stepfun: "stepfun", meituan: "longcat", inclusionai: "ant-ling",
   meta: "meta", mistralai: "mistral",
 };
 

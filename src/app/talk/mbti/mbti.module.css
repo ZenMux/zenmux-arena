@@ -62,7 +62,7 @@
 .questionItem b { display: block; font-size: 12px; font-weight: 500; }
 .questionItem small { display: block; font-size: 11px; color: var(--muted-ink); margin-top: 2px; }
 .questionNumber { font-size: 11px; color: var(--muted-ink); align-self: start; padding-top: 2px; }
-.questionItem svg, .modelButton > svg { color: var(--muted-ink); }
+.questionItem svg, .modelButton > svg:not(.logo) { color: var(--muted-ink); }
 .questionItem:hover, .modelButton:hover { background: #e9ece1; }
 .questionItem.activeItem, .modelButton.activeItem { background: var(--surface); border-color: #9fb6a6; box-shadow: 0 2px 5px #253b2910; }
 .methodMain { display: flex; flex-direction: column; min-width: 0; gap: 10px; }

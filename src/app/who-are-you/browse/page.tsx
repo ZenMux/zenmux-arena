@@ -7,6 +7,7 @@
 // never reaches the browser. force-dynamic so fresh runs appear on reload.
 
 import type { Metadata } from "next";
+import { VendorIcon, hasVendorIcon } from "@/components/ZenMuxIcons";
 import Link from "next/link";
 import { ListChecks } from "lucide-react";
 import StudyBadge from "../StudyBadge";
@@ -374,11 +375,13 @@ function ClaimBadge({ display }: { display: VendorDisplay }) {
             : "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-black"
       }`}
     >
-      {!isSelf && display.logo && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={display.logo} alt="" className="size-3.5 shrink-0 object-contain" />
+      {!isSelf && hasVendorIcon(display.id) && (
+        <>
+          <VendorIcon vendor={display.id} surface="dark" size={14} className="size-3.5 shrink-0 dark:hidden" />
+          <VendorIcon vendor={display.id} surface="light" size={14} className="hidden size-3.5 shrink-0 dark:inline-block" />
+        </>
       )}
-      {!isSelf && !bucket && !display.logo && (
+      {!isSelf && !bucket && !hasVendorIcon(display.id) && (
         <span
           aria-hidden
           className="size-2 rounded-full"
@@ -394,21 +397,21 @@ function ClaimBadge({ display }: { display: VendorDisplay }) {
 
 /** Vendor logo on a dark chip (the maker logos are light variants) + color fallback. */
 function VendorChip({ vendor, size }: { vendor: VendorDisplay; size: number }) {
+  const hasIcon = hasVendorIcon(vendor.id) || Boolean(vendor.logo);
   return (
     <span
       className="flex shrink-0 items-center justify-center overflow-hidden rounded-lg"
       style={{
         width: size,
         height: size,
-        backgroundColor: vendor.logo ? "#111113" : vendor.color,
+        backgroundColor: hasIcon ? "#111113" : vendor.color,
       }}
     >
-      {vendor.logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={vendor.logo}
+      {hasIcon ? (
+        <VendorIcon
+          vendor={vendor.id}
           alt={vendor.name}
-          className="object-contain"
+          surface="dark"
           style={{ width: size * 0.72, height: size * 0.72 }}
         />
       ) : (

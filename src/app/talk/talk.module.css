@@ -10,7 +10,7 @@
 .stage button:disabled { cursor: default; }
 .topbar { padding: 0 48px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); gap: 24px; }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand img { width: 90px; height: auto; }
+.brand img, .brand svg { width: 90px; height: auto; }
 .brand span { font-size: 10px; letter-spacing: .19em; border-left: 1px solid var(--line); padding: 4px 0 4px 11px; color: var(--muted); }
 .topbarTitle { position: absolute; left: 50%; transform: translateX(-50%); font-size: 12px; letter-spacing: .2em; color: var(--muted); }
 .chapterButton { height: 42px; color: var(--muted); font-family: var(--font-geist-mono), monospace; font-size: 11px; letter-spacing: .12em; gap: 12px; }
@@ -73,7 +73,7 @@
 .tokenObject > span { font-family: var(--font-jost),sans-serif; font-size: 69px; letter-spacing: -.06em; font-weight: 400; color: #23574e; line-height: 1.2; }
 .tokenObject small { color: #5e7a69; letter-spacing: .22em; font-size: 12px; margin-top: 12px; }
 .orbitMark { position: absolute; transform: translate(-50%,-50%); z-index: 2; text-align: center; padding: 10px; background: var(--paper); min-width: 68px; }
-.orbitMark img { margin: 0 auto; object-fit: contain; }
+.orbitMark img, .orbitMark svg { margin: 0 auto; object-fit: contain; }
 .orbitMark span { display: block; margin-top: 10px; font-size: 10px; color: var(--muted); letter-spacing: .05em; }
 .specimenCaption { position: absolute; bottom: -10px; left: 0; right: 0; text-align: center; font-family: var(--font-geist-mono),monospace; font-size: 10px; letter-spacing: .15em; color: #859084; }
 .coverFootnote { position: absolute; left: 79px; bottom: 25px; color: #8b9086; font-size: 11px; letter-spacing: .04em; }
@@ -102,10 +102,10 @@
 .observationList a { color: var(--teal); }
 .observatoryHub { align-self: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 430px; border: 1px solid var(--line); position: relative; background: #eff1e9; }
 .observatoryHub > .eyebrow { position: absolute; top: 26px; font-size: 10px; }
-.observatoryHub > img { width: 245px; height: auto; margin-top: 35px; }
+.observatoryHub > img, .observatoryHub > svg { width: 245px; height: auto; margin-top: 35px; }
 .observatoryHub > p:not(.eyebrow) { font-family: var(--serif); margin-top: 24px; font-size: 20px; }
 .logoRow { display: flex; flex-wrap: wrap; gap: 21px; margin-top: 38px; padding: 0 10px; justify-content: center; }
-.logoRow img { object-fit: contain; width: 32px; height: 32px; }
+.logoRow img, .logoRow svg { object-fit: contain; width: 32px; height: 32px; }
 .observatoryHub a { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--teal); margin-top: 31px; }
 .chapterCard { height: 100%; padding: 90px 105px 70px; position: relative; overflow: hidden; }
 .chapterCard .eyebrow { color: #aac2b6; position: relative; z-index: 1; }
@@ -173,7 +173,7 @@
 .challengeList { padding: 24px 0 0 10px; }
 .challengeList > p:not(.eyebrow) { font-size: 15px; margin: 18px 0 27px; color: var(--muted); }
 .challengeModel { width: 100%; display: flex; align-items: center; gap: 14px; padding: 17px 13px; border-bottom: 1px solid var(--line); background: transparent; text-align: left; border-radius: 3px; transition: background 150ms; }
-.challengeModel > img { object-fit: contain; }
+.challengeModel > img, .challengeModel > svg:first-child { object-fit: contain; }
 .challengeModel > span { flex: 1; font-size: 15px; }
 .challengeModel small { font-family: var(--font-geist-mono),monospace; font-size: 11px; color: var(--muted); }
 .challengeSelected { background: #e6eee2; color: var(--teal); }
@@ -259,7 +259,7 @@
 .relationsRank > p { color: var(--muted); font-size: 12px; margin: 6px 0 15px; }
 .relationRow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 9px; text-align: left; border-radius: 4px; border-bottom: 1px solid var(--line); }
 .relationRow > span:first-child { font-family: var(--font-geist-mono),monospace; font-size: 10px; color: var(--muted); }
-.relationRow img { width: 25px; height: 25px; flex-shrink: 0; border-radius: 50%; object-fit: contain; }
+.relationRow img, .relationRow svg { width: 25px; height: 25px; flex-shrink: 0; border-radius: 50%; object-fit: contain; }
 .relationName { width: 100px; font-size: 14px; }
 .relationBar { flex: 1; height: 8px; }
 .relationBar i { display: block; width: 100%; height: 100%; background: #94b4a4; transform-origin: left; border-radius: 2px; transition: transform 200ms ease; }
@@ -321,7 +321,7 @@
   .tokenObject > svg { width: 27px; height: 27px; }
   .tokenObject small { font-size: 9px; margin-top: 7px; }
   .orbitMark { min-width: 48px; padding: 5px; }
-  .orbitMark img { width: 29px; height: 29px; }
+  .orbitMark img, .orbitMark svg { width: 29px; height: 29px; }
   .orbitMark span { font-size: 8px; margin-top: 5px; }
   .specimenCaption { font-size: 8px; }
   .coverFootnote { position: static; font-size: 10px; line-height: 1.8; }
@@ -333,7 +333,7 @@
   .questionTile { padding: 22px; }
   .observationList { gap: 22px; }
   .observatoryHub { min-height: 350px; }
-  .observatoryHub > img { max-width: 70%; }
+  .observatoryHub > img, .observatoryHub > svg { max-width: 70%; }
   .chapterCard { min-height: 520px; height: auto; padding: 64px 26px 86px; }
   .chapterCard h1 { font-size: clamp(48px,12vw,76px); margin: 64px 0 26px; }
   .chapterSubtitle { font-size: 20px; line-height: 1.8; }

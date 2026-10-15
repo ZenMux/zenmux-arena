@@ -24,6 +24,7 @@
 
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { VendorIcon, hasVendorIcon } from "@/components/ZenMuxIcons";
 import { cn } from "@/lib/utils";
 import type { GraphData, VendorId } from "@research/lib/types";
 import { pct } from "../studio/VendorOverview";
@@ -48,8 +49,8 @@ function modelShortName(id: string): string {
   return colon > 0 ? afterSlash.slice(0, colon) : afterSlash;
 }
 
-function logoPathFor(logo: string | undefined | null): string | null {
-  return logo ? `/maker-logo/${encodeURIComponent(logo)}` : null;
+function logoPathFor(id: VendorId, logo: string | undefined | null): string | null {
+  return hasVendorIcon(id) ? id : hasVendorIcon(logo) ? (logo ?? null) : null;
 }
 
 /** Logo chip + vendor name, sharing the invert-in-light-mode trick used across
@@ -67,17 +68,7 @@ function VendorLabel({
 }) {
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)}>
-      {logo && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={logo}
-          alt=""
-          className={cn(logoSize, "shrink-0 object-contain invert dark:invert-0")}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
-      )}
+      {logo && <VendorIcon vendor={logo} surface="auto" className={cn(logoSize, "shrink-0")} />}
       <span className="truncate font-medium">{name}</span>
     </span>
   );
@@ -89,7 +80,7 @@ function vendorMeta(graph: GraphData) {
   const logos = new Map<VendorId, string | null>();
   for (const v of graph.vendors) {
     names.set(v.id, v.name);
-    logos.set(v.id, logoPathFor(v.logo));
+    logos.set(v.id, logoPathFor(v.id, v.logo));
   }
   return { names, logos };
 }
