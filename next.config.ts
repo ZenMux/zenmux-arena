@@ -13,10 +13,13 @@ const require = createRequire(import.meta.url);
 // a detached/shallow checkout (common in CI) degrades to a safe fallback rather
 // than failing the build.
 function gitShortSha(): string {
-  // Allow CI to inject the SHA directly (e.g. Vercel's VERCEL_GIT_COMMIT_SHA),
-  // which is more reliable than shelling out inside a shallow clone.
+  // Allow CI to inject the SHA directly (e.g. Vercel's VERCEL_GIT_COMMIT_SHA
+  // or Cloudflare's CF_PAGES_COMMIT_SHA / WORKERS_CI_COMMIT_SHA), which is more
+  // reliable than shelling out inside a shallow clone.
   const fromEnv =
     process.env.SOURCE_COMMIT ||
+    process.env.WORKERS_CI_COMMIT_SHA ||
+    process.env.CF_PAGES_COMMIT_SHA ||
     process.env.VERCEL_GIT_COMMIT_SHA ||
     process.env.GITHUB_SHA;
   if (fromEnv) return fromEnv.slice(0, 7);
@@ -81,6 +84,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": ["./public/**/*", "./config/token-economics-live-models.json"],
     "/": ["./config/token-deals.json"],
+    "/api/export": ["./node_modules/@resvg/resvg-wasm/index_bg.wasm"],
     "/api/token-deals/live/**": ["./config/token-deals.json"],
     "/token-deals/**": ["./config/token-deals.json"],
   },
@@ -88,10 +92,8 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     "*": ["./.cache/**", "./.env*", "./.npmrc"],
   },
-  // @resvg/resvg-js loads a platform-native .node binary at runtime; it must not
-  // be bundled by Turbopack/webpack. Keep it external so the export route can
-  // require it directly on the server. (next-best-practices/bundling.md)
-  serverExternalPackages: ["@resvg/resvg-js", "mysql2"],
+  // Keep WASM/socket packages external so Turbopack/OpenNext can resolve them cleanly.
+  serverExternalPackages: ["@resvg/resvg-wasm", "mysql2"],
   // The "Who Are You?" study moved from /research to /who-are-you. Keep the old
   // paths working with internal rewrites because Morphe's function gateway
   // rejects app-level redirects on the default domain.

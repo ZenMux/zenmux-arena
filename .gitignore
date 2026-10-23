@@ -37,6 +37,14 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cloudflare / opennext (built by Workers Builds in CI, never committed)
+/.open-next/
+/.wrangler/
+.dev.vars*
+
+# local pnpm store
+/.pnpm-store/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

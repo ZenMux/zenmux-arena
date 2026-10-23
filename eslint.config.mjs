@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Cloudflare build output (workers build this in CI; see docs/cloudflare.md).
+    ".open-next/**",
+    ".wrangler/**",
     // Official documentation clones belong to their upstream projects.
     ".agents/skills/**/references/**",
   ]),
