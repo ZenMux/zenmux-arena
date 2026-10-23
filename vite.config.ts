@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import vinext from "vinext";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { imagesOptimizer } from "@vinext/cloudflare/images/images-optimizer";
+import { kvDataAdapter } from "@vinext/cloudflare/cache/kv-data-adapter";
 import { createHash } from "node:crypto";
 import { patchCssModules } from "vite-css-modules";
 import path from "node:path";
@@ -25,6 +26,9 @@ export default defineConfig({
     arenaWorkerInputs(),
     patchCssModules({ exportMode: "default" }),
     vinext({
+      // Launch-window fetches retain their 24h revalidation contract across
+      // Worker instances. This does not replace the Supabase billing snapshots.
+      cache: { data: kvDataAdapter() },
       images: { optimizer: imagesOptimizer() },
     }),
     cloudflare({

@@ -14,6 +14,7 @@ Workers output.
 ```bash
 pnpm install --frozen-lockfile --registry=https://registry.npmjs.org
 pnpm cf:check                  # official vinext compatibility scan
+pnpm cf:deploy:check           # exact deployment preflight, no publish or auth needed
 pnpm cf:ci                     # lint/types/offline tests + Workers build
 pnpm cf:dev                    # actual workerd dev server, localhost:3001
 pnpm cf:build                  # immutable inputs, then Vite RSC/SSR/client build
@@ -60,6 +61,11 @@ Vinext's peer contract; unrelated baseline dependencies are retained.
   pre-gzipped bytes: Vinext can reconstruct Responses and lose `encodeBody`.
   The Node target retains explicit gzip. The smoke suite decodes a real HTTP
   response, so a double-gzipped payload cannot pass as working JSON.
+- `vinext.cache.data` uses `kvDataAdapter()` and the `VINEXT_KV_CACHE` binding.
+  This persists Next/Vinext revalidated fetches (notably the 24h launch-window
+  cache); it does not replace Supabase or change billing snapshot ownership.
+  The deploy helper rejects caching apps without an adapter even when Vite
+  and `wrangler deploy --dry-run` pass, so `cf:deploy:check` is a CI gate.
 - Supabase snapshot caching, lease fencing, stale flags, cutoff accounting and
   source-db read-only queries are unchanged. `mysql2` uses its static parser
   (`disableEval`) because Workers forbids runtime code generation.
@@ -79,7 +85,7 @@ Connect this repository to the `zenmux-arena` Worker and configure:
 | Build command | `pnpm cf:ci` |
 | Production deploy command | `pnpm exec vinext-cloudflare deploy --skip-build` |
 
-`cf:ci` runs compatibility checks, lint, TypeScript, the 37 offline tests and
+`cf:ci` runs compatibility checks, the actual Vinext deployment preflight, lint, TypeScript, the 37 offline tests and
 then the Workers build. `pnpm typecheck` regenerates Next's route contracts
 before checking them: Next and Vinext both write `.next/types/routes.d.ts`, so
 reusing the other engine's generated file breaks validation. No source checking
@@ -115,6 +121,16 @@ through the dashboard or `pnpm exec wrangler secret put NAME`:
 Do not pass DDL/admin credentials, a model API key, `.env.local`, or local
 credential files to the deployment. No secret belongs in `wrangler.jsonc`.
 For local credentialed checks, use ignored `.dev.vars`; omit it for `cf:smoke`.
+The `VINEXT_KV_CACHE` binding intentionally has no fabricated namespace ID.
+The pinned Wrangler supports automatic provisioning: a configured/deployed
+namespace is reused, or a missing namespace can be created during deployment.
+The Cloudflare Builds API token needs **Workers KV Storage: Edit** on the target
+account in addition to Worker deployment permissions. No local login is needed
+inside Cloudflare Builds. If automatic provisioning is disallowed, create a KV
+namespace once and put its real ID on the binding in `wrangler.jsonc`; namespace
+IDs are resource identifiers, not secrets. Never remove caching or switch to
+plain Wrangler solely to bypass the Vinext deployment check.
+
 Cloudflare Images must be available for the `IMAGES` binding; check the final
 compressed Worker size against the selected account's plan before publishing.
 

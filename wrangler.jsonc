@@ -19,5 +19,10 @@
   },
   "images": {
     "binding": "IMAGES"
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "VINEXT_KV_CACHE"
+    }
+  ]
 }

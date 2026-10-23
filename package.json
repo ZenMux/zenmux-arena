@@ -38,11 +38,12 @@
     "cf:dev": "pnpm cf:prepare && vite dev --host localhost --port 3001",
     "cf:preview": "vite preview --host localhost --port 3001",
     "cf:deploy": "pnpm cf:build && vinext-cloudflare deploy --skip-build",
-    "cf:dry-run": "pnpm cf:build && wrangler deploy --dry-run",
+    "cf:dry-run": "pnpm cf:deploy:check && pnpm cf:build && wrangler deploy --dry-run",
     "cf:test": "pnpm cf:prepare && tsx --test worker/*.test.ts",
     "cf:smoke": "node scripts/smoke-worker.mjs",
-    "cf:ci": "pnpm cf:check && pnpm lint && pnpm typecheck && pnpm cache:test && pnpm personality:test && pnpm cf:test && pnpm cf:build",
-    "typecheck": "next typegen && tsc --noEmit"
+    "cf:ci": "pnpm cf:check && pnpm cf:deploy:check && pnpm lint && pnpm typecheck && pnpm cache:test && pnpm personality:test && pnpm cf:test && pnpm cf:build",
+    "typecheck": "next typegen && tsc --noEmit",
+    "cf:deploy:check": "vinext-cloudflare deploy --dry-run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",
