@@ -68,7 +68,10 @@ const buildEnv = {
 };
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Morphe still needs the Node standalone bundle. vinext sets VINEXT_BUILD
+  // before loading this file; its Cloudflare output is not dist/, so the
+  // standalone emitter would fail the Workers build.
+  output: process.env.VINEXT_BUILD ? undefined : "standalone",
   // Bake build metadata into the bundle. `env` values are inlined as string
   // literals at build time, so they're available in both server and client
   // components without a runtime lookup.
@@ -76,7 +79,7 @@ const nextConfig: NextConfig = {
   // Pin the workspace root to THIS project. Without it, Turbopack walks up and
   // finds ~/pnpm-lock.yaml, mis-inferring the root and warning on every start.
   turbopack: {
-    root: __dirname,
+    root: import.meta.dirname,
   },
   // Standalone output does not automatically carry every `public/` asset. Keep
   // the whole static asset tree in the traced bundle so deployed public URLs
@@ -92,7 +95,7 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     "*": ["./.cache/**", "./.env*", "./.npmrc"],
   },
-  // Keep WASM/socket packages external so Turbopack/OpenNext can resolve them cleanly.
+  // Keep WASM/socket packages external so the Next.js bundler can resolve them cleanly.
   serverExternalPackages: ["@resvg/resvg-wasm", "mysql2"],
   // The "Who Are You?" study moved from /research to /who-are-you. Keep the old
   // paths working with internal rewrites because Morphe's function gateway

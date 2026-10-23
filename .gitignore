@@ -37,7 +37,7 @@ yarn-error.log*
 # vercel
 .vercel
 
-# cloudflare / opennext (built by Workers Builds in CI, never committed)
+# cloudflare local state (never committed)
 /.open-next/
 /.wrangler/
 .dev.vars*
@@ -100,3 +100,5 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 temp/
+.vinext/
+.cloudflare/
