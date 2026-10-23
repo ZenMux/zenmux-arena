@@ -37,14 +37,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-# cloudflare local state (never committed)
-/.open-next/
-/.wrangler/
-.dev.vars*
-
-# local pnpm store
-/.pnpm-store/
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -67,22 +59,19 @@ __pycache__/
 *$py.class
 *.so
 .Python
-# Anchored to the repo root on purpose: unanchored, these Python packaging
-# patterns also match application source (`lib/` swallowed src/lib/build-info.ts
-# and src/lib/talks.ts, which then never reached CI and broke the build there).
-/build/
-/develop-eggs/
-/dist/
-/downloads/
-/eggs/
-/.eggs/
-/lib/
-/lib64/
-/parts/
-/sdist/
-/var/
-/wheels/
-/share/python-wheels/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -100,5 +89,3 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 temp/
-.vinext/
-.cloudflare/

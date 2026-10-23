@@ -9,9 +9,8 @@
 // This is a Route Handler (not a Server Action) because it produces a binary
 // file download — see next-best-practices/route-handlers.md.
 
-import { initWasm, Resvg } from "@resvg/resvg-wasm";
+import { Resvg } from "@resvg/resvg-js";
 import fs from "node:fs";
-import path from "node:path";
 import {
   DEFAULT_RENDER,
   type EdgeCurves,
@@ -26,34 +25,8 @@ export const runtime = "nodejs";
 // Keep filesystem reads statically scoped to known project subfolders so the
 // server-file tracer does not treat the whole repository as export input.
 const FONT_PATH = `${process.cwd()}/research/assets/NotoSansSC-Regular.otf`;
-const WASM_PATH = path.join(process.cwd(), "node_modules/@resvg/resvg-wasm/index_bg.wasm");
 // `<study>/<stamp>` — both segments are conservative slugs (no dots/slashes).
 const RUN_RE = /^[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
-
-let wasmInitPromise: Promise<void> | null = null;
-let cachedFontBuffer: Uint8Array | null | undefined;
-
-async function ensureResvgWasm(): Promise<void> {
-  if (!wasmInitPromise) {
-    wasmInitPromise = (async () => {
-      const wasmBytes = fs.readFileSync(WASM_PATH);
-      await initWasm(wasmBytes);
-    })().catch((err) => {
-      wasmInitPromise = null;
-      throw err;
-    });
-  }
-  return wasmInitPromise;
-}
-
-function getFontBuffers(): Uint8Array[] {
-  if (cachedFontBuffer === undefined) {
-    cachedFontBuffer = fs.existsSync(FONT_PATH)
-      ? new Uint8Array(fs.readFileSync(FONT_PATH))
-      : null;
-  }
-  return cachedFontBuffer ? [cachedFontBuffer] : [];
-}
 
 interface ExportBody {
   run: string; // "<study>/<stamp>"
@@ -124,15 +97,13 @@ export async function POST(request: Request) {
     });
   }
 
-  await ensureResvgWasm();
-
   // Rasterize at N× the SVG's intrinsic width.
   const widthMatch = svg.match(/width="(\d+(?:\.\d+)?)"/);
   const svgWidth = widthMatch ? Number(widthMatch[1]) : 1200;
-  const fontBuffers = getFontBuffers();
+  const fontFiles = fs.existsSync(FONT_PATH) ? [FONT_PATH] : [];
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: Math.round(svgWidth * scale) },
-    font: { fontBuffers, loadSystemFonts: false, defaultFontFamily: "Noto Sans SC" },
+    font: { fontFiles, loadSystemFonts: true, defaultFontFamily: "Noto Sans SC" },
     background: config.background,
   });
   const png = resvg.render().asPng();

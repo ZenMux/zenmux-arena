@@ -1,19 +1,12 @@
-packages:
-  - "."
 allowBuilds:
   esbuild: false
   msw: true
   sharp: false
   unrs-resolver: false
-  workerd: false
 ignoredBuiltDependencies:
   - esbuild
   - sharp
   - unrs-resolver
-  - workerd
-minimumReleaseAgeExclude:
-  - miniflare@5.20261019.2-beta
-  - wrangler@4.152.0
 supportedArchitectures:
   os:
     - current

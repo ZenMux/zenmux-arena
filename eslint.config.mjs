@@ -12,11 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Cloudflare / vinext build output (see docs/cloudflare.md).
-    ".cloudflare/**",
-    ".vinext/**",
-    ".wrangler/**",
-    "dist/**",
     // Official documentation clones belong to their upstream projects.
     ".agents/skills/**/references/**",
   ]),
