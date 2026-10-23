@@ -1,5 +1,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+// Bundled copy of the same file the runtime reads from disk. Cloudflare Workers
+// (workerd) has no project filesystem — only modules in the bundle, mounted at
+// /bundle — so `config/*.json` is not readable there. A static import ships the
+// config inside the worker and is the fallback used when the read fails because
+// the file does not exist. See docs/cloudflare.md.
+import bundledLiveModelsConfig from "../../config/token-economics-live-models.json";
 import { blendedCost } from "./types";
 import {
   LiveConfigError,
@@ -344,20 +350,22 @@ function resolveModels(models: RawModel[], anchors: LiveAnchorConfig[]): LiveMod
 
 export async function loadLiveModelConfig(): Promise<LiveModelConfig> {
   const file = configPath();
-  let text: string;
-  try {
-    text = await readFile(file, "utf8");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    fail(`Unable to read live model config at ${file}: ${message}`);
-  }
-
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    const text = await readFile(file, "utf8");
+    try {
+      parsed = JSON.parse(text);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      fail(`Live model config at ${file} is not valid JSON: ${message}`);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    fail(`Live model config at ${file} is not valid JSON: ${message}`);
+    const missing =
+      (error as NodeJS.ErrnoException)?.code === "ENOENT" || /no such file|not found/i.test(message);
+    // On Workers the config lives in the worker bundle, not on disk.
+    if (!missing) fail(`Unable to read live model config at ${file}: ${message}`);
+    parsed = bundledLiveModelsConfig;
   }
 
   const { rawAnchors, rawModels } = parseRawConfig(parsed);

@@ -87,6 +87,12 @@ export function getPool(): Pool {
     dateStrings: true,
     supportBigNumbers: true,
     decimalNumbers: true,
+    // workerd (Cloudflare Workers) forbids eval/new Function, and mysql2's
+    // default row-parser compiler builds parsers with `new Function` — that
+    // throws `EvalError: Code generation from strings disallowed` on the first
+    // query. disableEval uses mysql2's generic parsers instead: identical
+    // results, no generated code. Harmless on Node, required on Workers.
+    disableEval: true,
   });
   return pool;
 }
