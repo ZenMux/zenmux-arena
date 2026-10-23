@@ -14,6 +14,7 @@ Workers output.
 ```bash
 pnpm install --frozen-lockfile --registry=https://registry.npmjs.org
 pnpm cf:check                  # official vinext compatibility scan
+pnpm cf:ci                     # lint/types/offline tests + Workers build
 pnpm cf:dev                    # actual workerd dev server, localhost:3001
 pnpm cf:build                  # immutable inputs, then Vite RSC/SSR/client build
 pnpm exec vite preview --host localhost --port 4173
@@ -63,13 +64,46 @@ Vinext's peer contract; unrelated baseline dependencies are retained.
   source-db read-only queries are unchanged. `mysql2` uses its static parser
   (`disableEval`) because Workers forbids runtime code generation.
 
-## Deploy after review
+## Native Cloudflare Git builds — no separate GitHub Actions
 
-The [CI workflow template](examples/cloudflare-checks.yml) validates but
-**never deploys**. It is deliberately not installed in `.github/workflows/`:
-the available GitHub credential cannot write workflows. Activate it separately
-with appropriately scoped authorization; the local checks already run without
-that permission. After PR review, authorize the
+Cloudflare's Git integration is the CI/CD runner for this target. A separate
+GitHub Actions workflow is unnecessary: put the quality gates in the native
+build command so a failed test stops the subsequent deployment.
+
+Connect this repository to the `zenmux-arena` Worker and configure:
+
+| Setting | Value |
+| --- | --- |
+| Root directory | Repository root |
+| Production branch | `main` |
+| Build command | `pnpm cf:ci` |
+| Production deploy command | `pnpm exec vinext-cloudflare deploy --skip-build` |
+
+`cf:ci` runs compatibility checks, lint, TypeScript, the 37 offline tests and
+then the Workers build. `pnpm typecheck` regenerates Next's route contracts
+before checking them: Next and Vinext both write `.next/types/routes.d.ts`, so
+reusing the other engine's generated file breaks validation. No source checking
+or route validation is disabled. **Do not use the default `pnpm build` here**: that is
+intentionally still the Next.js/Morphe fallback. Cloudflare installs dependencies
+from the committed lockfile; use the repository's pinned Node/pnpm toolchain.
+
+If checks should run before a PR is merged, also enable non-production branch
+builds/previews in Cloudflare. Production-only builds run too late to
+act as a pre-merge gate. Where branch protection is desired, require the
+Cloudflare build check in GitHub; no separate Actions workflow or `workflow`
+permission is needed for this arrangement.
+
+These repository changes supply the commands, **not a change to the Cloudflare account's
+Git settings**. Connecting the repository, branch policy and runtime secrets are
+configured separately. The extra Actions template has been removed; there is
+only one CI/CD path to maintain.
+
+References: [build configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)
+and [Git integration](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/).
+
+## Manual deployment after review
+
+For an explicitly authorized local deployment, authorize the
 Cloudflare account (`pnpm exec wrangler login`) and configure runtime secrets
 through the dashboard or `pnpm exec wrangler secret put NAME`:
 

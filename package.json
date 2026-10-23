@@ -40,7 +40,9 @@
     "cf:deploy": "pnpm cf:build && vinext-cloudflare deploy --skip-build",
     "cf:dry-run": "pnpm cf:build && wrangler deploy --dry-run",
     "cf:test": "pnpm cf:prepare && tsx --test worker/*.test.ts",
-    "cf:smoke": "node scripts/smoke-worker.mjs"
+    "cf:smoke": "node scripts/smoke-worker.mjs",
+    "cf:ci": "pnpm cf:check && pnpm lint && pnpm typecheck && pnpm cache:test && pnpm personality:test && pnpm cf:test && pnpm cf:build",
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",

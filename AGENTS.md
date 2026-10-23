@@ -27,7 +27,7 @@ pnpm dev                  # localhost:3000; /, /token-economics, /token-deals, /
 pnpm build                # Next.js standalone production output
 pnpm start                # local Next production server
 pnpm lint
-pnpm exec tsc --noEmit
+pnpm typecheck
 pnpm cache:test           # isolated Node tests for shared-cache behavior (no external IO)
 
 # Supabase data plane
@@ -237,6 +237,8 @@ A separate model (config `extractor.model`, e.g. `deepseek/deepseek-v4-pro`) lab
 ### Cloudflare Workers target
 
 Use `.agents/skills/migrate-to-vinext/SKILL.md` for Workers migration work.
+`pnpm cf:ci` is the native Cloudflare Git build command (quality gates + build).
+Cloudflare Git Builds is the configured CI/CD path; no Actions workflow is installed.
 `pnpm cf:build` packages allowlisted immutable inputs and builds with Vinext;
 `pnpm cf:test` checks exact research-shard parity, and `pnpm cf:smoke` exercises
 a secret-free local Worker. Never run `study:test` as a regression suite.
