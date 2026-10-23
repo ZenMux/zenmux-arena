@@ -1,3 +1,4 @@
+import { isIdentityGraph } from "@research/lib/graph-data";
 // Server-only data layer for the raw-answer browser.
 //
 // Joins a run's records.jsonl (the answers) with its extractions.jsonl (the
@@ -86,7 +87,12 @@ export function discoverRuns(): RunRef[] {
     if (!fs.statSync(studyDir).isDirectory()) continue;
     for (const stamp of fs.readdirSync(studyDir)) {
       const records = path.join(studyDir, stamp, "records.jsonl");
-      if (fs.existsSync(records)) out.push({ id: `${study}/${stamp}`, study, stamp });
+      if (!fs.existsSync(records)) continue;
+      const aggregate = path.join(studyDir, stamp, "aggregate.json");
+      if (fs.existsSync(aggregate)) {
+        try { if (!isIdentityGraph(JSON.parse(fs.readFileSync(aggregate, "utf8")))) continue; } catch { continue; }
+      }
+      out.push({ id: `${study}/${stamp}`, study, stamp });
     }
   }
   // Stamps are sortable timestamps → reverse-lexical = newest first.
@@ -111,7 +117,9 @@ const cache = new Map<string, { sig: string; data: RunData }>();
  * Load + join one run. Returns null for an invalid/unknown run id or one with
  * no records.jsonl. `run` is "<study>/<stamp>".
  */
-export function loadRunData(run: string): RunData | null {
+export function loadRunData(run: string, modelId?: string): RunData | null {
+  // Node keeps the original join; the Workers adapter uses this to fetch one shard.
+  void modelId;
   if (!RUN_RE.test(run)) return null;
   const dir = path.resolve(RESULTS_ROOT, run);
   if (dir !== RESULTS_ROOT && !dir.startsWith(RESULTS_ROOT + path.sep)) return null;

@@ -65,8 +65,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -89,3 +89,9 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 temp/
+.vinext/
+.wrangler/
+
+# Worker build-only inputs and local secrets
+/.wrangler/
+.dev.vars*

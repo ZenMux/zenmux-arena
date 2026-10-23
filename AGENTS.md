@@ -233,3 +233,13 @@ A separate model (config `extractor.model`, e.g. `deepseek/deepseek-v4-pro`) lab
 
 ### Path aliases (`tsconfig.json`)
 `@/*` → `src/*`, `@research/*` → `research/*`. The Next.js page imports types via `@research/lib/types`.
+
+### Cloudflare Workers target
+
+Use `.agents/skills/migrate-to-vinext/SKILL.md` for Workers migration work.
+`pnpm cf:build` packages allowlisted immutable inputs and builds with Vinext;
+`pnpm cf:test` checks exact research-shard parity, and `pnpm cf:smoke` exercises
+a secret-free local Worker. Never run `study:test` as a regression suite.
+Keep the private-asset proxy guard paired with `run_worker_first`, and preserve
+Node/Next's native filesystem and renderer fallback. Read `docs/cloudflare.md`
+before changing these adapters. CI/dry-run does not authorize deployment.

@@ -32,7 +32,8 @@
       "@zenmux/icons": [
         "./node_modules/@zenmux/icons/dist/index"
       ]
-    }
+    },
+    "allowImportingTsExtensions": true
   },
   "include": [
     "next-env.d.ts",
@@ -43,6 +44,9 @@
     "**/*.mts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "dist",
+    ".vinext",
+    ".wrangler"
   ]
 }

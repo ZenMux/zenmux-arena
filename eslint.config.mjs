@@ -11,6 +11,9 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "dist/**",
+    ".vinext/**",
+    ".wrangler/**",
     "next-env.d.ts",
     // Official documentation clones belong to their upstream projects.
     ".agents/skills/**/references/**",

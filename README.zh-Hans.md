@@ -355,3 +355,7 @@ Arena 就是为持续扩充而设计的。大致步骤：
 <sub>项目脚手架来自 <a href="https://nextjs.org">Next.js</a>；原始 create-next-app 文档见 <a href="https://nextjs.org/docs">nextjs.org/docs</a>。</sub>
 
 </div>
+
+## Cloudflare Workers / Vinext
+
+参阅 [Workers 迁移指南](docs/cloudflare.md)：独立构建、本地验收、运行时凭据及评审后的部署流程。原 Next.js / Morphe 部署入口保留。

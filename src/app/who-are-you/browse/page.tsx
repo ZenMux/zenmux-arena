@@ -7,7 +7,7 @@
 // never reaches the browser. force-dynamic so fresh runs appear on reload.
 
 import type { Metadata } from "next";
-import { VendorIcon, hasVendorIcon } from "@/components/ZenMuxIcons";
+import { ClaimBadge, VendorChip } from "./vendor-chips";
 import Link from "next/link";
 import { ListChecks } from "lucide-react";
 import StudyBadge from "../StudyBadge";
@@ -55,7 +55,7 @@ export default async function BrowsePage({
   }
 
   const selectedRun = runs.find((r) => r.id === run)?.id ?? runs[0].id;
-  const data = loadRunData(selectedRun);
+  const data = await loadRunData(selectedRun, model);
 
   if (!data || data.models.length === 0) {
     return (
@@ -325,7 +325,7 @@ function AnswerRow({ answer }: { answer: JoinedAnswer }) {
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                   <span className="text-neutral-400">提取身份</span>
                   {answer.effective ? (
-                    <ClaimBadge display={answer.effective} />
+                    <ClaimBadge display={answer.effective} bucket={isBucket(answer.effective.id)} />
                   ) : (
                     <span className="text-neutral-400">无</span>
                   )}
@@ -358,68 +358,6 @@ function ExtField({ label, children }: { label: string; children: React.ReactNod
       <span className="shrink-0 text-neutral-400">{label}</span>
       <span className="min-w-0 break-words text-neutral-600 dark:text-neutral-300">{children}</span>
     </div>
-  );
-}
-
-/** The extracted claim, shown with the vendor's logo/color chip. */
-function ClaimBadge({ display }: { display: VendorDisplay }) {
-  const isSelf = display.id === "self";
-  const bucket = isBucket(display.id);
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
-        isSelf
-          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-          : bucket
-            ? "bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
-            : "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-black"
-      }`}
-    >
-      {!isSelf && hasVendorIcon(display.id) && (
-        <>
-          <VendorIcon vendor={display.id} surface="dark" size={14} className="size-3.5 shrink-0 dark:hidden" />
-          <VendorIcon vendor={display.id} surface="light" size={14} className="hidden size-3.5 shrink-0 dark:inline-block" />
-        </>
-      )}
-      {!isSelf && !bucket && !hasVendorIcon(display.id) && (
-        <span
-          aria-hidden
-          className="size-2 rounded-full"
-          style={{ backgroundColor: display.color }}
-        />
-      )}
-      {display.name}
-    </span>
-  );
-}
-
-/* ── Shared bits ─────────────────────────────────────────────────────────── */
-
-/** Vendor logo on a dark chip (the maker logos are light variants) + color fallback. */
-function VendorChip({ vendor, size }: { vendor: VendorDisplay; size: number }) {
-  const hasIcon = hasVendorIcon(vendor.id) || Boolean(vendor.logo);
-  return (
-    <span
-      className="flex shrink-0 items-center justify-center overflow-hidden rounded-lg"
-      style={{
-        width: size,
-        height: size,
-        backgroundColor: hasIcon ? "#111113" : vendor.color,
-      }}
-    >
-      {hasIcon ? (
-        <VendorIcon
-          vendor={vendor.id}
-          alt={vendor.name}
-          surface="dark"
-          style={{ width: size * 0.72, height: size * 0.72 }}
-        />
-      ) : (
-        <span className="font-bold text-white" style={{ fontSize: size * 0.4 }}>
-          {vendor.name.slice(0, 1).toUpperCase()}
-        </span>
-      )}
-    </span>
   );
 }
 
