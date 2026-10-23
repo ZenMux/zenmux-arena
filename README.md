@@ -355,3 +355,7 @@ Live at **[arena.zenmux.ai](https://arena.zenmux.ai)** · all model calls route 
 <sub>Scaffolded with <a href="https://nextjs.org">Next.js</a> · see the original create-next-app docs at <a href="https://nextjs.org/docs">nextjs.org/docs</a>.</sub>
 
 </div>
+
+## Cloudflare Workers / Vinext
+
+See [the Workers migration guide](docs/cloudflare.md) for the isolated build, local verification, runtime secrets and post-review deployment. The existing Next.js/Morphe target remains available.

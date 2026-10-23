@@ -1,120 +1,130 @@
-# Deploying Arena to Cloudflare Workers
+# Cloudflare Workers (Vinext)
 
-The Cloudflare target is a **Workers** app built by [vinext](https://vinext.dev/)
-and deployed by **Workers Builds (Git integration)**. There is deliberately
-**no GitHub Actions workflow** in this repo: Cloudflare builds and deploys on
-every push itself, so a workflow file would only be a second, divergent CI
-pipeline.
+This target starts from commit `8fb8a6090f1c100a489d670fbb576cbb0a244c63`.
+The first PR commit restores its exact tree; the migration is a separate commit.
+It does not force-push `main`, merge the PR, or publish a Worker.
 
-`next dev` / `next build` still work for the Morphe standalone target. The
-Workers path does not use OpenNext.
+## Toolchain and commands
 
-Supabase stays the persistent store (see [shared-cache.md](shared-cache.md)).
-Workers only serve requests; nothing is cached to local disk.
-
-## One-time project setup (dashboard, not code)
-
-1. Workers & Pages → **Create application → Connect to Git** → pick
-   `ZenMux/zenmux-arena` (the Cloudflare GitHub App must be installed on the
-   repo) and the `main` production branch.
-2. Worker name must be **`zenmux-arena`** — it has to match `name` in
-   `cloudflare.config.ts`.
-3. Build settings. The deploy command is not `wrangler deploy`; this project
-   has no `wrangler.jsonc`.
-
-   | Setting | Value |
-   |---|---|
-   | Root directory | `/` |
-   | Build command | `pnpm cf:build` (→ `vite build`) |
-   | Deploy command | `pnpm cf:deploy` (→ `vinext-cloudflare deploy --skip-build`) |
-   | Node version | from `.node-version` (`26.12.1`); override with a `NODE_VERSION` build variable if the image cannot install it |
-
-   `pnpm` comes from `packageManager` in `package.json`; `pnpm-lock.yaml` makes
-   the install reproducible (`--frozen-lockfile`). A laptop one-shot is
-   `pnpm deploy:vinext`, which builds and deploys. Do not run that against
-   production unless the dashboard secrets below are already set.
-4. Build **variables** (baked into the client bundle at build time — changing
-   one requires a new build):
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-5. Runtime **secrets** (dashboard → Settings → Variables and Secrets, or
-   `npx wrangler secret put <NAME> --name zenmux-arena`). The required names are
-   declared in `cloudflare.config.ts`, so a deploy fails closed if one is
-   missing instead of publishing a worker that cannot reach Supabase or the
-   billing database:
-   - `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (server-only; never `NEXT_PUBLIC_*`)
-   - `TOKEN_ECON_LIVE_DB_HOST` / `_PORT` / `_USER` / `_PASSWORD` / `_DATABASE`
-   - optional, and **not** declared (code has defaults): `TOKEN_ECON_LIVE_START_ISO`,
-     `TOKEN_DEALS_START_ISO`, `ARENA_CACHE_TIMEOUT_MS`, `TOKEN_ECON_LIVE_*` tuning knobs
-   - `ZENMUX_API_KEY` is **not** needed at runtime (study pipeline only)
-
-   `NEXT_PUBLIC_*` is build-time public configuration; the secret key must never
-   live there. Undeclared dashboard plain-text vars are not part of this config
-   and should not be relied on across deploys.
-6. A **Workers Paid** plan is required. Confirm the built worker size after
-   `pnpm cf:build`; the free plan rejects workers above 3 MiB gzip.
-
-## What runs where
-
-| Piece | Workers runtime behaviour |
-|---|---|
-| Supabase snapshot read/write | unchanged (`fetch`-based) |
-| Live billing queries (`mysql2`) | works, but **`disableEval: true` is required** — workerd forbids `eval`/`new Function` and mysql2's default row-parser compiler uses it (`EvalError: Code generation from strings disallowed` on the first query) |
-| `config/token-deals.json`, `config/token-economics-live-models.json` | read from disk on Node; **statically imported** so the worker bundle carries a copy, used when the disk read reports a missing file |
-| `public/` | served as Workers static assets through the `ASSETS` binding |
-| Files written at runtime | not persisted (only `/tmp`, per request) |
-
-`fs` in Workers is a virtual filesystem. Anything that is not `import`ed —
-`results/**`, `public/research/**` read by path — does not exist there.
-
-## Known gaps on Workers
-
-1. **Research viewer pages** (`/who-are-you`, `/who-are-you/studio`,
-   `/who-are-you/data`, `/who-are-you/browse`) enumerate `results/**` with
-   `readdir`/`readFile` at request time. In Workers that directory does not
-   exist, so they render their empty state ("No runs found."). Run artifacts
-   must move to a real store — Supabase Storage + a run manifest table, or R2 —
-   before these pages work on Cloudflare.
-2. **`/api/export` PNG** needs `@resvg/resvg-wasm/index_bg.wasm` and
-   `research/assets/NotoSansSC-Regular.otf`. The native `@resvg/resvg-js` addon
-   is stubbed in the Worker bundle. Until the wasm and font are fetched through
-   the `ASSETS` binding, PNG export fails and CJK glyphs would be missing. SVG
-   export is unaffected.
-3. `results/**` is still the input for `src/app/talk/mbti` and other research
-   surfaces — the same treatment as (1) applies.
-
-## Local commands
+Use Node 24 and the pinned `pnpm@12.11.2`. A current Linux distribution is needed
+for local workerd (CI uses Ubuntu 24.04). The existing `pnpm dev/build/start`
+commands remain the Next.js / Morphe fallback. Do not point Morphe packaging at
+Workers output.
 
 ```bash
-pnpm dev:vinext      # Vite + workerd on port 3001; next dev on 3000 still works
-pnpm cf:build        # production Worker build
-pnpm cf:preview      # preview the built Worker
-pnpm cf:typegen      # write .cloudflare/types before a standalone type-check
+pnpm install --frozen-lockfile --registry=https://registry.npmjs.org
+pnpm cf:check                  # official vinext compatibility scan
+pnpm cf:ci                     # lint/types/offline tests + Workers build
+pnpm cf:dev                    # actual workerd dev server, localhost:3001
+pnpm cf:build                  # immutable inputs, then Vite RSC/SSR/client build
+pnpm exec vite preview --host localhost --port 4173
+pnpm cf:test                   # file boundary and all model-shard parity checks
+pnpm cf:smoke                  # needs a secret-free preview at localhost:4173
+pnpm exec wrangler deploy --dry-run
 ```
 
-## Verification after a deploy
+`wrangler.jsonc` and `@cloudflare/vite-plugin` v1 use the officially supported
+legacy-Wrangler path of `vinext init --platform=cloudflare
+--legacy-wrangler-cloudflare-init`. No beta `cf` config/runtime is required.
+`@vitejs/plugin-rsc` is registered by Vinext; do not register it again.
+React, React DOM and react-server-dom-webpack are pinned together to satisfy
+Vinext's peer contract; unrelated baseline dependencies are retained.
+
+## Runtime boundaries
+
+- Public assets and **tracked, allowlisted** immutable research inputs are
+  staged under `.vinext/`; no `.env*`, local caches, untracked runs, credentials,
+  or wholesale checkout copies enter the build. `cf:prepare` performs no
+  network calls and never runs `study:test` or live billing refresh commands.
+- Workers has no checkout. `worker/vite-plugin.ts` replaces only application
+  filesystem readers with a fail-closed, read-only packaged filesystem. The
+  Node research CLI and Next/Morphe continue using their original file APIs.
+  Missing inputs throw `ENOENT`; writes throw `EROFS`.
+- The original raw-answer join is run **at build time**, with exact JSON parity
+  tests. Only run/model metadata and the selected model's answers are loaded
+  by a Worker request; the large source JSONL corpus is not put into one
+  isolate or sent to a browser. Published runs update on the next build.
+- Model shards and the CJK font are Worker-only assets. They are read via
+  `cloudflare:workers`' `ASSETS` binding; `src/proxy.ts` rejects direct HTTP
+  reads of `/__arena_private/**`. Preserve `assets.run_worker_first` and the
+  guard together. The internal binding URL uses `localhost` so Vite's host
+  validation remains enabled; this is a binding call, not a network fetch.
+- PNG uses the real resvg WASM renderer and packaged Noto Sans SC font; SVG uses
+  the unchanged shared graph builder. The Node target keeps native resvg.
+  Never replace the native package with an empty stub to make a build pass.
+- Identity and MBTI aggregates have distinct schemas. Identity pickers exclude
+  MBTI runs; the MBTI narrative still reads its actual pinned artifacts.
+- The browser's icon availability helpers stay inside a Client Component;
+  a Server Component cannot call functions exported across `"use client"`.
+- Live API responses use Workers' native `Content-Encoding` compression, not
+  pre-gzipped bytes: Vinext can reconstruct Responses and lose `encodeBody`.
+  The Node target retains explicit gzip. The smoke suite decodes a real HTTP
+  response, so a double-gzipped payload cannot pass as working JSON.
+- Supabase snapshot caching, lease fencing, stale flags, cutoff accounting and
+  source-db read-only queries are unchanged. `mysql2` uses its static parser
+  (`disableEval`) because Workers forbids runtime code generation.
+
+## Native Cloudflare Git builds — no separate GitHub Actions
+
+Cloudflare's Git integration is the CI/CD runner for this target. A separate
+GitHub Actions workflow is unnecessary: put the quality gates in the native
+build command so a failed test stops the subsequent deployment.
+
+Connect this repository to the `zenmux-arena` Worker and configure:
+
+| Setting | Value |
+| --- | --- |
+| Root directory | Repository root |
+| Production branch | `main` |
+| Build command | `pnpm cf:ci` |
+| Production deploy command | `pnpm exec vinext-cloudflare deploy --skip-build` |
+
+`cf:ci` runs compatibility checks, lint, TypeScript, the 37 offline tests and
+then the Workers build. `pnpm typecheck` regenerates Next's route contracts
+before checking them: Next and Vinext both write `.next/types/routes.d.ts`, so
+reusing the other engine's generated file breaks validation. No source checking
+or route validation is disabled. **Do not use the default `pnpm build` here**: that is
+intentionally still the Next.js/Morphe fallback. Cloudflare installs dependencies
+from the committed lockfile; use the repository's pinned Node/pnpm toolchain.
+
+If checks should run before a PR is merged, also enable non-production branch
+builds/previews in Cloudflare. Production-only builds run too late to
+act as a pre-merge gate. Where branch protection is desired, require the
+Cloudflare build check in GitHub; no separate Actions workflow or `workflow`
+permission is needed for this arrangement.
+
+These repository changes supply the commands, **not a change to the Cloudflare account's
+Git settings**. Connecting the repository, branch policy and runtime secrets are
+configured separately. The extra Actions template has been removed; there is
+only one CI/CD path to maintain.
+
+References: [build configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)
+and [Git integration](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/).
+
+## Manual deployment after review
+
+For an explicitly authorized local deployment, authorize the
+Cloudflare account (`pnpm exec wrangler login`) and configure runtime secrets
+through the dashboard or `pnpm exec wrangler secret put NAME`:
+
+- `SUPABASE_URL`
+- `SUPABASE_SECRET_KEY` (or the legacy `SUPABASE_SERVICE_ROLE_KEY`)
+- `TOKEN_ECON_LIVE_DB_HOST`, `TOKEN_ECON_LIVE_DB_PORT`, `TOKEN_ECON_LIVE_DB_USER`,
+  `TOKEN_ECON_LIVE_DB_PASSWORD`, `TOKEN_ECON_LIVE_DB_DATABASE`
+
+Do not pass DDL/admin credentials, a model API key, `.env.local`, or local
+credential files to the deployment. No secret belongs in `wrangler.jsonc`.
+For local credentialed checks, use ignored `.dev.vars`; omit it for `cf:smoke`.
+Cloudflare Images must be available for the `IMAGES` binding; check the final
+compressed Worker size against the selected account's plan before publishing.
 
 ```bash
-# assets + worker alive
-curl -sI https://<worker-url>/ | head -1
-
-# live data plane: coverage + provenance, not just HTTP 200
-curl -sD - -o /dev/null https://<worker-url>/api/token-deals/live | grep -i x-cache
-curl -sD - -o /dev/null https://<worker-url>/api/token-economics/live | grep -i x-cache
+pnpm cf:deploy
 ```
 
-`x-cache-source` should stop reporting `stale-baseline` once the refresh path
-runs (it needs the DB secrets above). `to` — not the response time — is the
-freshness signal.
-
-## Troubleshooting
-
-- **Build fails on `pnpm install`** → Node version mismatch: check
-  `.node-version` against the build image, or pin `NODE_VERSION`.
-- **`EvalError: Code generation from strings disallowed`** → a library is using
-  `eval`/`new Function`; mysql2 is already handled with `disableEval`.
-- **`Unable to read ...` for a project file** → a file read by path that is not
-  in the bundle: import it, ship it as a static asset, or move it to Supabase/R2.
-- **Deploy says a required secret has not been set** → add that name in the
-  dashboard before deploying. Do not remove the declaration to force the deploy
-  through.
+A successful build/dry-run is not a deployment or production data check. Verify
+both live API endpoints after deployment, including persistence headers,
+`stale` and the actual `to` cutoff. Confirm that the account can reach the
+billing database and Supabase; no such connectivity is asserted by the local
+secret-free tests. Research routes, navigation, private-asset denial, and real
+PNG/SVG exports must also be checked on the deployed hostname.

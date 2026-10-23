@@ -1,3 +1,4 @@
+import { isIdentityGraph } from "@research/lib/graph-data";
 // Studio — an interactive workbench for the identity-confusion graph.
 //
 // Server component: discovers every results/<study>/<stamp>/aggregate.json,
@@ -29,7 +30,7 @@ function discoverRuns(): RunRef[] {
     if (!fs.statSync(studyDir).isDirectory()) continue;
     for (const stamp of fs.readdirSync(studyDir)) {
       const aggregate = path.join(studyDir, stamp, "aggregate.json");
-      if (fs.existsSync(aggregate)) out.push({ id: `${study}/${stamp}`, study, stamp });
+      if (fs.existsSync(aggregate) && loadGraph(`${study}/${stamp}`)) out.push({ id: `${study}/${stamp}`, study, stamp });
     }
   }
   // Stamps are sortable timestamps (e.g. 20260529T070756) → reverse-lexical = newest first.
@@ -39,7 +40,8 @@ function discoverRuns(): RunRef[] {
 function loadGraph(runId: string): GraphData | null {
   const file = path.join(RESULTS_DIR, runId, "aggregate.json");
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8")) as GraphData;
+    const graph: unknown = JSON.parse(fs.readFileSync(file, "utf8"));
+    return isIdentityGraph(graph) ? graph : null;
   } catch {
     return null;
   }

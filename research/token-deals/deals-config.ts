@@ -15,12 +15,6 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
-// Bundled copy of the roster. Cloudflare Workers (workerd) has no project
-// filesystem — only modules in the bundle at /bundle — so `config/token-deals.json`
-// is not readable there. A static import ships it inside the worker and is the
-// fallback when the on-disk read fails because the file does not exist. See
-// docs/cloudflare.md.
-import bundledDealsConfig from "../../config/token-deals.json";
 
 export const DEALS_CONFIG_SCHEMA = 1;
 
@@ -133,16 +127,8 @@ export async function loadDealsConfig(): Promise<DealsConfigFile | null> {
     // Runtime overrides are not discoverable by build tracing. The default
     // config is explicitly included in next.config.ts; do not trace the cwd.
     content = await fs.readFile(/* turbopackIgnore: true */ dealsConfigPath(), "utf-8");
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const missing =
-      (error as NodeJS.ErrnoException)?.code === "ENOENT" || /no such file|not found/i.test(message);
-    // An explicit TOKEN_DEALS_CONFIG_PATH always wins: a missing override file
-    // means "no roster yet", never "silently use the bundled roster".
-    const override = process.env[CONFIG_PATH_ENV]?.trim();
-    if (!missing || override) return null;
-    // On Workers the roster lives in the worker bundle, not on disk.
-    content = JSON.stringify(bundledDealsConfig);
+  } catch {
+    return null;
   }
   return parseDealsConfig(content);
 }

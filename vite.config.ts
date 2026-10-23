@@ -1,16 +1,28 @@
 import { defineConfig } from "vite";
 import vinext from "vinext";
-
-// See next.config.ts. Must be set before the vinext plugin loads that file.
-process.env.VINEXT_BUILD = "1";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { imagesOptimizer } from "@vinext/cloudflare/images/images-optimizer";
 import { createHash } from "node:crypto";
 import { patchCssModules } from "vite-css-modules";
 import path from "node:path";
+import { arenaWorkerInputs } from "./worker/vite-plugin.ts";
+
+process.env.ARENA_WORKERS_BUILD = "1";
 
 export default defineConfig({
+  publicDir: ".vinext/public",
+  resolve: {
+    alias: [
+      { find: "@/lib/compressed-json", replacement: path.resolve(import.meta.dirname, "worker/compressed-json.ts") },
+      { find: path.resolve(import.meta.dirname, "src/lib/compressed-json.ts"), replacement: path.resolve(import.meta.dirname, "worker/compressed-json.ts") },
+      { find: "@research/lib/rasterize", replacement: path.resolve(import.meta.dirname, "worker/rasterize.ts") },
+      { find: path.resolve(import.meta.dirname, "research/lib/rasterize.ts"), replacement: path.resolve(import.meta.dirname, "worker/rasterize.ts") },
+      { find: path.resolve(import.meta.dirname, "src/app/who-are-you/browse/data.ts"), replacement: path.resolve(import.meta.dirname, "worker/browse-data.ts") },
+    ],
+  },
+  optimizeDeps: { exclude: ["@resvg/resvg-js"] },
   plugins: [
+    arenaWorkerInputs(),
     patchCssModules({ exportMode: "default" }),
     vinext({
       images: { optimizer: imagesOptimizer() },
@@ -22,11 +34,6 @@ export default defineConfig({
       },
     }),
   ],
-  resolve: {
-    alias: {
-      "@resvg/resvg-js": path.resolve(import.meta.dirname, "empty-stub.js"),
-    },
-  },
   css: {
     modules: {
       generateScopedName(name: string, filename: string) {

@@ -138,11 +138,7 @@ function getPool(): Pool {
     dateStrings: true,
     supportBigNumbers: true,
     decimalNumbers: true,
-    // workerd (Cloudflare Workers) forbids eval/new Function, and mysql2's
-    // default row-parser compiler builds parsers with `new Function` — that
-    // throws `EvalError: Code generation from strings disallowed` on the first
-    // query. disableEval uses mysql2's generic parsers instead: identical
-    // results, no generated code. Harmless on Node, required on Workers.
+    // Workers disallows generated code; mysql2 must use its static row parser.
     disableEval: true,
   });
   console.log(`[token-economics/live] DB pool initialized: max=${poolCfg.connectionLimit}, queue=${poolCfg.queueLimit}, maxIdle=${poolCfg.maxIdle}`);
