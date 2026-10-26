@@ -1,8 +1,7 @@
 #!/usr/bin/env tsx
 // Resumable chunked backfill into Supabase; each committed chunk survives
 // process restarts. Completion also creates an immutable Supabase archive.
-import { config as loadDotenv } from "dotenv";
-import path from "node:path";
+import "../../scripts/local-env";
 import { archiveSnapshot } from "../cache/archive";
 import { DEALS_SCHEMA_VERSION, type TokenDealsPayload } from "@research/token-deals/types";
 import { DAY, REFRESH_INTERVAL_SECONDS, closeDealsDbPool, dealsStartMs, floorTo } from "@research/token-deals/db";
@@ -13,7 +12,6 @@ import {
   readSharedCache,
 } from "@research/token-deals/query";
 
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
 
 // A build machine doesn't care about first-byte latency — give each chunk a
 // 300s budget instead of the runtime's 120s (a busy month's chunk was measured

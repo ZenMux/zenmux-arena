@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { API_URL, type ApiModel } from "@research/token-economics/scrape";
-import { MANAGEMENT_KEY_ENV, MODEL_USAGE_URL } from "@research/token-economics/usage";
+import { MANAGEMENT_API_KEY_ENV, MODEL_USAGE_URL } from "@research/token-economics/usage";
 import { loadEconomicsData } from "./loader";
 
 // Isolated transport fixtures only: no external IO, credentials or model calls.
@@ -16,9 +16,9 @@ const models: ApiModel[] = [{
 }];
 
 test("talk loader retains live listing, 24h bounded launch windows, basket and free-tier merge", async (t) => {
-  const previous = process.env[MANAGEMENT_KEY_ENV];
-  process.env[MANAGEMENT_KEY_ENV] = "unit-test-placeholder";
-  t.after(() => { if (previous === undefined) delete process.env[MANAGEMENT_KEY_ENV]; else process.env[MANAGEMENT_KEY_ENV] = previous; });
+  const previous = process.env[MANAGEMENT_API_KEY_ENV];
+  process.env[MANAGEMENT_API_KEY_ENV] = "unit-test-placeholder";
+  t.after(() => { if (previous === undefined) delete process.env[MANAGEMENT_API_KEY_ENV]; else process.env[MANAGEMENT_API_KEY_ENV] = previous; });
   const calls: { url: string; init?: RequestInit & { next?: { revalidate?: number | false } } }[] = [];
   t.mock.method(globalThis, "fetch", async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
@@ -43,9 +43,9 @@ test("talk loader retains live listing, 24h bounded launch windows, basket and f
 });
 
 test("missing management access preserves null usage and explicitly reports unavailable coverage", async (t) => {
-  const previous = process.env[MANAGEMENT_KEY_ENV];
-  delete process.env[MANAGEMENT_KEY_ENV];
-  t.after(() => { if (previous !== undefined) process.env[MANAGEMENT_KEY_ENV] = previous; });
+  const previous = process.env[MANAGEMENT_API_KEY_ENV];
+  delete process.env[MANAGEMENT_API_KEY_ENV];
+  t.after(() => { if (previous !== undefined) process.env[MANAGEMENT_API_KEY_ENV] = previous; });
   const fetch = t.mock.method(globalThis, "fetch", async () => Response.json({ data: models }));
   const result = await loadEconomicsData();
   assert.equal(fetch.mock.callCount(), 1);
@@ -55,9 +55,9 @@ test("missing management access preserves null usage and explicitly reports unav
 });
 
 test("failed launch usage stays explicitly unobserved; listing errors reject", async (t) => {
-  const previous = process.env[MANAGEMENT_KEY_ENV];
-  process.env[MANAGEMENT_KEY_ENV] = "unit-test-placeholder";
-  t.after(() => { if (previous === undefined) delete process.env[MANAGEMENT_KEY_ENV]; else process.env[MANAGEMENT_KEY_ENV] = previous; });
+  const previous = process.env[MANAGEMENT_API_KEY_ENV];
+  process.env[MANAGEMENT_API_KEY_ENV] = "unit-test-placeholder";
+  t.after(() => { if (previous === undefined) delete process.env[MANAGEMENT_API_KEY_ENV]; else process.env[MANAGEMENT_API_KEY_ENV] = previous; });
   t.mock.method(globalThis, "fetch", async (input: string | URL | Request) => String(input) === API_URL
     ? Response.json({ data: models })
     : new Response("unauthorized", { status: 401 }));

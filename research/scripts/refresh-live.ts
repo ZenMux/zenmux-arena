@@ -1,11 +1,8 @@
 #!/usr/bin/env tsx
-import { config as loadDotenv } from "dotenv";
-import path from "path";
+import "../../scripts/local-env";
 import { closeDbPool, fetchLiveTokenEconomics, incrementallyUpdateCache, readSharedCache } from "@research/token-economics/live-query";
 import { LIVE_RANGE_OPTIONS, type LiveRangeKey } from "@research/token-economics/live-config";
 
-// Load .env.local for local runs (Morphe deployments inject env vars directly)
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
 
 function formatPercent(p?: number): string {
   if (p == null) return "    ";

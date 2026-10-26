@@ -1,8 +1,7 @@
 #!/usr/bin/env tsx
 // Explicit maintenance refresh; writes shared Supabase snapshots independently
 // of builds. Billing calculations and deep late-arrival overlap are preserved.
-import { config as loadDotenv } from "dotenv";
-import path from "node:path";
+import "../../scripts/local-env";
 import {
   DEAL_RANGE_OPTIONS,
   type DealRangeKey,
@@ -15,8 +14,6 @@ import {
   readSharedCache,
 } from "@research/token-deals/query";
 
-// Load .env.local for local runs (Morphe deployments inject env vars directly)
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
 
 // Maintenance refresh: same relaxed query budget as the backfill script (the
 // runtime keeps the tight default). Explicit env still wins.

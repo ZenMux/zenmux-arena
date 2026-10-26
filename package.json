@@ -41,9 +41,11 @@
     "cf:dry-run": "pnpm cf:deploy:check && pnpm cf:build && wrangler deploy --dry-run",
     "cf:test": "pnpm cf:prepare && tsx --test worker/*.test.ts",
     "cf:smoke": "node scripts/smoke-worker.mjs",
-    "cf:ci": "pnpm cf:check && pnpm cf:deploy:check && pnpm lint && pnpm typecheck && pnpm cache:test && pnpm personality:test && pnpm cf:test && pnpm cf:build",
+    "cf:ci": "pnpm cf:check && pnpm cf:deploy:check && pnpm lint && pnpm typecheck && pnpm env:test && pnpm cache:test && pnpm personality:test && pnpm cf:test && pnpm cf:build",
     "typecheck": "next typegen && tsc --noEmit",
-    "cf:deploy:check": "vinext-cloudflare deploy --dry-run"
+    "cf:deploy:check": "vinext-cloudflare deploy --dry-run",
+    "env:check": "tsx scripts/check-env.ts",
+    "env:test": "tsx --test scripts/load-env.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.99.0",

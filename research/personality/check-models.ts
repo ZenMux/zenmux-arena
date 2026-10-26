@@ -1,3 +1,4 @@
+import "../../scripts/local-env";
 import { loadPersonalityConfig } from "./config";
 import { parseArgs } from "../lib/args";
 

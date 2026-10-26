@@ -113,6 +113,7 @@ For an explicitly authorized local deployment, authorize the
 Cloudflare account (`pnpm exec wrangler login`) and configure runtime secrets
 through the dashboard or `pnpm exec wrangler secret put NAME`:
 
+- `ZENMUX_MANAGEMENT_API_KEY` — required for Economics launch-window daily usage and value views
 - `SUPABASE_URL`
 - `SUPABASE_SECRET_KEY` (or the legacy `SUPABASE_SERVICE_ROLE_KEY`)
 - `TOKEN_ECON_LIVE_DB_HOST`, `TOKEN_ECON_LIVE_DB_PORT`, `TOKEN_ECON_LIVE_DB_USER`,
@@ -120,7 +121,12 @@ through the dashboard or `pnpm exec wrangler secret put NAME`:
 
 Do not pass DDL/admin credentials, a model API key, `.env.local`, or local
 credential files to the deployment. No secret belongs in `wrangler.jsonc`.
-For local credentialed checks, use ignored `.dev.vars`; omit it for `cf:smoke`.
+Local credentialed development uses the same ignored `.env.local` as Next and
+the CLIs. Do not maintain a second credential copy in `.dev.vars`: Wrangler
+prioritizes that file over dotenv files. For secret-free smoke tests, disable
+dotenv loading with `CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV=false` and ensure no
+`.dev.vars` or generated `dist/server/.dev.vars` is present. See
+[environment configuration](environment.md).
 The `VINEXT_KV_CACHE` binding intentionally has no fabricated namespace ID.
 The pinned Wrangler supports automatic provisioning: a configured/deployed
 namespace is reused, or a missing namespace can be created during deployment.
@@ -132,7 +138,7 @@ IDs are resource identifiers, not secrets. Never remove caching or switch to
 plain Wrangler solely to bypass the Vinext deployment check.
 
 Cloudflare Images must be available for the `IMAGES` binding; check the final
-compressed Worker size against the selected account's plan before publishing.
+uncompressed Worker size against the selected account's plan before publishing.
 
 ```bash
 pnpm cf:deploy

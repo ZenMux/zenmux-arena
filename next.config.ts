@@ -1,3 +1,4 @@
+import "./scripts/local-env";
 import { execSync } from "node:child_process";
 import { createRequire } from "node:module";
 import type { NextConfig } from "next";

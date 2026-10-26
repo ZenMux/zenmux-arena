@@ -1,3 +1,4 @@
+import "../../scripts/local-env";
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "../lib/args";

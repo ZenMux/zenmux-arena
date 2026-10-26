@@ -53,7 +53,10 @@ pnpm study:aggregate --run mix-<stamp>
 
 `pnpm` is the package manager. **`study:test` makes model calls; it is not a unit
 test suite.** Use `cache:test` for cache regression tests. Supabase maintenance
-commands load `.env.local`; deployed servers use the function environment.
+commands and local Next/Vite configs share `scripts/local-env.ts`: explicit
+process/shell/CI env wins; `.env.local` fills missing names. The canonical Management
+API variable is `ZENMUX_MANAGEMENT_API_KEY`. Deployed servers use runtime
+Secrets/env; never ship `.env.local`. See `docs/environment.md`.
 The Morphe artifact starts with `node server.js` from the standalone root.
 
 ### Who Are You script flags

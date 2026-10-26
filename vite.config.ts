@@ -1,3 +1,4 @@
+import "./scripts/local-env";
 import { defineConfig } from "vite";
 import vinext from "vinext";
 import { cloudflare } from "@cloudflare/vite-plugin";
