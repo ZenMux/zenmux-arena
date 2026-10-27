@@ -1,5 +1,5 @@
 import { API_URL, fetchModelsApi, parseModels } from "@research/token-economics/scrape";
-import { fetchAllUsage, MANAGEMENT_KEY_ENV } from "@research/token-economics/usage";
+import { fetchAllUsage, MANAGEMENT_API_KEY_ENV } from "@research/token-economics/usage";
 import { compute } from "@research/token-economics/compute";
 import type { EconomicsResponse } from "../types";
 
@@ -12,7 +12,7 @@ export async function loadEconomicsData(): Promise<EconomicsResponse> {
   const apiModels = await fetchModelsApi(undefined, { revalidate: 0 });
   const rows = parseModels(apiModels);
   const now = new Date();
-  const key = process.env[MANAGEMENT_KEY_ENV];
+  const key = process.env[MANAGEMENT_API_KEY_ENV];
   const usage = await fetchAllUsage(
     rows.map((r) => ({ slug: r.slug, publishTime: r.publishTime })),
     key,

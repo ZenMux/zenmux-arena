@@ -24,7 +24,7 @@ import { preload } from "react-dom";
 import type { TokenEconomicsData } from "@research/token-economics/types";
 import { DEFAULT_LIVE_RANGE } from "@research/token-economics/live-config";
 import { fetchModelsApi, parseModels } from "@research/token-economics/scrape";
-import { fetchAllUsage, MANAGEMENT_KEY_ENV } from "@research/token-economics/usage";
+import { fetchAllUsage, MANAGEMENT_API_KEY_ENV } from "@research/token-economics/usage";
 import { compute } from "@research/token-economics/compute";
 import { TokenEconClient } from "./TokenEconClient";
 
@@ -50,7 +50,7 @@ const USAGE_CACHE_SECONDS = 86400;
  * HTML — the tradeoff for always-live all-time numbers.
  *
  * The launch-window usage comes from the AUTHENTICATED management endpoint
- * (one rate-limited request per model). It needs ZENMUX_MANAGEMENT_KEY in
+ * (one rate-limited request per model). It needs ZENMUX_MANAGEMENT_API_KEY in
  * the environment; if that's unset, fetchAllUsage returns an empty map and the
  * page still renders with all-time usage only (avg-daily columns show "—").
  */
@@ -64,7 +64,7 @@ async function loadData(): Promise<TokenEconomicsData> {
   // render still makes just ONE live call (the listing above).
   const usage = await fetchAllUsage(
     rows.map((r) => ({ slug: r.slug, publishTime: r.publishTime })),
-    process.env[MANAGEMENT_KEY_ENV],
+    process.env[MANAGEMENT_API_KEY_ENV],
     { cache: { revalidate: USAGE_CACHE_SECONDS }, now },
   );
   const { data } = compute(rows, now.toISOString(), usage);
