@@ -79,19 +79,16 @@ const nextConfig: NextConfig = {
   // the whole static asset tree in the traced bundle so deployed public URLs
   // resolve the same way they do in local dev.
   outputFileTracingIncludes: {
-    "/*": ["./public/**/*", "./config/token-economics-live-models.json"],
-    "/": ["./config/token-deals.json"],
-    "/api/token-deals/live/**": ["./config/token-deals.json"],
-    "/token-deals/**": ["./config/token-deals.json"],
+    "/*": ["./public/**/*"],
   },
   // Snapshots live in Supabase. Local imports/backups and credentials do not ship.
   outputFileTracingExcludes: {
-    "*": ["./.cache/**", "./.env*", "./.npmrc"],
+    "*": ["./.cache/**", "./.env*", "./.npmrc", "./internal/**", "./dist/**"],
   },
   // @resvg/resvg-js loads a platform-native .node binary at runtime; it must not
   // be bundled by Turbopack/webpack. Keep it external so the export route can
   // require it directly on the server. (next-best-practices/bundling.md)
-  serverExternalPackages: ["@resvg/resvg-js", "mysql2"],
+  serverExternalPackages: ["@resvg/resvg-js"],
   // The "Who Are You?" study moved from /research to /who-are-you. Keep the old
   // paths working with internal rewrites because Morphe's function gateway
   // rejects app-level redirects on the default domain.

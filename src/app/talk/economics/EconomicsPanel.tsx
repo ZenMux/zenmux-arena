@@ -99,7 +99,7 @@ function ValuePanel({ view }: { view: "map" | "ladder" }) {
       ) : result ? (
         <div className={styles.empty} role="status">
           <strong>发布窗口用量暂不可用</strong>
-          <p>{result.provenance.managementConfigured ? "当前未获得可绘制的用量观测，请稍后重试。" : "服务端尚未配置管理接口访问，暂时只有模型价格数据。"}</p>
+          <p>{result.provenance.usageAvailable ? "当前未获得可绘制的用量观测，请稍后重试。" : "暂时只有模型价格数据，发布窗口用量尚未更新。"}</p>
           <Button onClick={retry} disabled={loading}>重试发布窗口数据</Button>
         </div>
       ) : null}
@@ -107,7 +107,7 @@ function ValuePanel({ view }: { view: "map" | "ladder" }) {
         <footer className={styles.provenance}>
           <a href={result.data.source} target="_blank" rel="noreferrer">来源：ZenMux 模型列表</a>
           <span>价格读取 <time dateTime={result.provenance.listingRetrievedAt}>{utcStamp(result.provenance.listingRetrievedAt)}</time></span>
-          <span>发布窗口缓存 24h · {result.provenance.observedModels}/{result.provenance.requestedModels} 个模型有日序列</span>
+          <span>发布窗口每日更新 · {result.provenance.observedModels}/{result.provenance.requestedModels} 个模型有日序列</span>
           <span>各模型按自身发布窗口统计；最晚观测日 {result.provenance.latestObservedUsageDate ?? "未报告"}，非全体统一截止</span>
           {result.provenance.observedModels < result.provenance.requestedModels ? <span>缺失序列可能是零用量或请求失败；不据此断言零需求。</span> : null}
         </footer>

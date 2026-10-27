@@ -28,10 +28,13 @@ pnpm build                # Next.js standalone production output
 pnpm start                # local Next production server
 pnpm lint
 pnpm exec tsc --noEmit
-pnpm cache:test           # isolated Node tests for shared-cache behavior (no external IO)
+pnpm cache:test           # isolated Node tests for public snapshot reads (no external IO)
+pnpm data:refresh:test    # isolated internal producer tests
+pnpm data:refresh:build   # build the standalone internal refresh task
+pnpm data:refresh         # publish billing/pricing/launch comparisons (internal env only)
 
 # Supabase data plane
-pnpm supabase:check --require-data  # schema/RPC access, role isolation, four usable snapshots
+pnpm supabase:check --require-data  # schema/RPC access, role isolation, five usable snapshots
 pnpm supabase:setup        # idempotent schema setup; requires DDL credentials
 pnpm supabase:sql          # print schema for the SQL Editor
 pnpm supabase:test         # transactional database assertions; probes roll back
@@ -50,6 +53,12 @@ pnpm study:aggregate      # join + summarize only; needs complete records
 pnpm study:mix --runs <stampA,stampB,...>  # or --all; no API calls
 pnpm study:aggregate --run mix-<stamp>
 ```
+
+The public application's `package.json` sets Node to **24.x** for Vercel.
+Local development uses **26.12.1**, pinned in `.nvmrc` and `.node-version`.
+The generated internal refresh package follows `.node-version` and pins
+**26.12.1**, independently of the public application's engines. Keep the two
+local pins consistent; see `docs/shared-cache.md` for deployment configuration.
 
 `pnpm` is the package manager. **`study:test` makes model calls; it is not a unit
 test suite.** Use `cache:test` for cache regression tests. Supabase maintenance
@@ -94,24 +103,26 @@ Rule of thumb: **frontend work → skill first.** A change to `src/app/**` or `s
 
 ### Live billing data: Supabase is the persistent store
 
-- `research/cache/supabase.ts`: server/CLI client, snapshot reads, leases and writes.
-- `research/cache/read-through.ts`: short process memo, single-flight refresh, Supabase read-through, stale fallback and request lifecycle tracking.
+- `research/cache/supabase.ts`: server-only Supabase client and read-only snapshot access.
+- `research/cache/read-through.ts`: short process memo, single-flight reads and stale fallback; no source query or write path.
 - `research/cache/payload.ts`: scope/version/range keys, payload validation, expiry boundaries and archive hashes.
-- `research/cache/archive.ts`: immutable Supabase backfill checkpoints with read-back verification.
-- `research/token-economics/live-query.ts` and `research/token-deals/query.ts`: independent billing queries and incremental aggregation.
+- `internal/data-refresh/archive.ts`: immutable backfill checkpoints with read-back verification.
+- `internal/data-refresh/economics.ts` and `deals.ts`: internal-only billing queries and incremental aggregation.
+- `internal/data-refresh/main.ts`: scheduled producer for both live modules and comparison data; generic `BILLING_DB_*` environment only.
+- `research/token-economics/live-snapshot.ts`, `comparison-snapshot.ts`, and `research/token-deals/snapshot.ts`: public Supabase-only loaders.
 - `/api/token-economics/live` and `/api/token-deals/live`: compressed JSON responses with `X-Cache-Source`, `X-Cache-Persistence`, `stale`, and the actual `to` cutoff.
 - `src/app/token-deals/initial-deals.ts`: server first-paint loader, shared by the homepage's Deals summary and the Deals board/ladder. These pages render per request; the homepage streams the Deals row under Suspense so its hero/navigation do not wait for Supabase. Do not freeze their snapshot at build time.
 
-Flow: **short memory memo → Supabase snapshot → expired/missing snapshot triggers
-read-only billing queries → fenced Supabase commit**. No request reads or writes
-`.cache` files. Next `after()` is passed as `waitUntil` so stale responses do not
-abandon the query, publication or lease release. CLI callers await completion.
+Public flow: **short memory memo → Supabase publication → honest stale/error fallback**.
+Public requests never query billing or management APIs, acquire refresh leases,
+or publish data. The internal task does all refresh work independently, under
+fenced Supabase leases, and verifies persisted results. No runtime `.cache` IO.
 
 The tables are defined in `supabase/schema.sql`:
 
 | Table | Purpose |
 |---|---|
-| `arena_snapshot_cache` | Current `token-economics` / `token-deals` snapshots, each with `all` and `72h` variants |
+| `arena_snapshot_cache` | Four live snapshots plus `token-economics:v2:all` for model prices/launch comparisons |
 | `arena_cache_leases` | Cross-instance refresh exclusion and owner/expiry fencing |
 | `arena_cache_archives` | Verified historical records and immutable maintenance checkpoints |
 
@@ -121,7 +132,7 @@ Preserve these invariants:
 - Failed or unusable/empty origin results must not overwrite good snapshots. A successfully aggregated catch-up chunk can be persisted while still marked `stale`; its `to` is real progress.
 - Use `to` to describe coverage. Do not treat an HTTP 200, recent response time, or successful deployment as proof of fresh persisted data.
 - Economics uses closed buckets; ALL is daily. Deals advances at five-minute boundaries while retaining partial daily/hourly buckets. Preserve overlap replacement, deal windows, and the exact PAYG/subscription monetary split.
-- Deals ALL catches up in bounded request-time chunks. Deliberate full recovery uses `tokendeals:backfill`; do not issue an unbounded historical query on every visit.
+- Deals ALL catches up in bounded internal-task chunks. Deliberate full recovery uses `tokendeals:backfill`; keep full recovery an explicit internal maintenance action.
 - `SUPABASE_URL` and `SUPABASE_SECRET_KEY` (legacy `SUPABASE_SERVICE_ROLE_KEY` also works) are runtime server variables. `NEXT_PUBLIC_*` is build-time public configuration and must never hold the secret key.
 - All three tables enable RLS and deny direct `anon`/`authenticated` access. Server RPCs are `SECURITY INVOKER` and restricted to `service_role`; archive writes are INSERT-only. Do not solve access problems by opening client write policies.
 - DDL setup/tests need `SUPABASE_ACCESS_TOKEN` or `SUPABASE_DB_URL`. Runtime requests do not need those admin credentials. Never print credentials or package `.env*` / `.npmrc`.
@@ -132,11 +143,10 @@ For setup, maintenance and failure handling, see [docs/shared-cache.md](docs/sha
 
 Human-curated `config/token-deals.json` defines deal periods, provider factors,
 and visibility. `tokendeals:sync` merges new facts without overwriting manual
-choices. Runtime pricing display uses the public models API; monetary totals
-come from billing aggregation. Economics' non-live comparison tabs still use
-model-listing data and launch-window usage in `research/token-economics/{scrape,usage,compute}.ts`;
-the launch-window fetch has its own 24-hour Next Data Cache; `vercel.json` declares
-an optional daily warm-up for Vercel deployments.
+choices. The internal producer resolves public model prices and billing monetary totals;
+public pricing displays read its Supabase publications. Economics' non-live comparison tabs and the pricing calculator read
+`token-economics:v2:all`. The internal producer runs model listing and launch-window
+usage collection daily. The public deployment needs no management API credential.
 These active inputs are separate from the retired local billing snapshots.
 
 ### Deployment
@@ -147,10 +157,10 @@ Data already in Supabase survives new deployments. Do not recreate migration
 scripts, local cache files, or prebuild baseline-copy steps.
 
 Keep `output: "standalone"`, required `public/` assets, research data and model/deal
-configs. The homepage also needs `config/token-deals.json` in its trace. Keep the
+configs. Billing/model configs belong to the internal producer, not the public trace. Keep the
 cache/credential exclusions and package verifier; they prevent accidental files
 from shipping. Builds should not query Supabase or billing databases for the
-homepage/Deals pages. Deploy verification uses GETs and reports data freshness
+homepage/Deals pages. Verify the public artifact contains no `internal/**` or MySQL driver. Deploy verification uses GETs and reports data freshness
 separately from release success.
 
 ### Who Are You pipeline and viewer

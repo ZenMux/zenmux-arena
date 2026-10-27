@@ -24,7 +24,8 @@
 
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { VendorIcon, hasVendorIcon } from "@/components/ZenMuxIcons";
+import { VendorIcon } from "@/components/ZenMuxIcons";
+import { hasVendorIcon } from "@/lib/vendor-icons";
 import { cn } from "@/lib/utils";
 import type { GraphData, VendorId } from "@research/lib/types";
 import { pct } from "../studio/VendorOverview";

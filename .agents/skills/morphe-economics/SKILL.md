@@ -11,11 +11,10 @@ This skill is self-contained and does not require the base Morphe skill.
 
 ## Data model
 
-Arena follows Insights' shared-snapshot flow: memory → Supabase → a bounded,
-read-only billing query → a Supabase commit. A visit triggers refresh after the
-current data boundary expires. Other visitors and newly started instances read
-the same snapshot. Next `after()` keeps refresh, persistence and lease release
-alive after a stale response is sent.
+Arena reads a short process memo and shared Supabase publications. The public
+application never queries a source database or refreshes data during a visit.
+The internal task in `internal/data-refresh/` owns query, lease and publication
+work; newly started public instances read those persisted results.
 
 - `arena_snapshot_cache`: current snapshots for both modules and both ranges.
 - `arena_cache_leases`: cross-instance refresh exclusion; expired workers cannot
@@ -47,7 +46,7 @@ never ask for a username/password or print keys.
 
 Ensure the **Morphe function environment**, not just the local build environment,
 contains `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`),
-and the existing `TOKEN_ECON_LIVE_DB_*` and aggregation settings. Server variables
+and no source database or management API credentials. Server variables
 are read at runtime. `NEXT_PUBLIC_*` values are fixed when building and are not
 a substitute for server secrets. Follow the current API in [api.md](references/api.md)
 when inspecting the configured function. Report missing runtime configuration.
@@ -59,7 +58,7 @@ bash .agents/skills/morphe-economics/scripts/predeploy.sh
 ```
 
 This checks schema/RPC availability, read/write isolation, refresh locking, and
-all four usable current snapshots. It does **not** query the billing source or
+all five usable current publications. It does **not** query the billing source or
 run migration on every deployment. Missing schema or data is a failed readiness
 gate: fix it before packaging a release that relies on shared snapshots.
 
@@ -78,20 +77,17 @@ The historical JSON migration is complete. Its local files and one-time import
 command have been removed. Existing deployments reuse their Supabase snapshots;
 historical recovery uses immutable Supabase archives or explicit source backfill.
 
-### 3. Optional data refresh
+### 3. Data refresh is an independent internal task
 
-When the user asks to refresh data as part of the release:
+Run the maintained producer only from a host with source access:
 
 ```bash
-bash .agents/skills/morphe-economics/scripts/predeploy.sh --refresh
+pnpm data:refresh --env-file /path/to/internal-refresh.env
 ```
 
-This runs both maintenance refreshes independently, writing Supabase directly.
-A failed refresh does not erase the existing snapshot. Report the two outcomes
-and actual cutoffs separately; a successful build/deploy does not prove freshness.
-If usable snapshots remain, a degraded refresh permits deployment. Full ledger
-recovery is an explicit `pnpm tokendeals:backfill`, which checkpoints to Supabase.
-Do not run an expensive full backfill on every release.
+Public deployment runs readiness checks and never queries source systems. Report
+actual persisted cutoffs separately from release success. Full ledger recovery
+remains an explicit internal `pnpm tokendeals:backfill` operation.
 
 ### 4. Version, validation and build
 

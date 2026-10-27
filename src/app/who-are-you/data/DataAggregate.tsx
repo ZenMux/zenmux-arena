@@ -21,7 +21,8 @@
 // All numbers come from the GraphData the parent already loaded — no new I/O.
 
 import { useMemo } from "react";
-import { VendorIcon, hasVendorIcon } from "@/components/ZenMuxIcons";
+import { VendorIcon } from "@/components/ZenMuxIcons";
+import { hasVendorIcon } from "@/lib/vendor-icons";
 import {
   Card,
   CardContent,

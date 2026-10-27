@@ -3,7 +3,8 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useMemo, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { VendorIcon, ZenMuxWordmark, hasVendorIcon } from "@/components/ZenMuxIcons";
+import { VendorIcon, ZenMuxWordmark } from "@/components/ZenMuxIcons";
+import { hasVendorIcon } from "@/lib/vendor-icons";
 import {
   apexToCurve,
   curvedArrow,

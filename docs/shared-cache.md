@@ -1,93 +1,161 @@
-# Arena shared live data
+# Arena shared data
 
-Token Economics and Token Deals use Supabase as their persistent snapshot store.
-The billing database remains the read-only source. Model configuration and the
-reproducible Who Are You research datasets remain in the repository; they are
-not disposable live caches.
+All live billing, model pricing and launch-window comparison data displayed by
+Arena is read from Supabase. Public request handlers have no source database
+query, management API fetch, refresh lease or publication path. Research runs
+and immutable published research artifacts remain reproducible application inputs.
 
-On a visit, a short process memo absorbs repeated requests, then the server reads
-`arena_snapshot_cache`. A current snapshot needs no billing query. An expired
-snapshot seeds an incremental query and the result is committed to Supabase.
-Next `after()` tracks that work even when the response serves stale data first.
-Another process can immediately read the committed snapshot. CLI callers await
-the complete query/write/release sequence.
+## Public application
 
-The database refresh lease excludes concurrent workers across instances. Publish
-checks lease ownership/expiry and compares data cutoff and generation time
-atomically, so an older result cannot roll a snapshot backwards. A failed origin
-query preserves the last good data; an empty/degraded payload is never persisted.
-Snapshots are historical checkpoints and are not deleted when they expire.
-When Supabase is unavailable the server reports `X-Cache-Persistence: unavailable`
-and can use its last in-memory checkpoint or query the source. It does not read
-or write local JSON. A cold outage may therefore be slower or show a degraded UI.
+Configure only `SUPABASE_URL` and server-only `SUPABASE_SECRET_KEY` (legacy
+`SUPABASE_SERVICE_ROLE_KEY` also works) in Vercel/Morphe. The browser calls
+Arena's APIs; it never receives the secret key. Public keys cannot directly
+read or write the three private data-plane tables.
 
-Economics preserves closed-bucket aggregation (ALL uses daily buckets). Deals
-preserves five-minute cutoffs with partial daily/hourly buckets, the existing
-PAYG/subscription calculations and overlap replacement. A far-behind Deals ALL
-snapshot advances by bounded chunks, saving each chunk even while `stale: true`.
-An absent ALL snapshot bootstraps a bounded chunk rather than querying the whole
-ledger in one request. `tokendeals:backfill` remains the faster maintenance path
-for deliberate full-history recovery or newly added historical deals.
+Node versions are configured separately:
 
-## Configuration
+- **Vercel application:** root `package.json` sets `engines.node` to `24.x`.
+  This overrides the project's dashboard version setting. Vercel manages minor
+  and patch updates automatically; it cannot pin an exact patch version.
+- **Local development:** `.nvmrc` and `.node-version` pin **26.12.1**.
+  Use `nvm install` / `nvm use` when managing Node with nvm.
+- **Internal refresh package:** its generated `package.json` pins **26.12.1**,
+  read from `.node-version`, independently of the public application's engines.
 
-Set `SUPABASE_URL` and server-only `SUPABASE_SECRET_KEY` (legacy
-`SUPABASE_SERVICE_ROLE_KEY` also works), plus the existing `TOKEN_ECON_LIVE_DB_*`
-configuration in `.env.local` and in the Morphe **function environment**.
-`SUPABASE_PUBLISHABLE_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are used to
-verify public isolation. Server URL takes priority over `NEXT_PUBLIC_SUPABASE_URL`.
-Public variables are inlined at build time; server variables are read at runtime.
-The secret key is never placed in Next's `env` configuration or client modules.
+As checked on 2026-10-27, [Vercel supports 24.x and 22.x](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions).
+The local exact pin does not change the Vercel runtime selection.
 
-All three tables have RLS enabled and no grants to `anon`/`authenticated`.
-Only the server has data-plane access. The browser uses Arena's existing APIs.
-RPCs are `SECURITY INVOKER`, restricted to `service_role`, with a fixed search path.
-`arena_cache_archives` grants the service role INSERT/SELECT only.
+The public path is **short process memo → Supabase snapshot**. Expired snapshots
+remain usable with `stale: true`, their original `to` cutoff and their actual
+generation time. A Supabase outage can use a process's last good payload with
+`X-Cache-Persistence: unavailable`. A cold missing Economics snapshot returns
+HTTP 503; Deals retains its degraded response. Neither case queries a source
+system. The old request-refresh feature flag is no longer used.
 
-## Setup and recovery
+The five publications share `arena_snapshot_cache`:
+
+| Key | Data |
+| --- | --- |
+| `token-economics:v1:all` | Daily live billing aggregates |
+| `token-economics:v1:72h` | Recent live billing aggregates |
+| `token-deals:v4:all` | Full discount/subsidy ledger |
+| `token-deals:v4:72h` | Recent discount/subsidy ledger |
+| `token-economics:v2:all` | Model prices and launch-window comparison |
+
+Version 2 ALL is reserved for the comparison publication; the live API continues
+to use version 1. This uses the existing versioned schema and requires no schema
+migration. The comparison `to` is its listing retrieval time; its per-model
+launch observations have separate, explicitly reported dates.
+
+The homepage, Deals board/ladder, live Economics API, Economics comparison page,
+presentation comparison endpoint and pricing calculator all use these snapshots.
+Config changes are applied by the internal producer and appear after publication,
+without coupling data updates to a public release.
+
+## Internal refresh task
+
+The maintained producer lives in `internal/data-refresh/`. It is excluded from
+Next's deployment traces, and MySQL is a development/internal-task dependency.
+No internal hostname, database name or credential is stored in tracked config;
+all source connection settings come from the task's environment.
+
+Build a standalone Node 26.12.1 deployment directory:
 
 ```bash
-pnpm supabase:setup
+pnpm data:refresh:build
+cd dist/data-refresh
+npm install --omit=dev --ignore-scripts
+```
+
+Copy that directory to the internal host, then configure its environment using
+`internal/data-refresh/.env.example`. Required variables are `BILLING_DB_HOST`,
+`BILLING_DB_PORT`, `BILLING_DB_USER`, `BILLING_DB_PASSWORD`, `BILLING_DB_DATABASE`,
+`SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `ZENMUX_MANAGEMENT_API_KEY`.
+Use a source account with SELECT access only. Keep the environment file outside
+the deployment directory with mode 600; real environment values override the file.
+
+```bash
+node --use-env-proxy --env-file /etc/arena-data-refresh.env /opt/arena-data-refresh/refresh.mjs --check
+node --use-env-proxy --env-file /etc/arena-data-refresh.env /opt/arena-data-refresh/refresh.mjs
+```
+
+`internal/data-refresh/refresh.cron` is a Linux cron example. Adjust the Node
+binary, installation/log paths and service user before installing it. It runs
+every five minutes, uses `flock` to skip overlapping local runs, and enforces a
+14-minute process budget. Supabase leases also exclude competing hosts and
+expire after 15 minutes if a process is stopped.
+
+If the internal host requires an outbound proxy, add `NODE_USE_ENV_PROXY=1`,
+`HTTPS_PROXY` / `HTTP_PROXY`, and any `NO_PROXY` exclusions to that environment
+file. Keep `--use-env-proxy` on the Node command: putting the activation variable
+only in an env file did not enable the proxy in a Node 26.12.1 transport test.
+Both Node options precede the script path. Cron does not read `.zshrc`.
+Interactive shells may instead export the activation and proxy variables in `.zshrc`.
+
+Repository commands (`pnpm dev`, `build`, `start`, `data:refresh`, and Supabase /
+billing maintenance commands) use `scripts/with-env-proxy.mjs`. It enables
+`NODE_USE_ENV_PROXY=1` before starting Node, including when the host omits it,
+and reads only proxy addresses/exclusions from local env files. The independent
+cron runner uses `--use-env-proxy`, so it also needs no host activation variable.
+
+Comparison publications refresh daily. Economics ALL uses closed daily buckets;
+recent Economics and both Deals ranges advance on their existing five-minute
+boundaries. Each job reports its actual `to`, `stale`, status and elapsed time.
+Failures cause a nonzero exit after the remaining jobs have been attempted.
+Logs omit source addresses, SQL and credentials.
+
+Options:
+
+- `--modules comparison,economics,deals`: select producers; defaults to all three.
+- `--ranges 72h,all`: select billing ranges; defaults to both.
+- `--max-tail-hours 24`: bound ALL catch-up progress; maximum 168 hours.
+- `--force`: run even when the existing publication is current.
+- `--check`: verify source SELECT access and print shared snapshot availability.
+- Node's `--env-file path` (before the script): load task credentials and proxy configuration at startup.
+
+Each scheduled job acquires its lease, re-reads the latest baseline, queries
+outside a database transaction, validates the payload, publishes under the
+fenced/monotonic RPC and verifies the JSONB round trip. Source failures or
+unusable data preserve the previous snapshot. Bounded ALL catch-up commits real
+progress while remaining stale; subsequent runs continue from the persisted
+cutoff. A failed model-usage request rejects comparison publication instead of
+turning an outage into zero usage.
+
+The deep-overlap maintenance and recovery tools are also internal:
+
+```bash
+pnpm tokenecon:refresh
+pnpm tokendeals:refresh
+pnpm tokendeals:backfill
+pnpm tokendeals:sync
+```
+
+They load `.env.local` when run from this checkout and expect the generic
+`BILLING_DB_*` task settings. Use explicit Deals backfill for full-ledger recovery
+or newly added historical deals. Roster sync preserves manual visibility, factors
+and deal-window choices; review those changes before rebuilding the producer.
+
+## Validation and release
+
+```bash
+pnpm cache:test
+pnpm data:refresh:test
 pnpm supabase:check --require-data
+pnpm supabase:test
+pnpm build
+pnpm deploy:verify
 ```
 
-Setup applies `supabase/schema.sql` idempotently, using `SUPABASE_ACCESS_TOKEN`
-(Management API) or `SUPABASE_DB_URL` with psql. Neither admin credential is needed
-by the deployed runtime. Without either, `pnpm supabase:sql` prints the SQL for
-the project's SQL Editor.
+The readiness check verifies role isolation/RPC fencing and all five usable
+publications. Schema setup and transactional tests require separate DDL access;
+normal page reads and scheduled publications do not. `supabase/schema.sql` is
+idempotent and `supabase/tests/cache.sql` rolls its probes back.
 
-The JSON migration is complete: four live snapshots and five verified historical
-archives are stored in Supabase. Local cache files, import reports and the
-one-time import command have been retired. Recovery uses the shared snapshots,
-immutable Supabase archives, or a deliberate source backfill.
+Public builds neither refresh data nor read local credential files. The standalone
+verifier rejects internal source code, MySQL driver files and source-access/write
+markers in application bundles. Morphe's package verifier also rejects internal
+code, credentials and caches. Keep required public/research assets in the release.
 
-For a new empty database, run `pnpm tokenecon:refresh` and
-`pnpm tokendeals:backfill`, then repeat the readiness check. These commands write
-Supabase directly; no local cache directory is created.
-
-## Maintenance and deployment
-
-```bash
-pnpm tokenecon:refresh      # deep-overlap incremental refresh to Supabase
-pnpm tokendeals:refresh     # independent Deals refresh to Supabase
-pnpm tokendeals:backfill    # resumable chunks + an immutable completed archive
-pnpm cache:test             # isolated cache lifecycle/concurrency/failure tests
-pnpm supabase:test          # SQL assertions; needs a DDL connection, rolls back probes
-```
-
-Routine releases run `predeploy.sh` for shared-data readiness. `--refresh` is
-optional and reports each module independently. No cache prefetch or copy into
-standalone is required. Packaging removes `.cache`, `.env*` and `.npmrc` and
-`verify-package.py` checks required assets and absence of local data/credentials.
-
-For a live smoke test, compare `X-Cache-Source`, `X-Cache-Persistence`, `to`, `stale`
-and `live`. After refresh, check Supabase's persisted cutoff and restart the
-process: the next visit should read that shared checkpoint. HTTP 200 alone does
-not establish freshness or successful persistence.
-
-`supabase/tests/cache.sql` runs transactional SQL checks for role grants/RLS,
-insert/update, lock exclusion, monotonic writes and stale-owner fencing. Execute
-with psql or the Management API; its probes roll back. Immutable Supabase archives
-remain available for recovery. Do not restore an older
-snapshot over a newer active cutoff; inspect an archive separately or restore
-to a new schema version after reviewing the intended data change.
+Data readiness and freshness are independent of release success. Check the real
+persisted `to`/generation time and re-read from another process after refresh;
+HTTP 200 alone does not establish coverage or successful publication.

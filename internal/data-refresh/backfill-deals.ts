@@ -3,22 +3,23 @@
 // process restarts. Completion also creates an immutable Supabase archive.
 import { config as loadDotenv } from "dotenv";
 import path from "node:path";
-import { archiveSnapshot } from "../cache/archive";
+import { safeFailure } from "./job";
+import { archiveSnapshot } from "./archive";
 import { DEALS_SCHEMA_VERSION, type TokenDealsPayload } from "@research/token-deals/types";
-import { DAY, REFRESH_INTERVAL_SECONDS, closeDealsDbPool, dealsStartMs, floorTo } from "@research/token-deals/db";
+import { DAY, REFRESH_INTERVAL_SECONDS, closeDealsDbPool, dealsStartMs, floorTo } from "./billing-db";
 import { loadDealsConfig } from "@research/token-deals/deals-config";
 import {
   fetchTokenDeals,
   incrementallyUpdate,
   readSharedCache,
-} from "@research/token-deals/query";
+} from "./deals";
 
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
+loadDotenv({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
 
-// A build machine doesn't care about first-byte latency — give each chunk a
+// An internal maintenance task has time for a deep sweep — give each chunk a
 // 300s budget instead of the runtime's 120s (a busy month's chunk was measured
 // at ~110s, too close to the line). Explicit env still wins.
-process.env.TOKEN_DEALS_QUERY_TIMEOUT_MS ||= "300000";
+process.env.BILLING_DEALS_QUERY_TIMEOUT_MS ||= "300000";
 
 const CHUNK_MS = 30 * DAY * 1000;
 // High-traffic months can blow the 120s DB query timeout on a 30-day chunk —
@@ -88,7 +89,7 @@ async function main() {
       if (stepMs > MIN_CHUNK_MS) {
         stepMs = Math.max(MIN_CHUNK_MS, Math.floor(stepMs / 2));
         console.warn(
-          `[tokendeals:backfill] ⚠️  Chunk ${chunk} (${fmt(baselineTo)} → ${fmt(target)}) failed (${err instanceof Error ? err.message : err}) — retrying with ${Math.round(stepMs / (DAY * 1000))}-day steps`,
+          `[tokendeals:backfill] ⚠️  Chunk ${chunk} (${fmt(baselineTo)} → ${fmt(target)}) failed (${safeFailure(err)}) — retrying with ${Math.round(stepMs / (DAY * 1000))}-day steps`,
         );
         chunk -= 1;
         continue;
@@ -118,7 +119,7 @@ async function main() {
 }
 
 main().catch(async (err) => {
-  console.error("[tokendeals:backfill] Fatal error:", err);
+  console.error("[tokendeals:backfill] Fatal error:", safeFailure(err));
   await closeDealsDbPool();
   process.exit(1);
 });

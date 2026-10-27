@@ -183,7 +183,7 @@ The headline pricing metric is a **standardized basket**: **100,000 input tokens
 
 <br/>
 
-The deployed page fetches live: the model listing (all-time `all_tokens`) is one cheap unauthenticated request, re-pulled on every page load; the 14-working-day launch-window usage series comes from ~130 authenticated, rate-limited `model_usage` calls, kept on a 24h cache warmed by a daily Vercel Cron.
+The deployed page reads model prices, listing totals and launch-window comparisons from Supabase. The independent internal producer collects model-listing and authenticated `model_usage` data daily and publishes the comparison snapshot. Page requests require only Supabase credentials.
 
 ```bash
 pnpm tokenecon              # local run + audit snapshot (writes to results/, no longer the deployed source)
@@ -223,7 +223,7 @@ ZenMux pays part of the token bill on a running set of flagship models — this 
 
 <br/>
 
-**Config-file-driven.** [`config/token-deals.json`](config/token-deals.json) (read/written by `research/token-deals/deals-config.ts`) is the single source of truth for which deals exist and their price/date facts — deal discovery reads that config plus the public pricing API; expired Supabase usage snapshots are refreshed from the billing database. `pnpm tokendeals:sync` incrementally merges fresh discovery from the billing DB into the config (printing a diff for human confirmation) without ever overwriting a field you hand-edited.
+**Config-file-driven producer.** [`config/token-deals.json`](config/token-deals.json) defines deal windows, factors and visibility. The internal producer combines that roster with model prices and billing aggregates, then publishes to Supabase. `pnpm tokendeals:sync` merges new source facts while preserving manual choices. Rebuild the producer and refresh to publish roster changes.
 
 **Merge protection.** A deal's key is `slug@startDate`. Once its `endDate` has passed, the entire entry is frozen; an in-progress entry only ever gets its `endDate` *filled in* (or pulled earlier if the discount actually ended sooner) — never pushed later. Nothing is ever deleted.
 
@@ -235,7 +235,7 @@ pnpm tokendeals:backfill     # (re)build the full day-by-day ledger
 pnpm tokendeals:refresh   # refresh shared live snapshots in Supabase
 ```
 
-**Shared live snapshots.** Both live dashboards read Supabase snapshots and incrementally refresh them on visits. A database lease coordinates instances, and Next `after()` tracks the query and writeback after a stale response. Deployments package code and configuration; live JSON caches are no longer bundled. See [setup, shared snapshots and recovery](docs/shared-cache.md).
+**Shared live snapshots.** Both dashboards read Supabase only. An independent internal task refreshes the snapshots under fenced leases; expired publications retain their real cutoff and stale status. Public artifacts exclude internal queries and the MySQL driver. See [setup, scheduled refresh and recovery](docs/shared-cache.md).
 
 </details>
 
@@ -269,7 +269,7 @@ pnpm study:report      # aggregate.json → report.md
 pnpm dev               # http://localhost:3000
 ```
 
-Token Economics and Token Deals share live billing snapshots in Supabase. Visits incrementally refresh expired snapshots, and maintenance refresh/backfill commands write Supabase directly. The local JSON import is complete and its tooling has been removed. See [shared-data setup and recovery](docs/shared-cache.md) and `.env.example`.
+Token Economics, Token Deals and model-price comparisons read Supabase publications. Build the independent internal producer with `pnpm data:refresh:build`; its environment template and cron example are in `internal/data-refresh/`. Repository Node commands automatically enable proxy support; proxy addresses remain environment configuration. See [shared-data setup and recovery](docs/shared-cache.md) and `.env.example`.
 
 ---
 
@@ -309,7 +309,7 @@ src/
 - **The extractor is defensive.** A separate model labels each identity answer; parsing tries strict JSON → first balanced `{…}` → last-resort alias scan, normalizing unexpected labels via `vendorFromText` or falling back to `unknown`.
 - **Vendor taxonomy.** `research/lib/vendors.ts` is the canonical registry — 67 vendors, aliases (incl. Chinese names like 通义千问 / 文心一言) matched longest-first. `self`, `unknown`, `refused` are analytical pseudo-vendors, not real makers.
 - **Graph rendering is web-only.** `buildGraphSvg` hand-builds the SVG for Who Are You?; `/api/export` rasterizes it to PNG via `@resvg/resvg-js`. The Graph Studio drives both the live preview and the export from one shared `RenderConfig`, so the export is WYSIWYG.
-- **Live data, live risk.** Token Economics and Token Deals read a production billing database at request time — both use stale-while-revalidate caching with single-flight refreshes so a cold serverless invocation never blocks on a full-history query.
+- **Separate data producer.** Public requests read Supabase only. Internal scheduled jobs advance billing aggregates in bounded chunks, preserve good publications on failures and verify writes by reading them back.
 - **Frontend stack.** Next.js 16 · React 19 · Tailwind v4 (CSS-first, no `tailwind.config.js`) · shadcn/ui (`radix-nova`, base `neutral`, `lucide` icons). Most pages are RSC + `force-dynamic`, so fresh data appears on reload without a rebuild.
 
 </details>

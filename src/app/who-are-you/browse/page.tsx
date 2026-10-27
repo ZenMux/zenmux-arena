@@ -7,7 +7,8 @@
 // never reaches the browser. force-dynamic so fresh runs appear on reload.
 
 import type { Metadata } from "next";
-import { VendorIcon, hasVendorIcon } from "@/components/ZenMuxIcons";
+import { VendorIcon } from "@/components/ZenMuxIcons";
+import { hasVendorIcon } from "@/lib/vendor-icons";
 import Link from "next/link";
 import { ListChecks } from "lucide-react";
 import StudyBadge from "../StudyBadge";

@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { API_URL, type ApiModel } from "@research/token-economics/scrape";
 import { MODEL_USAGE_URL } from "@research/token-economics/usage";
-import { loadEconomicsData } from "./loader";
+import { buildComparison as loadEconomicsData } from "./comparison";
+import { validComparison } from "@research/token-economics/comparison-snapshot";
+import { safeFailure } from "./job";
 
 // Isolated transport fixtures only: no external IO, credentials or model calls.
 const models: ApiModel[] = [{
@@ -15,7 +17,7 @@ const models: ApiModel[] = [{
   publish_time: "2026-01-05", isFree: true,
 }];
 
-test("talk loader retains live listing, 24h bounded launch windows, basket and free-tier merge", async (t) => {
+test("comparison publication retains listing, bounded launch windows, basket and free-tier merge", async (t) => {
   const previous = process.env.ZENMUX_MANAGEMENT_API_KEY;
   process.env.ZENMUX_MANAGEMENT_API_KEY = "unit-test-placeholder";
   t.after(() => { if (previous === undefined) delete process.env.ZENMUX_MANAGEMENT_API_KEY; else process.env.ZENMUX_MANAGEMENT_API_KEY = previous; });
@@ -32,8 +34,11 @@ test("talk loader retains live listing, 24h bounded launch windows, basket and f
     return Response.json({ data: { series: [{ date: "2026-01-05", value: 10 }, { date: "2026-01-06", value: 30 }, { date: "2026-01-07", value: 1000 }] } });
   });
   const result = await loadEconomicsData();
-  assert.equal(calls[0].init?.next?.revalidate, 0);
-  assert.ok(calls.slice(1).every((call) => call.init?.next?.revalidate === 86400));
+  assert.equal(validComparison(result), true);
+  assert.equal(validComparison({ ...result, data: { ...result.data, summary: null } }), false);
+  assert.equal(validComparison({ ...result, provenance: { ...result.provenance, usageAvailable: false } }), false);
+  assert.equal(calls[0].init?.next?.revalidate, undefined);
+  assert.ok(calls.slice(1).every((call) => !call.init?.next));
   assert.equal(result.data.models.length, 1);
   assert.ok(Math.abs(result.data.models[0].blendedCost - 0.208) < 1e-12);
   assert.equal(result.data.models[0].avgDailyTokens, 30);
@@ -43,29 +48,22 @@ test("talk loader retains live listing, 24h bounded launch windows, basket and f
   assert.ok(!JSON.stringify(result).includes("unit-test-placeholder"));
 });
 
-test("missing management access preserves null usage and explicitly reports unavailable coverage", async (t) => {
+test("missing management access rejects publication", async (t) => {
   const previous = process.env.ZENMUX_MANAGEMENT_API_KEY;
   delete process.env.ZENMUX_MANAGEMENT_API_KEY;
   t.after(() => { if (previous !== undefined) process.env.ZENMUX_MANAGEMENT_API_KEY = previous; });
-  const fetch = t.mock.method(globalThis, "fetch", async () => Response.json({ data: models }));
-  const result = await loadEconomicsData();
-  assert.equal(fetch.mock.callCount(), 1);
-  assert.equal(result.data.models[0].avgDailyTokens, null);
-  assert.equal(result.provenance.managementConfigured, false);
-  assert.equal(result.provenance.latestObservedUsageDate, null);
+  const fetch = t.mock.method(globalThis, "fetch", async () => { throw new Error("unexpected IO"); });
+  await assert.rejects(loadEconomicsData(), /Missing ZENMUX_MANAGEMENT_API_KEY/);
+  assert.equal(fetch.mock.callCount(), 0);
 });
-
-test("failed launch usage stays explicitly unobserved; listing errors reject", async (t) => {
+test("failed usage requests reject publication instead of overwriting data with zero usage", async (t) => {
   const previous = process.env.ZENMUX_MANAGEMENT_API_KEY;
   process.env.ZENMUX_MANAGEMENT_API_KEY = "unit-test-placeholder";
   t.after(() => { if (previous === undefined) delete process.env.ZENMUX_MANAGEMENT_API_KEY; else process.env.ZENMUX_MANAGEMENT_API_KEY = previous; });
   t.mock.method(globalThis, "fetch", async (input: string | URL | Request) => String(input) === API_URL
-    ? Response.json({ data: models })
-    : new Response("unauthorized", { status: 401 }));
-  const result = await loadEconomicsData();
-  assert.equal(result.provenance.observedModels, 0);
-  assert.equal(result.provenance.requestedModels, 2);
-  t.mock.restoreAll();
-  t.mock.method(globalThis, "fetch", async () => new Response("unavailable", { status: 503 }));
-  await assert.rejects(loadEconomicsData(), /503/);
+    ? Response.json({ data: models }) : new Response("unauthorized", { status: 401 }));
+  await assert.rejects(loadEconomicsData(), error => {
+    assert.equal(safeFailure(error), "Model usage request failed (HTTP 401).");
+    return true;
+  });
 });

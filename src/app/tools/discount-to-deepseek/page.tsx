@@ -1,7 +1,6 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { Metadata } from "next";
-import { fetchModelsApi, parseModels, type ApiModel } from "@research/token-economics/scrape";
+import { getEconomicsComparison } from "@research/token-economics/comparison-snapshot";
+import type { ModelEconomics } from "@research/token-economics/types";
 import { PRICE_UNIT } from "@research/token-economics/types";
 import { DiscountToDeepSeekClient, type PriceAnchor, type PriceModelSeed } from "./DiscountToDeepSeekClient";
 
@@ -73,29 +72,7 @@ function num(v: number | null | undefined): number {
   return typeof v === "number" && Number.isFinite(v) ? v : 0;
 }
 
-function readLatestSnapshot(): { stamp: string; rows: ApiModel[] } | null {
-  const baseDir = path.join(process.cwd(), "results", "token-economics");
-  if (!fs.existsSync(baseDir)) return null;
-
-  const stamp = fs
-    .readdirSync(baseDir)
-    .filter((entry) => fs.statSync(path.join(baseDir, entry)).isDirectory())
-    .sort()
-    .at(-1);
-
-  if (!stamp) return null;
-
-  const snapshotPath = path.join(baseDir, stamp, "models-api.json");
-  if (!fs.existsSync(snapshotPath)) return null;
-
-  const raw = JSON.parse(fs.readFileSync(snapshotPath, "utf8")) as
-    | ApiModel[]
-    | { data?: ApiModel[]; models?: ApiModel[] };
-  const rows = Array.isArray(raw) ? raw : raw.data ?? raw.models ?? [];
-  return { stamp, rows };
-}
-
-function toSeed(row: ReturnType<typeof parseModels>[number], label = row.name): PriceModelSeed {
+function toSeed(row: ModelEconomics, label = row.name): PriceModelSeed {
   return {
     label,
     slug: row.slug,
@@ -105,23 +82,16 @@ function toSeed(row: ReturnType<typeof parseModels>[number], label = row.name): 
 }
 
 async function loadPricingData(): Promise<LoadResult> {
-  let parsedRows: ReturnType<typeof parseModels> = [];
+  let parsedRows: ModelEconomics[] = [];
   let sourceLabel = "No model data";
   let sourceDetail = "";
   let loadError: string | null = null;
 
   try {
-    const snapshot = readLatestSnapshot();
-    if (snapshot) {
-      parsedRows = parseModels(snapshot.rows);
-      sourceLabel = `Snapshot ${snapshot.stamp}`;
-      sourceDetail = "results/token-economics";
-    } else {
-      const liveRows = await fetchModelsApi(undefined, { revalidate: 0 });
-      parsedRows = parseModels(liveRows);
-      sourceLabel = "Live ZenMux listing";
-      sourceDetail = "zenmux.ai/models";
-    }
+    const { payload } = await getEconomicsComparison();
+    parsedRows = payload.data.models;
+    sourceLabel = "Published model prices";
+    sourceDetail = `Updated ${payload.generatedAt}${payload.stale ? " (stale)" : ""}`;
   } catch (error) {
     loadError = error instanceof Error ? error.message : String(error);
   }

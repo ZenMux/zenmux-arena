@@ -1,11 +1,8 @@
 import { gzipSync } from "node:zlib";
-import { after } from "next/server";
-import { CacheBusyError } from "@research/cache/read-through";
+import { CacheSnapshotUnavailableError } from "@research/cache/read-through";
 import {
   getLiveTokenEconomicsWithMeta,
-  LiveConfigError,
-  LiveDbConfigError,
-} from "@research/token-economics/live-query";
+} from "@research/token-economics/live-snapshot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,7 +61,6 @@ export async function GET(request: Request) {
     const { payload, source, persistence, elapsedMs } = await getLiveTokenEconomicsWithMeta(
       searchParams.get("range"),
       new Date(),
-      { waitUntil: work => after(work) },
     );
     return jsonResponse(
       payload,
@@ -78,25 +74,10 @@ export async function GET(request: Request) {
       payload.stale || persistence === "unavailable" ? "stale" : "healthy",
     );
   } catch (error) {
-    if (error instanceof CacheBusyError) {
+    if (error instanceof CacheSnapshotUnavailableError) {
       return Response.json({ error: error.message }, {
-        status: 503, headers: { "Retry-After": "5", "Cache-Control": "no-store", "X-Cache-Source": "shared-refresh" },
+        status: 503, headers: { "Cache-Control": "no-store", "X-Cache-Source": "error-shared-snapshot" },
       });
-    }
-    if (error instanceof LiveDbConfigError) {
-      return Response.json(
-        {
-          error: "Live usage database is not configured.",
-          missing: error.missing,
-        },
-        { status: 503, headers: { "X-Cache-Source": "error-db-config" } },
-      );
-    }
-    if (error instanceof LiveConfigError) {
-      return Response.json(
-        { error: error.message },
-        { status: 400, headers: { "X-Cache-Source": "error-config" } },
-      );
     }
     console.error("[token-economics/live] failed to load usage", error);
     return Response.json(

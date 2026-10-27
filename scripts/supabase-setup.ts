@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { snapshotId, snapshotKey, validDeals, validEconomics } from "../research/cache/payload";
+import { COMPARISON_SNAPSHOT_ID, validComparison } from "../research/token-economics/comparison-snapshot";
 import { serviceSupabase, supabaseEnv, supabaseSnapshotStore } from "../research/cache/supabase";
 
 config({ path: ".env.local", quiet: true });
@@ -49,6 +50,9 @@ async function check() {
       console.log(`OK ${snapshotKey(id)}: data through ${payload.to}, generated ${payload.generatedAt}`);
     }
   }
+  const comparison = await supabaseSnapshotStore(COMPARISON_SNAPSHOT_ID).read();
+  if (!validComparison(comparison)) { missing++; console.log(`MISSING ${snapshotKey(COMPARISON_SNAPSHOT_ID)}`); }
+  else console.log(`OK ${snapshotKey(COMPARISON_SNAPSHOT_ID)}: model prices generated ${comparison.generatedAt}`);
   if (missing && process.argv.includes("--require-data")) throw new Error(`${missing} usable snapshots missing; run the Supabase refresh/backfill commands before deployment.`);
 }
 

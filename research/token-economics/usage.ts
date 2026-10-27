@@ -175,6 +175,7 @@ async function fetchWithRetry(
   let attempt = 0;
   for (;;) {
     const res = await fetch(url, {
+      signal: AbortSignal.timeout(30000),
       headers: {
         Authorization: `Bearer ${key}`,
         "User-Agent": UA,
@@ -197,9 +198,8 @@ async function fetchWithRetry(
 
 /**
  * Fetch one model's daily token series for the given inclusive span. Resolves to
- * an empty series (total 0) on any failure rather than throwing — a single
- * model's usage gap must never abort the whole page render / CLI run. Returns
- * null only when the management key is missing (caller skips the metric).
+ * an empty series (total 0) on failure for optional research calls. Strict
+ * publication mode rejects failures so they cannot overwrite good observations.
  */
 export async function fetchModelUsage(
   slug: string,
@@ -207,6 +207,7 @@ export async function fetchModelUsage(
   endingAt: string,
   key: string,
   cache?: { revalidate?: number | false },
+  strict = false,
 ): Promise<ModelUsageSeries> {
   const qs = new URLSearchParams({
     model: slug,
@@ -217,8 +218,12 @@ export async function fetchModelUsage(
   const url = `${MODEL_USAGE_URL}?${qs.toString()}`;
   try {
     const res = await fetchWithRetry(url, key, { next: cache });
-    if (!res.ok) return { slug, total: 0, series: [] };
+    if (!res.ok) {
+      if (strict) throw new Error(`Model usage request failed (HTTP ${res.status}).`);
+      return { slug, total: 0, series: [] };
+    }
     const json = (await res.json()) as UsageEnvelope;
+    if (strict && (!json.data || !Array.isArray(json.data.series))) throw new Error("Invalid model usage response.");
     const raw = json?.data?.series ?? [];
     const series: DailyUsagePoint[] = raw
       .filter((p): p is { date: string; value: number } =>
@@ -228,7 +233,8 @@ export async function fetchModelUsage(
       ? json.data!.value!
       : series.reduce((s, p) => s + p.value, 0);
     return { slug, total, series };
-  } catch {
+  } catch (error) {
+    if (strict) throw new Error("Model usage request unavailable.", { cause: error });
     return { slug, total: 0, series: [] };
   }
 }
@@ -238,6 +244,8 @@ export async function fetchModelUsage(
 // ---------------------------------------------------------------------------
 
 export interface FetchAllUsageOptions {
+  /** Internal publication rejects source failures instead of overwriting good data. */
+  strict?: boolean;
   /** Max in-flight requests (keeps us under the per-minute rate limit). */
   concurrency?: number;
   /** Next.js Data Cache hint forwarded to each fetch (page uses { revalidate }). */
@@ -281,7 +289,7 @@ export async function fetchAllUsage(
       const i = cursor++;
       if (i >= jobs.length) return;
       const { slug, plan } = jobs[i];
-      const series = await fetchModelUsage(slug, plan.from, plan.to, key!, opts.cache);
+      const series = await fetchModelUsage(slug, plan.from, plan.to, key!, opts.cache, opts.strict);
       out.set(slug, series);
       opts.onProgress?.(++done, jobs.length);
     }

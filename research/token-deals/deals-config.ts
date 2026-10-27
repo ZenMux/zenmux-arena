@@ -23,7 +23,7 @@ const CONFIG_PATH_ENV = "TOKEN_DEALS_CONFIG_PATH";
 export function dealsConfigPath(): string {
   return (
     process.env[CONFIG_PATH_ENV]?.trim() ||
-    path.join(process.cwd(), "config", "token-deals.json")
+    path.join(process.env.DATA_REFRESH_CONFIG_DIR || path.join(process.cwd(), "config"), "token-deals.json")
   );
 }
 

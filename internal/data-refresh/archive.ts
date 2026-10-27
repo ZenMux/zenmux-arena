@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { payloadHash, type CacheScope, type SnapshotPayload } from "./payload";
-import { serviceSupabase } from "./supabase";
+import { payloadHash, type CacheScope, type SnapshotPayload } from "@research/cache/payload";
+import { serviceSupabase } from "@research/cache/supabase";
 
 export async function archiveSnapshot(
   scope: CacheScope, sourcePath: string, payload: SnapshotPayload,
