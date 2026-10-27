@@ -8,6 +8,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { BuildStamp } from "@/components/BuildStamp";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,6 +65,7 @@ export default function RootLayout({
         {/* Global, fixed-corner build fingerprint — version · sha · local build
             time. Baked in at package time, shown on every page. */}
         <BuildStamp />
+        <Analytics />
       </body>
     </html>
   );
