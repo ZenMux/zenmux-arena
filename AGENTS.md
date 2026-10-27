@@ -107,9 +107,9 @@ Rule of thumb: **frontend work → skill first.** A change to `src/app/**` or `s
 - `research/cache/supabase.ts`: server-only Supabase client and read-only snapshot access.
 - `research/cache/read-through.ts`: short process memo, single-flight reads and stale fallback; no source query or write path.
 - `research/cache/payload.ts`: scope/version/range keys, payload validation, expiry boundaries and archive hashes.
-- `internal/data-refresh/archive.ts`: immutable backfill checkpoints with read-back verification.
-- `internal/data-refresh/economics.ts` and `deals.ts`: internal-only billing queries and incremental aggregation.
-- `internal/data-refresh/main.ts`: scheduled producer for both live modules and comparison data; generic `BILLING_DB_*` environment only.
+- `scripts/data-refresh/archive.ts`: immutable backfill checkpoints with read-back verification.
+- `scripts/data-refresh/economics.ts` and `deals.ts`: internal-only billing queries and incremental aggregation.
+- `scripts/data-refresh/main.ts`: scheduled producer for both live modules and comparison data; generic `BILLING_DB_*` environment only.
 - `research/token-economics/live-snapshot.ts`, `comparison-snapshot.ts`, and `research/token-deals/snapshot.ts`: public Supabase-only loaders.
 - `/api/token-economics/live` and `/api/token-deals/live`: compressed JSON responses with `X-Cache-Source`, `X-Cache-Persistence`, `stale`, and the actual `to` cutoff.
 - `src/app/token-deals/initial-deals.ts`: server first-paint loader, shared by the homepage's Deals summary and the Deals board/ladder. These pages render per request; the homepage streams the Deals row under Suspense so its hero/navigation do not wait for Supabase. Do not freeze their snapshot at build time.
@@ -161,7 +161,7 @@ Keep `output: "standalone"`, required `public/` assets, research data and model/
 configs. Billing/model configs belong to the internal producer, not the public trace. Keep the
 cache/credential exclusions and package verifier; they prevent accidental files
 from shipping. Builds should not query Supabase or billing databases for the
-homepage/Deals pages. Verify the public artifact contains no `internal/**` or MySQL driver. Deploy verification uses GETs and reports data freshness
+homepage/Deals pages. Verify the public artifact contains no `scripts/data-refresh/**` or MySQL driver. Deploy verification uses GETs and reports data freshness
 separately from release success.
 
 ### Who Are You pipeline and viewer

@@ -54,7 +54,7 @@ without coupling data updates to a public release.
 
 ## Internal refresh task
 
-The maintained producer lives in `internal/data-refresh/`. It is excluded from
+The maintained producer lives in `scripts/data-refresh/`. It is excluded from
 Next's deployment traces, and MySQL is a development/internal-task dependency.
 No internal hostname, database name or credential is stored in tracked config;
 all source connection settings come from the task's environment.
@@ -78,7 +78,7 @@ pnpm data:refresh --check
 pnpm data:refresh
 ```
 
-`internal/data-refresh/refresh.cron` is a Linux cron example that runs the command
+`scripts/data-refresh/refresh.cron` is a Linux cron example that runs the command
 from the repository root. Adjust its PATH, repository/log paths and service user
 before installing it. It runs
 every five minutes, uses `flock` to skip overlapping local runs, and enforces a

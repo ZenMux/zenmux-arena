@@ -269,7 +269,7 @@ pnpm study:report      # aggregate.json → report.md
 pnpm dev               # http://localhost:3000
 ```
 
-Token Economics、Token Deals 和模型价格对比统一读取 Supabase。在内网服务器的完整项目中直接运行 `pnpm data:refresh`，按根目录 `.env.example` 配置 `.env.local`；cron 示例位于 `internal/data-refresh/`。项目 Node 命令会自动加载 `.env.local` 并启用代理支持。权限和回填步骤见 [数据链路说明](docs/shared-cache.md)。
+Token Economics、Token Deals 和模型价格对比统一读取 Supabase。在内网服务器的完整项目中直接运行 `pnpm data:refresh`，按根目录 `.env.example` 配置 `.env.local`；cron 示例位于 `scripts/data-refresh/`。项目 Node 命令会自动加载 `.env.local` 并启用代理支持。权限和回填步骤见 [数据链路说明](docs/shared-cache.md)。
 
 ---
 

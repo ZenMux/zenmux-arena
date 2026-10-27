@@ -7,7 +7,7 @@ async function walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const file = path.join(dir, entry.name);
     const relative = path.relative(root, file);
-    if (relative.startsWith(`internal${path.sep}`) || /(^|[/\\])mysql2(?:@[^/\\]+)?([/\\]|$)/.test(relative)) throw new Error(`Internal source code or driver in public artifact: ${relative}`);
+    if (relative.startsWith(`scripts${path.sep}data-refresh${path.sep}`) || /(^|[/\\])mysql2(?:@[^/\\]+)?([/\\]|$)/.test(relative)) throw new Error(`Internal source code or driver in public artifact: ${relative}`);
     if (entry.isDirectory()) await walk(file);
     else if (entry.isFile() && /\.(m?js|json)$/.test(entry.name) && !relative.includes("node_modules") && entry.name !== "package.json") {
       const text = await readFile(file, "utf8");

@@ -13,7 +13,7 @@ This skill is self-contained and does not require the base Morphe skill.
 
 Arena reads a short process memo and shared Supabase publications. The public
 application never queries a source database or refreshes data during a visit.
-The internal task in `internal/data-refresh/` owns query, lease and publication
+The internal task in `scripts/data-refresh/` owns query, lease and publication
 work; newly started public instances read those persisted results.
 
 - `arena_snapshot_cache`: current snapshots for both modules and both ranges.

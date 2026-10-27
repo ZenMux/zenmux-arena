@@ -83,7 +83,7 @@ const nextConfig: NextConfig = {
   },
   // Snapshots live in Supabase. Local imports/backups and credentials do not ship.
   outputFileTracingExcludes: {
-    "*": ["./.cache/**", "./.env*", "./.npmrc", "./internal/**"],
+    "*": ["./.cache/**", "./.env*", "./.npmrc", "./scripts/data-refresh/**"],
   },
   // @resvg/resvg-js loads a platform-native .node binary at runtime; it must not
   // be bundled by Turbopack/webpack. Keep it external so the export route can

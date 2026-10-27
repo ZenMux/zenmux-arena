@@ -27,7 +27,7 @@ export { usd, perM, tokens, logoPath, vendorColor } from "../token-economics/lib
 // ---------------------------------------------------------------------------
 
 /** The ledger opens at ZenMux's launch (mirror of DEALS_LAUNCH_ISO in
-    internal/data-refresh/billing-db.ts — that module is internal-only, this constant is
+    scripts/data-refresh/billing-db.ts — that module is internal-only, this constant is
     the client-safe copy). */
 export const DEALS_LAUNCH_DATE = "2025-09-29";
 
@@ -113,7 +113,7 @@ export function applyDateWindow(deals: DealSeries[], win: DateWindow): DealSerie
 }
 
 /** Window totals over the (already sliced) deals — mirrors assemble() +
-    weightedDiscount() in internal/data-refresh/deals.ts. Null when nothing has
+    weightedDiscount() in scripts/data-refresh/deals.ts. Null when nothing has
     live stats (degraded). */
 export function computeWindowTotals(deals: DealSeries[]): DealsTotals | null {
   const withStats = deals.filter((d) => d.stats != null);

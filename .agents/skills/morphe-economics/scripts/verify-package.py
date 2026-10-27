@@ -15,7 +15,7 @@ def verify(filename):
         forbidden = []
         for name in names:
             parts = PurePosixPath(name).parts
-            if parts[:1] == ("internal",) or any(p == "mysql2" or p.startswith("mysql2@") for p in parts):
+            if parts[:2] == ("scripts", "data-refresh") or any(p == "mysql2" or p.startswith("mysql2@") for p in parts):
                 raise ValueError("Internal source code or driver in public artifact")
             if "node_modules" in parts:
                 continue

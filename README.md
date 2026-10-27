@@ -269,7 +269,7 @@ pnpm study:report      # aggregate.json → report.md
 pnpm dev               # http://localhost:3000
 ```
 
-Token Economics, Token Deals and model-price comparisons read Supabase publications. Run `pnpm data:refresh` from the complete repository on the internal host; configure the root `.env.local` using `.env.example`. The cron example is in `internal/data-refresh/`. Repository Node commands automatically load `.env.local` and enable proxy support. See [shared-data setup and recovery](docs/shared-cache.md).
+Token Economics, Token Deals and model-price comparisons read Supabase publications. Run `pnpm data:refresh` from the complete repository on the internal host; configure the root `.env.local` using `.env.example`. The cron example is in `scripts/data-refresh/`. Repository Node commands automatically load `.env.local` and enable proxy support. See [shared-data setup and recovery](docs/shared-cache.md).
 
 ---
 
