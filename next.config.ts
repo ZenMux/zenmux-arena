@@ -1,4 +1,3 @@
-import "./scripts/local-env";
 import { execSync } from "node:child_process";
 import { createRequire } from "node:module";
 import type { NextConfig } from "next";
@@ -66,9 +65,7 @@ const buildEnv = {
 };
 
 const nextConfig: NextConfig = {
-  // Workers emits executable modules, not a Node node_modules/standalone tree.
-  // Keep the existing Morphe target without tracing Workers WASM as an npm package.
-  output: process.env.ARENA_WORKERS_BUILD === "1" ? undefined : "standalone",
+  output: "standalone",
   // Bake build metadata into the bundle. `env` values are inlined as string
   // literals at build time, so they're available in both server and client
   // components without a runtime lookup.
@@ -76,7 +73,7 @@ const nextConfig: NextConfig = {
   // Pin the workspace root to THIS project. Without it, Turbopack walks up and
   // finds ~/pnpm-lock.yaml, mis-inferring the root and warning on every start.
   turbopack: {
-    root: import.meta.dirname,
+    root: __dirname,
   },
   // Standalone output does not automatically carry every `public/` asset. Keep
   // the whole static asset tree in the traced bundle so deployed public URLs

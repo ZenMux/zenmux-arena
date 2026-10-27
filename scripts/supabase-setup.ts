@@ -1,10 +1,11 @@
-import "./local-env";
+import { config } from "dotenv";
 import { readFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { snapshotId, snapshotKey, validDeals, validEconomics } from "../research/cache/payload";
 import { serviceSupabase, supabaseEnv, supabaseSnapshotStore } from "../research/cache/supabase";
 
+config({ path: ".env.local", quiet: true });
 const schemaPath = "supabase/schema.sql";
 
 async function check() {

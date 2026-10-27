@@ -33,10 +33,7 @@ for deliberate full-history recovery or newly added historical deals.
 
 Set `SUPABASE_URL` and server-only `SUPABASE_SECRET_KEY` (legacy
 `SUPABASE_SERVICE_ROLE_KEY` also works), plus the existing `TOKEN_ECON_LIVE_DB_*`
-configuration in `.env.local` locally and in the deployment **runtime environment**
-(Morphe function env or Cloudflare Worker Secrets). Local CLI entrypoints use
-the same loader as Next/Vite with standard dotenv precedence: existing process
-env wins; `.env.local` fills missing names. See [environment configuration](environment.md).
+configuration in `.env.local` and in the Morphe **function environment**.
 `SUPABASE_PUBLISHABLE_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are used to
 verify public isolation. Server URL takes priority over `NEXT_PUBLIC_SUPABASE_URL`.
 Public variables are inlined at build time; server variables are read at runtime.

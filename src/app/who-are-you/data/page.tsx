@@ -1,4 +1,3 @@
-import { isIdentityGraph } from "@research/lib/graph-data";
 // Data Explorer — per-vendor self-identification rates and cross-vendor
 // confusions, with full per-model × per-language detail.
 //
@@ -29,7 +28,7 @@ function discoverRuns(): RunRef[] {
     if (!fs.statSync(studyDir).isDirectory()) continue;
     for (const stamp of fs.readdirSync(studyDir)) {
       const aggregate = path.join(studyDir, stamp, "aggregate.json");
-      if (fs.existsSync(aggregate) && loadGraph(`${study}/${stamp}`)) out.push({ id: `${study}/${stamp}`, study, stamp });
+      if (fs.existsSync(aggregate)) out.push({ id: `${study}/${stamp}`, study, stamp });
     }
   }
   return out.sort((a, b) => b.stamp.localeCompare(a.stamp));
@@ -38,8 +37,7 @@ function discoverRuns(): RunRef[] {
 function loadGraph(runId: string): GraphData | null {
   const file = path.join(RESULTS_DIR, runId, "aggregate.json");
   try {
-    const graph: unknown = JSON.parse(fs.readFileSync(file, "utf8"));
-    return isIdentityGraph(graph) ? graph : null;
+    return JSON.parse(fs.readFileSync(file, "utf8")) as GraphData;
   } catch {
     return null;
   }

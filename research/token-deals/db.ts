@@ -87,8 +87,6 @@ export function getPool(): Pool {
     dateStrings: true,
     supportBigNumbers: true,
     decimalNumbers: true,
-    // Workers disallows generated code; mysql2 must use its static row parser.
-    disableEval: true,
   });
   return pool;
 }

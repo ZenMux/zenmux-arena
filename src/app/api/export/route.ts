@@ -9,7 +9,8 @@
 // This is a Route Handler (not a Server Action) because it produces a binary
 // file download — see next-best-practices/route-handlers.md.
 
-import { rasterizeSvg } from "@research/lib/rasterize";
+import { Resvg } from "@resvg/resvg-js";
+import fs from "node:fs";
 import {
   DEFAULT_RENDER,
   type EdgeCurves,
@@ -21,6 +22,9 @@ import type { GraphData, VendorId } from "@research/lib/types";
 
 export const runtime = "nodejs";
 
+// Keep filesystem reads statically scoped to known project subfolders so the
+// server-file tracer does not treat the whole repository as export input.
+const FONT_PATH = `${process.cwd()}/research/assets/NotoSansSC-Regular.otf`;
 // `<study>/<stamp>` — both segments are conservative slugs (no dots/slashes).
 const RUN_RE = /^[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/;
 
@@ -96,7 +100,13 @@ export async function POST(request: Request) {
   // Rasterize at N× the SVG's intrinsic width.
   const widthMatch = svg.match(/width="(\d+(?:\.\d+)?)"/);
   const svgWidth = widthMatch ? Number(widthMatch[1]) : 1200;
-  const png = await rasterizeSvg(svg, Math.round(svgWidth * scale), config.background);
+  const fontFiles = fs.existsSync(FONT_PATH) ? [FONT_PATH] : [];
+  const resvg = new Resvg(svg, {
+    fitTo: { mode: "width", value: Math.round(svgWidth * scale) },
+    font: { fontFiles, loadSystemFonts: true, defaultFontFamily: "Noto Sans SC" },
+    background: config.background,
+  });
+  const png = resvg.render().asPng();
 
   return new Response(new Uint8Array(png), {
     headers: {

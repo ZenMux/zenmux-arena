@@ -14,10 +14,9 @@
 //   pnpm tokenecon --usage-concurrency 6  # in-flight management requests (rate-limit knob)
 //   pnpm tokenecon --no-publish           # write the run dir only, don't publish
 //
-// The launch-window avg-daily metric needs the MANAGEMENT key (ZENMUX_MANAGEMENT_API_KEY);
+// The launch-window avg-daily metric needs the MANAGEMENT key (ZENMUX_MANAGEMENT_KEY);
 // without it the usage fetch is skipped and avg-daily fields stay null.
 
-import "../../scripts/local-env";
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "../lib/args";
@@ -29,7 +28,7 @@ import {
 } from "../token-economics/scrape";
 import {
   fetchAllUsage,
-  MANAGEMENT_API_KEY_ENV,
+  MANAGEMENT_KEY_ENV,
 } from "../token-economics/usage";
 import { compute } from "../token-economics/compute";
 import type { ModelUsageSeries } from "../token-economics/types";
@@ -93,10 +92,10 @@ async function main() {
     usage = new Map(arr.map((u) => [u.slug, u]));
     console.log(`[tokenecon] loaded usage series for ${usage.size} model(s)`);
   } else {
-    const key = process.env[MANAGEMENT_API_KEY_ENV];
+    const key = process.env[MANAGEMENT_KEY_ENV];
     if (!key) {
       console.warn(
-        `[tokenecon] ⚠ ${MANAGEMENT_API_KEY_ENV} unset — skipping launch-window usage ` +
+        `[tokenecon] ⚠ ${MANAGEMENT_KEY_ENV} unset — skipping launch-window usage ` +
           `(avg-daily fields will be null). Set it to populate them.`,
       );
     } else {

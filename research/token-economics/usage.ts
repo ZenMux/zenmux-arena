@@ -10,7 +10,7 @@
 //
 //   GET https://zenmux.ai/api/v1/management/statistics/model_usage
 //     ?model=<slug>&metric=tokens&starting_at=YYYY-MM-DD&ending_at=YYYY-MM-DD
-//   Authorization: Bearer <ZENMUX_MANAGEMENT_API_KEY>
+//   Authorization: Bearer <ZENMUX_MANAGEMENT_KEY>
 //   → { success, data: { value, series: [{ date, value }, …] } }
 //
 // Constraints we design around: Management-key only, per-minute rate limit
@@ -33,7 +33,7 @@ export const MODEL_USAGE_URL =
 export const DATA_START = "2025-09-29";
 
 /** Env var holding the Management API Key (distinct from the generation key). */
-export const MANAGEMENT_API_KEY_ENV = "ZENMUX_MANAGEMENT_API_KEY";
+export const MANAGEMENT_KEY_ENV = "ZENMUX_MANAGEMENT_KEY";
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +

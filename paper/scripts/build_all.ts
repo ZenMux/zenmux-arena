@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const HERE = import.meta.dirname;
+const HERE = __dirname;
 const REPO_ROOT = path.resolve(HERE, "..", "..");
 
 // Language fork: default Chinese build writes figures/ + tables/; PAPER_LANG=en

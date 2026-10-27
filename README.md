@@ -259,9 +259,7 @@ pnpm install
 
 # 2. Set required keys — see .env.example for the full list
 cp .env.example .env.local
-# Edit .env.local: ZENMUX_API_KEY for study calls;
-# ZENMUX_MANAGEMENT_API_KEY for Economics daily usage and value views.
-pnpm env:check                    # variable names/status only; no values
+export ZENMUX_API_KEY=sk-...        # required by the Who Are You? pipeline
 
 # 3. Run the full "Who Are You?" pipeline
 pnpm study:test        # ask → extract → aggregate (with a completeness gate)
@@ -270,8 +268,6 @@ pnpm study:report      # aggregate.json → report.md
 # 4. Explore everything in the browser
 pnpm dev               # http://localhost:3000
 ```
-
-Local Next/Vite startup and research/maintenance CLIs load the same `.env.local`, with standard dotenv precedence: existing process/shell/CI variables win and the file fills missing names. Do not maintain a second project configuration in `~/.zshrc` or `.dev.vars`. Production uses runtime Secrets/env rather than the local file. See [environment configuration](docs/environment.md).
 
 Token Economics and Token Deals share live billing snapshots in Supabase. Visits incrementally refresh expired snapshots, and maintenance refresh/backfill commands write Supabase directly. The local JSON import is complete and its tooling has been removed. See [shared-data setup and recovery](docs/shared-cache.md) and `.env.example`.
 
@@ -359,7 +355,3 @@ Live at **[arena.zenmux.ai](https://arena.zenmux.ai)** · all model calls route 
 <sub>Scaffolded with <a href="https://nextjs.org">Next.js</a> · see the original create-next-app docs at <a href="https://nextjs.org/docs">nextjs.org/docs</a>.</sub>
 
 </div>
-
-## Cloudflare Workers / Vinext
-
-See [the Workers migration guide](docs/cloudflare.md) for the isolated build, local verification, runtime secrets and post-review deployment. The existing Next.js/Morphe target remains available.

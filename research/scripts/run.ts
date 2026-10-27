@@ -14,7 +14,6 @@
 //   pnpm study:run [--config config/study.yaml] [--run <stamp|latest>]
 //                  [--model-concurrency <n>] [--batch-size <n>] [--max-rounds <n>]
 
-import "../../scripts/local-env";
 import { ask, enumerateTasks, tasksForModelLang } from "../lib/ask";
 import { parseArgs } from "../lib/args";
 import { makeClient } from "../lib/client";
