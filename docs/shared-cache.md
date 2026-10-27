@@ -66,7 +66,7 @@ dependencies, including development dependencies:
 pnpm install --frozen-lockfile
 ```
 
-Configure the repository's `.env.local` using `internal/data-refresh/.env.example`.
+Configure the repository root's `.env.local` using the root `.env.example`.
 Required variables are `BILLING_DB_HOST`,
 `BILLING_DB_PORT`, `BILLING_DB_USER`, `BILLING_DB_PASSWORD`, `BILLING_DB_DATABASE`,
 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `ZENMUX_MANAGEMENT_API_KEY`.
@@ -91,8 +91,10 @@ and any `NO_PROXY` exclusions to `.env.local`. Cron does not read `.zshrc`.
 Repository commands (`pnpm dev`, `build`, `start`, `data:refresh`, and Supabase /
 billing maintenance commands) use `scripts/with-env-proxy.mjs`. It enables
 `NODE_USE_ENV_PROXY=1` before starting Node, including when the host omits it,
-and reads only proxy addresses/exclusions from local env files. The refresh
-command also loads credentials from `.env.local` before executing the task.
+and loads configuration only from the project root's `.env.local` before
+starting the tool. Host/platform environment variables take precedence. The root
+`.env.example` is the single configuration template; `.env.local` is optional
+when the environment already supplies the required variables.
 
 Comparison publications refresh daily. Economics ALL uses closed daily buckets;
 recent Economics and both Deals ranges advance on their existing five-minute

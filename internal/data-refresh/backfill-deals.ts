@@ -1,8 +1,6 @@
 #!/usr/bin/env tsx
 // Resumable chunked backfill into Supabase; each committed chunk survives
 // process restarts. Completion also creates an immutable Supabase archive.
-import { config as loadDotenv } from "dotenv";
-import path from "node:path";
 import { safeFailure } from "./job";
 import { archiveSnapshot } from "./archive";
 import { DEALS_SCHEMA_VERSION, type TokenDealsPayload } from "@research/token-deals/types";
@@ -13,8 +11,6 @@ import {
   incrementallyUpdate,
   readSharedCache,
 } from "./deals";
-
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
 
 // An internal maintenance task has time for a deep sweep — give each chunk a
 // 300s budget instead of the runtime's 120s (a busy month's chunk was measured

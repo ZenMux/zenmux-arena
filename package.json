@@ -31,7 +31,7 @@
     "supabase:sql": "node scripts/with-env-proxy.mjs tsx scripts/supabase-setup.ts --print",
     "cache:test": "node scripts/with-env-proxy.mjs tsx --test research/cache/*.test.ts",
     "supabase:test": "node scripts/with-env-proxy.mjs tsx scripts/supabase-setup.ts --test",
-    "data:refresh": "node scripts/with-env-proxy.mjs tsx --env-file=.env.local internal/data-refresh/main.ts",
+    "data:refresh": "node scripts/with-env-proxy.mjs tsx internal/data-refresh/main.ts",
     "data:refresh:test": "node scripts/with-env-proxy.mjs tsx --test internal/data-refresh/*.test.ts",
     "deploy:verify": "node scripts/verify-public-build.mjs"
   },

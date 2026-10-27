@@ -61,7 +61,9 @@ local pins consistent; see `docs/shared-cache.md` for deployment configuration.
 
 `pnpm` is the package manager. **`study:test` makes model calls; it is not a unit
 test suite.** Use `cache:test` for cache regression tests. Supabase maintenance
-commands load `.env.local`; deployed servers use the function environment.
+commands load the root `.env.local` through `scripts/with-env-proxy.mjs`; the root
+`.env.example` is the single template. Host/platform variables take precedence;
+deployed servers use the function environment.
 The Morphe artifact starts with `node server.js` from the standalone root.
 
 ### Who Are You script flags

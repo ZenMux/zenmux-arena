@@ -1,12 +1,7 @@
 #!/usr/bin/env tsx
-import { config as loadDotenv } from "dotenv";
-import path from "path";
 import { safeFailure } from "./job";
 import { closeDbPool, fetchLiveTokenEconomics, incrementallyUpdateCache, readSharedCache } from "./economics";
 import { LIVE_RANGE_OPTIONS, type LiveRangeKey } from "@research/token-economics/live-config";
-
-// Local maintenance only; public deployments never run this command.
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
 
 function formatPercent(p?: number): string {
   if (p == null) return "    ";

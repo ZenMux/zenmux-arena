@@ -1,4 +1,4 @@
-// Start Node tooling with proxy support enabled before the child runtime boots.
+// Load local configuration and enable proxy support before Node tooling boots.
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -9,15 +9,11 @@ const require = createRequire(import.meta.url);
 const [tool, ...args] = process.argv.slice(2);
 if (!["next", "tsx"].includes(tool)) throw new Error("Expected next or tsx.");
 
-const env = { ...process.env, NODE_USE_ENV_PROXY: "1" };
-const proxyKeys = ["HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy"];
-// Local proxy addresses may live in .env.local; no credentials are loaded here.
-for (const file of [".env.local", ".env"]) {
-  let values;
-  try { values = parse(readFileSync(file)); }
-  catch (error) { if (error.code === "ENOENT") continue; throw error; }
-  for (const key of proxyKeys) if (env[key] === undefined && values[key] !== undefined) env[key] = values[key];
-}
+let localEnv = {};
+try { localEnv = parse(readFileSync(".env.local")); }
+catch (error) { if (error.code !== "ENOENT") throw error; }
+// Host/platform variables take precedence; local configuration is optional.
+const env = { ...localEnv, ...process.env, NODE_USE_ENV_PROXY: "1" };
 
 const manifest = require.resolve(`${tool}/package.json`);
 const pkg = JSON.parse(readFileSync(manifest, "utf8"));

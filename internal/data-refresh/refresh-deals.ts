@@ -1,8 +1,6 @@
 #!/usr/bin/env tsx
 // Explicit maintenance refresh; writes shared Supabase snapshots independently
 // of builds. Billing calculations and deep late-arrival overlap are preserved.
-import { config as loadDotenv } from "dotenv";
-import path from "node:path";
 import { safeFailure } from "./job";
 import {
   DEAL_RANGE_OPTIONS,
@@ -15,9 +13,6 @@ import {
   incrementallyUpdate,
   readSharedCache,
 } from "./deals";
-
-// Local maintenance only; public deployments never run this command.
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
 
 // Maintenance refresh: same relaxed query budget as the backfill script (the
 // runtime keeps the tight default). Explicit env still wins.

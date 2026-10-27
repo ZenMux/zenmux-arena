@@ -46,7 +46,7 @@ retains the original muted post-campaign tails.
 ## Explicit export and validation
 
 ```sh
-pnpm exec tsx src/app/talk/economics/history/export.ts
+node scripts/with-env-proxy.mjs tsx src/app/talk/economics/history/export.ts
 pnpm exec tsx --test src/app/talk/economics/history/history.test.tsx
 ```
 

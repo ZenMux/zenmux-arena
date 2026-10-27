@@ -82,7 +82,8 @@ historical recovery uses immutable Supabase archives or explicit source backfill
 Run the maintained producer only from a host with source access:
 
 ```bash
-pnpm data:refresh --env-file /path/to/internal-refresh.env
+# Configure the repository root's .env.local using .env.example on the internal host.
+pnpm data:refresh
 ```
 
 Public deployment runs readiness checks and never queries source systems. Report

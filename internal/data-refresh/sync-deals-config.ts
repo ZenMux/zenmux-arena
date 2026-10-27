@@ -5,14 +5,12 @@
 // them INCREMENTALLY into the config — manual edits (early endDate, online,
 // display) are never overwritten; nothing is ever deleted (see
 // ./deal-sync.ts for the rules). Run it, review the printed roster, then
-// hand-adjust the file if needed. Rebuild the internal package and run a
-// producer refresh to publish the new roster for public pages.
+// hand-adjust the file if needed. Run a producer refresh to publish the new
+// roster for public pages.
 //
 //   pnpm tokendeals:sync            # merge + write + print roster
 //   pnpm tokendeals:sync --dry-run  # print what would change, write nothing
 
-import { config as loadDotenv } from "dotenv";
-import path from "node:path";
 import { safeFailure } from "./job";
 import {
   dealsConfigPath,
@@ -22,8 +20,6 @@ import {
 } from "@research/token-deals/deals-config";
 import { discoverRosterFromDb, mergeDealsConfig } from "./deal-sync";
 import { closeDealsDbPool } from "./billing-db";
-
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
 
 const DRY_RUN = process.argv.includes("--dry-run");
 

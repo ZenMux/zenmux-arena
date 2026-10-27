@@ -5,7 +5,7 @@ using `pnpm install --frozen-lockfile`, including development dependencies.
 The task uses the same runtime as local development, independently of the public
 application's `engines.node: "24.x"` setting for Vercel.
 
-Add the variables from this directory's `.env.example` to the repository's `.env.local` on the internal host;
+Fill the repository root's `.env.local` using the root `.env.example` on the internal host;
 never copy real environment files to the public application's deployment.
 Run `pnpm data:refresh --check`, then `pnpm data:refresh` to publish all datasets.
 `pnpm data:refresh --help` lists options. No separate build or deployment package is required.
