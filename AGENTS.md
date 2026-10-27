@@ -30,7 +30,6 @@ pnpm lint
 pnpm exec tsc --noEmit
 pnpm cache:test           # isolated Node tests for public snapshot reads (no external IO)
 pnpm data:refresh:test    # isolated internal producer tests
-pnpm data:refresh:build   # build the standalone internal refresh task
 pnpm data:refresh         # publish billing/pricing/launch comparisons (internal env only)
 
 # Supabase data plane
@@ -56,8 +55,8 @@ pnpm study:aggregate --run mix-<stamp>
 
 The public application's `package.json` sets Node to **24.x** for Vercel.
 Local development uses **26.12.1**, pinned in `.nvmrc` and `.node-version`.
-The generated internal refresh package follows `.node-version` and pins
-**26.12.1**, independently of the public application's engines. Keep the two
+The internal refresh task runs directly from the full repository with the same
+**26.12.1** runtime, independently of the public application's engines. Keep the two
 local pins consistent; see `docs/shared-cache.md` for deployment configuration.
 
 `pnpm` is the package manager. **`study:test` makes model calls; it is not a unit

@@ -1,6 +1,7 @@
 # Linux crontab example. Set paths/user ownership before installing.
-# Configuration and credentials belong in /etc/arena-data-refresh.env (mode 600).
+# Keep the complete repository at /opt/zenmux-arena, with credentials in .env.local (mode 600).
 # A local lock prevents overlapping runs; Supabase leases also fence other hosts.
 # Comparison publications refresh daily; the two live products refresh every 5 min.
 # Cron does not read .zshrc. Include any proxy settings in the environment file.
-*/5 * * * * /usr/bin/flock -n /opt/arena-data-refresh/refresh.lock /usr/bin/timeout 14m /usr/bin/node --use-env-proxy --env-file /etc/arena-data-refresh.env /opt/arena-data-refresh/refresh.mjs >> /var/log/arena-data-refresh.log 2>&1
+PATH=/usr/local/bin:/usr/bin:/bin
+*/5 * * * * cd /opt/zenmux-arena && /usr/bin/flock -n /var/lock/arena-data-refresh.lock /usr/bin/timeout 14m pnpm data:refresh >> /var/log/arena-data-refresh.log 2>&1

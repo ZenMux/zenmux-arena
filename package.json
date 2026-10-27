@@ -32,7 +32,6 @@
     "cache:test": "node scripts/with-env-proxy.mjs tsx --test research/cache/*.test.ts",
     "supabase:test": "node scripts/with-env-proxy.mjs tsx scripts/supabase-setup.ts --test",
     "data:refresh": "node scripts/with-env-proxy.mjs tsx --env-file=.env.local internal/data-refresh/main.ts",
-    "data:refresh:build": "node internal/data-refresh/build.mjs",
     "data:refresh:test": "node scripts/with-env-proxy.mjs tsx --test internal/data-refresh/*.test.ts",
     "deploy:verify": "node scripts/verify-public-build.mjs"
   },
@@ -68,7 +67,6 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "esbuild": "0.28.2",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.4.3",
     "mysql2": "^3.24.6",

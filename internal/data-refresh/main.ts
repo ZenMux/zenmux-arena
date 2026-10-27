@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-import { existsSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { snapshotId, snapshotKey, validDeals, validEconomics, type SnapshotPayload } from "@research/cache/payload";
 import { COMPARISON_REFRESH_SECONDS, COMPARISON_SNAPSHOT_ID, validComparison } from "@research/token-economics/comparison-snapshot";
 import { DEFAULT_LIVE_START_ISO, type LiveRangeKey, type LiveTokenEconomicsPayload } from "@research/token-economics/live-config";
@@ -23,13 +20,11 @@ function arg(name: string): string | undefined {
 
 async function main() {
   if (process.argv.includes("--help")) {
-    console.log("Usage: node [--use-env-proxy] [--env-file path] refresh.mjs [--modules comparison,economics,deals] [--ranges 72h,all] [--max-tail-hours 24] [--force] [--check]");
+    console.log("Usage: pnpm data:refresh [--modules comparison,economics,deals] [--ranges 72h,all] [--max-tail-hours 24] [--force] [--check]");
     return;
   }
   const allowed = new Set(["--modules", "--ranges", "--max-tail-hours", "--force", "--check"]);
   for (const value of process.argv.slice(2)) if (value.startsWith("--") && !allowed.has(value)) throw new Error("Unknown refresh option.");
-  const bundledConfig = path.join(path.dirname(fileURLToPath(import.meta.url)), "config");
-  process.env.DATA_REFRESH_CONFIG_DIR ||= existsSync(bundledConfig) ? bundledConfig : path.join(process.cwd(), "config");
   process.env.BILLING_DEALS_QUERY_TIMEOUT_MS ||= "300000";
   process.env.BILLING_ECON_QUERY_TIMEOUT_MS ||= "300000";
   const modules = (arg("--modules") ?? "comparison,economics,deals").split(",");

@@ -38,7 +38,7 @@ function isRecord(value: unknown): value is JsonRecord {
 }
 
 function configPath(): string {
-  return path.join(process.env.DATA_REFRESH_CONFIG_DIR || path.join(process.cwd(), "config"), "token-economics-live-models.json");
+  return path.join(process.cwd(), "config", "token-economics-live-models.json");
 }
 
 function fail(message: string): never {

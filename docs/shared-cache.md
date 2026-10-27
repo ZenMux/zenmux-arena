@@ -19,8 +19,8 @@ Node versions are configured separately:
   and patch updates automatically; it cannot pin an exact patch version.
 - **Local development:** `.nvmrc` and `.node-version` pin **26.12.1**.
   Use `nvm install` / `nvm use` when managing Node with nvm.
-- **Internal refresh package:** its generated `package.json` pins **26.12.1**,
-  read from `.node-version`, independently of the public application's engines.
+- **Internal refresh task:** runs from the complete repository with Node
+  **26.12.1**, using the same pins as local development.
 
 As checked on 2026-10-27, [Vercel supports 24.x and 22.x](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions).
 The local exact pin does not change the Vercel runtime selection.
@@ -59,44 +59,40 @@ Next's deployment traces, and MySQL is a development/internal-task dependency.
 No internal hostname, database name or credential is stored in tracked config;
 all source connection settings come from the task's environment.
 
-Build a standalone Node 26.12.1 deployment directory:
+On the internal host, use the complete repository with Node 26.12.1 and install
+dependencies, including development dependencies:
 
 ```bash
-pnpm data:refresh:build
-cd dist/data-refresh
-npm install --omit=dev --ignore-scripts
+pnpm install --frozen-lockfile
 ```
 
-Copy that directory to the internal host, then configure its environment using
-`internal/data-refresh/.env.example`. Required variables are `BILLING_DB_HOST`,
+Configure the repository's `.env.local` using `internal/data-refresh/.env.example`.
+Required variables are `BILLING_DB_HOST`,
 `BILLING_DB_PORT`, `BILLING_DB_USER`, `BILLING_DB_PASSWORD`, `BILLING_DB_DATABASE`,
 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `ZENMUX_MANAGEMENT_API_KEY`.
-Use a source account with SELECT access only. Keep the environment file outside
-the deployment directory with mode 600; real environment values override the file.
+Use a source account with SELECT access only. Keep `.env.local` untracked with
+mode 600; real environment values override the file.
 
 ```bash
-node --use-env-proxy --env-file /etc/arena-data-refresh.env /opt/arena-data-refresh/refresh.mjs --check
-node --use-env-proxy --env-file /etc/arena-data-refresh.env /opt/arena-data-refresh/refresh.mjs
+pnpm data:refresh --check
+pnpm data:refresh
 ```
 
-`internal/data-refresh/refresh.cron` is a Linux cron example. Adjust the Node
-binary, installation/log paths and service user before installing it. It runs
+`internal/data-refresh/refresh.cron` is a Linux cron example that runs the command
+from the repository root. Adjust its PATH, repository/log paths and service user
+before installing it. It runs
 every five minutes, uses `flock` to skip overlapping local runs, and enforces a
 14-minute process budget. Supabase leases also exclude competing hosts and
 expire after 15 minutes if a process is stopped.
 
-If the internal host requires an outbound proxy, add `NODE_USE_ENV_PROXY=1`,
-`HTTPS_PROXY` / `HTTP_PROXY`, and any `NO_PROXY` exclusions to that environment
-file. Keep `--use-env-proxy` on the Node command: putting the activation variable
-only in an env file did not enable the proxy in a Node 26.12.1 transport test.
-Both Node options precede the script path. Cron does not read `.zshrc`.
-Interactive shells may instead export the activation and proxy variables in `.zshrc`.
+If the internal host requires an outbound proxy, add `HTTPS_PROXY` / `HTTP_PROXY`
+and any `NO_PROXY` exclusions to `.env.local`. Cron does not read `.zshrc`.
 
 Repository commands (`pnpm dev`, `build`, `start`, `data:refresh`, and Supabase /
 billing maintenance commands) use `scripts/with-env-proxy.mjs`. It enables
 `NODE_USE_ENV_PROXY=1` before starting Node, including when the host omits it,
-and reads only proxy addresses/exclusions from local env files. The independent
-cron runner uses `--use-env-proxy`, so it also needs no host activation variable.
+and reads only proxy addresses/exclusions from local env files. The refresh
+command also loads credentials from `.env.local` before executing the task.
 
 Comparison publications refresh daily. Economics ALL uses closed daily buckets;
 recent Economics and both Deals ranges advance on their existing five-minute
@@ -111,7 +107,6 @@ Options:
 - `--max-tail-hours 24`: bound ALL catch-up progress; maximum 168 hours.
 - `--force`: run even when the existing publication is current.
 - `--check`: verify source SELECT access and print shared snapshot availability.
-- Node's `--env-file path` (before the script): load task credentials and proxy configuration at startup.
 
 Each scheduled job acquires its lease, re-reads the latest baseline, queries
 outside a database transaction, validates the payload, publishes under the
@@ -133,7 +128,7 @@ pnpm tokendeals:sync
 They load `.env.local` when run from this checkout and expect the generic
 `BILLING_DB_*` task settings. Use explicit Deals backfill for full-ledger recovery
 or newly added historical deals. Roster sync preserves manual visibility, factors
-and deal-window choices; review those changes before rebuilding the producer.
+and deal-window choices; review those changes before the next refresh.
 
 ## Validation and release
 

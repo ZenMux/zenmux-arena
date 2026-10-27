@@ -269,7 +269,7 @@ pnpm study:report      # aggregate.json → report.md
 pnpm dev               # http://localhost:3000
 ```
 
-Token Economics, Token Deals and model-price comparisons read Supabase publications. Build the independent internal producer with `pnpm data:refresh:build`; its environment template and cron example are in `internal/data-refresh/`. Repository Node commands automatically enable proxy support; proxy addresses remain environment configuration. See [shared-data setup and recovery](docs/shared-cache.md) and `.env.example`.
+Token Economics, Token Deals and model-price comparisons read Supabase publications. Run `pnpm data:refresh` from the complete repository on the internal host; its environment template and cron example are in `internal/data-refresh/`. Repository Node commands automatically enable proxy support; proxy addresses remain environment configuration. See [shared-data setup and recovery](docs/shared-cache.md) and `.env.example`.
 
 ---
 
