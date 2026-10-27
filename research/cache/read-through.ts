@@ -13,6 +13,8 @@ export interface CacheResult<T> {
 export interface RefreshOptions {
   /** Routes/RSCs pass Next after(). Without a lifecycle hook we await all work. */
   waitUntil?: (work: Promise<unknown>) => void;
+  /** Defaults to ARENA_CACHE_REFRESH_ENABLED (false for snapshot-only hosts). */
+  refreshEnabled?: boolean;
 }
 interface Options<T extends SnapshotPayload> extends RefreshOptions {
   key: string;
@@ -32,6 +34,7 @@ interface Entry<T> {
 }
 
 export class CacheBusyError extends Error {}
+export class CacheSnapshotUnavailableError extends Error {}
 
 function newer<T extends SnapshotPayload>(a: T | null, b: T | null): T | null {
   if (!a) return b;
@@ -92,6 +95,19 @@ export class SharedSnapshotCache {
     if (baseline && o.fresh(baseline, o.now)) {
       const result: CacheResult<T> = {
         payload: { ...baseline, stale: false }, source: baseline === shared ? "supabase" : "l1-memory", persistence, elapsedMs: Date.now() - started,
+      };
+      this.remember(o, e, result);
+      return result;
+    }
+    const refreshEnabled = o.refreshEnabled ??
+      (process.env.ARENA_CACHE_REFRESH_ENABLED?.trim().toLowerCase() !== "false");
+    if (!refreshEnabled) {
+      if (!baseline) {
+        throw new CacheSnapshotUnavailableError("Shared live snapshot is unavailable and billing refresh is disabled.");
+      }
+      const result: CacheResult<T> = {
+        payload: { ...baseline, stale: true }, source: baseline === shared ? "supabase" : "l1-memory",
+        persistence, elapsedMs: Date.now() - started,
       };
       this.remember(o, e, result);
       return result;

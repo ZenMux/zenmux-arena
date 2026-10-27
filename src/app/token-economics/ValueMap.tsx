@@ -17,7 +17,7 @@ import { Eye, EyeOff } from "lucide-react";
 import type { ModelEconomics, TokenEconomicsData } from "@research/token-economics/types";
 import type { VendorId } from "@research/lib/types";
 import { usd, tokens, perDay, perDollarDay, vendorColor, PANEL_SCROLLBAR } from "./lib";
-import { hasVendorIcon } from "@/components/ZenMuxIcons";
+import { hasVendorIcon } from "@/lib/vendor-icons";
 import { VendorGlyph } from "./components";
 import { useElementHeight } from "./useElementHeight";
 

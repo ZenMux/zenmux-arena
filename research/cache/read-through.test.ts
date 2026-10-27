@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { SharedSnapshotCache } from "./read-through";
+import { CacheSnapshotUnavailableError, SharedSnapshotCache } from "./read-through";
 import type { SnapshotPayload } from "./payload";
 import type { SnapshotStore } from "./supabase";
 
@@ -16,10 +16,10 @@ function fixture(initial: Payload | null = old) {
   let value = initial;
   let owner: string | null = null;
   let seq = 0;
-  const counts = { writes: 0, loads: 0, reads: 0 };
+  const counts = { writes: 0, loads: 0, reads: 0, acquires: 0 };
   const store: SnapshotStore<Payload> = {
     async read() { counts.reads++; return value ? structuredClone(value) : null; },
-    async acquire() { if (owner) return null; return owner = String(++seq); },
+    async acquire() { counts.acquires++; if (owner) return null; return owner = String(++seq); },
     async publish(payload, token) {
       if (token !== owner || (value && Date.parse(payload.to) < Date.parse(value.to))) return false;
       counts.writes++; value = structuredClone(payload); return true;
@@ -50,6 +50,58 @@ test("fresh shared snapshot survives a process restart without origin IO", async
   assert.equal(result.payload.generatedAt, fresh.generatedAt);
   assert.equal(f.counts.loads, 0);
   assert.equal(f.counts.writes, 0);
+});
+
+test("snapshot-only hosts serve expired data without billing IO or a refresh lease", async () => {
+  const f = fixture();
+  const lifecycle: Promise<unknown>[] = [];
+  const result = await new SharedSnapshotCache().get({ ...f.options, refreshEnabled: false,
+    waitUntil: work => { lifecycle.push(work); },
+  });
+  assert.equal(result.source, "supabase");
+  assert.equal(result.persistence, "shared");
+  assert.equal(result.payload.stale, true);
+  assert.equal(result.payload.to, old.to);
+  assert.equal(result.payload.total, old.total);
+  assert.equal(f.counts.loads, 0);
+  assert.equal(f.counts.acquires, 0);
+  assert.equal(f.counts.writes, 0);
+  assert.equal(lifecycle.length, 0);
+  assert.deepEqual(f.value(), old);
+});
+
+test("snapshot-only hosts fail without a usable snapshot instead of querying billing", async () => {
+  const f = fixture(null);
+  await assert.rejects(new SharedSnapshotCache().get({ ...f.options, refreshEnabled: false }),
+    CacheSnapshotUnavailableError);
+  assert.equal(f.counts.loads, 0);
+  assert.equal(f.counts.acquires, 0);
+  assert.equal(f.counts.writes, 0);
+});
+
+test("snapshot-only hosts do not query billing during a cold Supabase outage", async () => {
+  const f = fixture();
+  f.store.read = async () => { throw new Error("cache offline"); };
+  await assert.rejects(new SharedSnapshotCache().get({ ...f.options, refreshEnabled: false }),
+    CacheSnapshotUnavailableError);
+  assert.equal(f.counts.loads, 0);
+  assert.equal(f.counts.acquires, 0);
+});
+
+test("the deployment environment can disable request-driven billing refreshes", async () => {
+  const previous = process.env.ARENA_CACHE_REFRESH_ENABLED;
+  process.env.ARENA_CACHE_REFRESH_ENABLED = "false";
+  try {
+    const f = fixture();
+    const result = await new SharedSnapshotCache().get(f.options);
+    assert.equal(result.payload.stale, true);
+    assert.equal(result.source, "supabase");
+    assert.equal(f.counts.loads, 0);
+    assert.equal(f.counts.acquires, 0);
+  } finally {
+    if (previous === undefined) delete process.env.ARENA_CACHE_REFRESH_ENABLED;
+    else process.env.ARENA_CACHE_REFRESH_ENABLED = previous;
+  }
 });
 
 test("concurrent cold requests share one query and a durable write", async () => {

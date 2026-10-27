@@ -25,7 +25,8 @@ import {
   type LiveYAxisKey,
 } from "@research/token-economics/live-config";
 import { tokens, usd, PANEL_SCROLLBAR } from "./lib";
-import { VendorIcon, hasVendorIcon } from "@/components/ZenMuxIcons";
+import { VendorIcon } from "@/components/ZenMuxIcons";
+import { hasVendorIcon } from "@/lib/vendor-icons";
 import { VendorGlyph } from "./components";
 import { LiveSkeletonBoard, LiveSkeletonStyles } from "./LiveSkeletonChart";
 import { useElementHeight } from "./useElementHeight";

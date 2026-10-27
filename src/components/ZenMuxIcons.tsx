@@ -90,6 +90,7 @@ import {
   Zenmux,
 } from "@zenmux/icons";
 import { cn } from "@/lib/utils";
+import { resolveVendorIconKey, type VendorIconKey } from "@/lib/vendor-icons";
 
 type SvgIconComponent = ComponentType<
   SVGProps<SVGSVGElement> & { size?: number | string }
@@ -134,7 +135,7 @@ function monoEntry(
   };
 }
 
-const ICON_ENTRIES: Record<string, IconEntry> = {
+const ICON_ENTRIES: Record<VendorIconKey, IconEntry> = {
   // Canonical vendor IDs (mapped to their primary model/maker mark in Arena)
   anthropic: colorEntry("claude", Claude.Color),
   openai: monoEntry("openai", Openai.Dark, Openai.Light),
@@ -279,25 +280,9 @@ const ICON_ENTRIES: Record<string, IconEntry> = {
   zcode: colorEntry("zcode", Zcode.Color),
 };
 
-function normalizeIconKey(raw: string | null | undefined): string {
-  if (!raw) return "";
-  let key = raw.trim().toLowerCase();
-  if (key.startsWith("other:")) key = key.slice("other:".length);
-  if (key.startsWith("/model-logo/")) key = key.slice("/model-logo/".length);
-  if (key.startsWith("/maker-logo/")) key = key.slice("/maker-logo/".length);
-  key = key
-    .replace(/\.(svg|png)$/i, "")
-    .replace(/_(color-dark|color-light|color|dark|light)$/i, "");
-  return key;
-}
-
 export function resolveIconEntry(vendorOrKey: string | null | undefined): IconEntry | null {
-  const key = normalizeIconKey(vendorOrKey);
-  return key ? (ICON_ENTRIES[key] ?? null) : null;
-}
-
-export function hasVendorIcon(vendorOrKey: string | null | undefined): boolean {
-  return resolveIconEntry(vendorOrKey) != null;
+  const key = resolveVendorIconKey(vendorOrKey);
+  return key ? ICON_ENTRIES[key] : null;
 }
 
 export function vendorIconPath(

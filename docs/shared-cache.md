@@ -39,6 +39,48 @@ verify public isolation. Server URL takes priority over `NEXT_PUBLIC_SUPABASE_UR
 Public variables are inlined at build time; server variables are read at runtime.
 The secret key is never placed in Next's `env` configuration or client modules.
 
+### Vercel without billing database network access
+
+If Vercel can reach Supabase but the billing MySQL/OceanBase endpoint is only
+reachable from your internal network, set these server environment variables
+in the Vercel project for each deployed environment, then redeploy:
+
+```dotenv
+SUPABASE_URL=your-project-url
+SUPABASE_SECRET_KEY=your-server-secret-key
+ARENA_CACHE_REFRESH_ENABLED=false
+```
+
+This disables request-driven billing refreshes for both Economics and Deals,
+including the homepage's Deals summary. It reads the shared snapshots without
+acquiring refresh leases or opening billing DB connections. Vercel does not
+need `TOKEN_ECON_LIVE_DB_*` credentials in this mode. A snapshot past its freshness
+boundary is returned with `stale: true` and its original `to` cutoff. If no usable
+snapshot exists, Economics returns HTTP 503 and Deals uses its existing degraded
+response; the server never falls back to a billing query.
+
+Refresh the snapshots regularly from an environment that can reach both the
+billing database and Supabase:
+
+```bash
+pnpm tokenecon:refresh
+pnpm tokendeals:refresh
+pnpm supabase:check --require-data
+```
+
+The explicit maintenance commands still refresh and publish data when
+`ARENA_CACHE_REFRESH_ENABLED=false`; the flag only controls the request cache.
+For missing Deals ALL data, initialize it with `pnpm tokendeals:backfill` first.
+Vercel's existing page warm-up cron only reads snapshots in this mode and cannot
+replace maintenance from a network that reaches the billing database.
+
+`connect ETIMEDOUT` means a billing connection was not established within the
+10-second connection timeout. Raising `TOKEN_DEALS_QUERY_TIMEOUT_MS` or Vercel's
+function duration does not make a private endpoint reachable. If request-driven
+refreshes are desired, provide a reachable endpoint with appropriate network
+access and place the Vercel Functions region close to that endpoint before
+re-enabling refreshes.
+
 All three tables have RLS enabled and no grants to `anon`/`authenticated`.
 Only the server has data-plane access. The browser uses Arena's existing APIs.
 RPCs are `SECURITY INVOKER`, restricted to `service_role`, with a fixed search path.

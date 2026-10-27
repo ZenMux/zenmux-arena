@@ -1,6 +1,6 @@
 import { gzipSync } from "node:zlib";
 import { after } from "next/server";
-import { CacheBusyError } from "@research/cache/read-through";
+import { CacheBusyError, CacheSnapshotUnavailableError } from "@research/cache/read-through";
 import {
   getLiveTokenEconomicsWithMeta,
   LiveConfigError,
@@ -78,6 +78,11 @@ export async function GET(request: Request) {
       payload.stale || persistence === "unavailable" ? "stale" : "healthy",
     );
   } catch (error) {
+    if (error instanceof CacheSnapshotUnavailableError) {
+      return Response.json({ error: error.message }, {
+        status: 503, headers: { "Cache-Control": "no-store", "X-Cache-Source": "error-shared-snapshot" },
+      });
+    }
     if (error instanceof CacheBusyError) {
       return Response.json({ error: error.message }, {
         status: 503, headers: { "Retry-After": "5", "Cache-Control": "no-store", "X-Cache-Source": "shared-refresh" },
