@@ -14,7 +14,7 @@ import { parse as parseYaml } from "yaml";
 import { vendorColor } from "../../research/lib/geometry";
 import type { GraphData } from "../../research/lib/types";
 
-export const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
+export const REPO_ROOT = path.resolve(__dirname, "..", "..");
 export const AGG_PATH = path.join(
   REPO_ROOT,
   "results/who-are-you/mix-20260601T062425/aggregate.json",

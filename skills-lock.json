@@ -19,12 +19,6 @@
       "skillPath": "academic-writing-skills/latex-thesis-zh/SKILL.md",
       "computedHash": "f5ef9d14cfbb9d46bb3902a3da3f8fbed42203738bad5afc4ba3a0751a7601db"
     },
-    "migrate-to-vinext": {
-      "source": "cloudflare/vinext",
-      "sourceType": "github",
-      "skillPath": ".agents/skills/migrate-to-vinext/SKILL.md",
-      "computedHash": "a0356b9e9d04ad991f44132643d8d4d32b4bb9da0647e23acadc82f450c1c85b"
-    },
     "morphe": {
       "source": "zenmux/skills",
       "sourceType": "github",

@@ -259,9 +259,7 @@ pnpm install
 
 # 2. 配置所需的密钥——完整列表见 .env.example
 cp .env.example .env.local
-# 编辑 .env.local：ZENMUX_API_KEY 用于研究模型调用；
-# ZENMUX_MANAGEMENT_API_KEY 用于 Economics 日用量和价值图。
-pnpm env:check                    # 只检查变量名和状态，不输出值
+export ZENMUX_API_KEY=sk-...        # Who Are You? 流程必需
 
 # 3. 运行完整的 "Who Are You?" 流程
 pnpm study:test        # ask → extract → aggregate（带完整性校验）
@@ -270,8 +268,6 @@ pnpm study:report      # aggregate.json → report.md
 # 4. 在浏览器中查看一切
 pnpm dev               # http://localhost:3000
 ```
-
-本地 Next/Vite 启动、研究 CLI 和维护 CLI 统一读取 `.env.local`，遵循默认优先级：已有进程环境变量（shell/CI 注入）优先，文件只补充缺失项。不需要再在 `~/.zshrc` 或 `.dev.vars` 维护一份项目配置。线上使用运行时 Secrets/env，而不是上传本地文件。详见 [环境变量说明](docs/environment.md)。
 
 Token Economics 与 Token Deals 通过 Supabase 共享快照提供实时数据：访问时读取快照，过期后增量查询计费库并写回，所有实例共享刷新结果。部署只打包代码和配置，不再携带本地 JSON 缓存。共享快照、权限配置和回填步骤见 [数据链路说明](docs/shared-cache.md)，凭据见 `.env.example`。
 
@@ -359,7 +355,3 @@ Arena 就是为持续扩充而设计的。大致步骤：
 <sub>项目脚手架来自 <a href="https://nextjs.org">Next.js</a>；原始 create-next-app 文档见 <a href="https://nextjs.org/docs">nextjs.org/docs</a>。</sub>
 
 </div>
-
-## Cloudflare Workers / Vinext
-
-参阅 [Workers 迁移指南](docs/cloudflare.md)：独立构建、本地验收、运行时凭据及评审后的部署流程。原 Next.js / Morphe 部署入口保留。

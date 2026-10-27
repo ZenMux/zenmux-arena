@@ -14,7 +14,6 @@
 //   pnpm study:extract [--config config/study.yaml] [--run <stamp|latest>]
 //                      [--re-extract] [--force] [--max-rounds <n>]
 
-import "../../scripts/local-env";
 import { enumerateTasks } from "../lib/ask";
 import { parseArgs } from "../lib/args";
 import { makeClient } from "../lib/client";

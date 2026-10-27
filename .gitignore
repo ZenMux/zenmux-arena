@@ -65,8 +65,9 @@ dist/
 downloads/
 eggs/
 .eggs/
+# Root-only Python library output; keep application source under src/lib tracked.
 /lib/
-/lib64/
+lib64/
 parts/
 sdist/
 var/
@@ -89,9 +90,3 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 temp/
-.vinext/
-.wrangler/
-
-# Worker build-only inputs and local secrets
-/.wrangler/
-.dev.vars*

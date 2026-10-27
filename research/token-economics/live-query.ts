@@ -138,8 +138,6 @@ function getPool(): Pool {
     dateStrings: true,
     supportBigNumbers: true,
     decimalNumbers: true,
-    // Workers disallows generated code; mysql2 must use its static row parser.
-    disableEval: true,
   });
   console.log(`[token-economics/live] DB pool initialized: max=${poolCfg.connectionLimit}, queue=${poolCfg.queueLimit}, maxIdle=${poolCfg.maxIdle}`);
   return pool;

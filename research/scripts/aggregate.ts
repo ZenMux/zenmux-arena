@@ -13,7 +13,6 @@
 //
 // Usage: pnpm study:aggregate [--config config/study.yaml] [--run <stamp|latest>] [--force]
 
-import "../../scripts/local-env";
 import fs from "node:fs";
 import path from "node:path";
 import { aggregate } from "../lib/aggregate";

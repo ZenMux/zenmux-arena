@@ -2,7 +2,6 @@
 //
 // Usage: pnpm study:report [--config config/study.yaml] [--run <stamp|latest>]
 
-import "../../scripts/local-env";
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "../lib/args";

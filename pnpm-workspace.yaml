@@ -1,5 +1,4 @@
 allowBuilds:
-  workerd: true
   esbuild: false
   msw: true
   sharp: false
@@ -8,10 +7,6 @@ ignoredBuiltDependencies:
   - esbuild
   - sharp
   - unrs-resolver
-minimumReleaseAgeExclude:
-  - '@cloudflare/vite-plugin@1.65.0'
-  - miniflare@5.20261019.2-beta
-  - wrangler@4.152.0
 supportedArchitectures:
   os:
     - current

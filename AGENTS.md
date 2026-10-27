@@ -27,7 +27,7 @@ pnpm dev                  # localhost:3000; /, /token-economics, /token-deals, /
 pnpm build                # Next.js standalone production output
 pnpm start                # local Next production server
 pnpm lint
-pnpm typecheck
+pnpm exec tsc --noEmit
 pnpm cache:test           # isolated Node tests for shared-cache behavior (no external IO)
 
 # Supabase data plane
@@ -53,10 +53,7 @@ pnpm study:aggregate --run mix-<stamp>
 
 `pnpm` is the package manager. **`study:test` makes model calls; it is not a unit
 test suite.** Use `cache:test` for cache regression tests. Supabase maintenance
-commands and local Next/Vite configs share `scripts/local-env.ts`: explicit
-process/shell/CI env wins; `.env.local` fills missing names. The canonical Management
-API variable is `ZENMUX_MANAGEMENT_API_KEY`. Deployed servers use runtime
-Secrets/env; never ship `.env.local`. See `docs/environment.md`.
+commands load `.env.local`; deployed servers use the function environment.
 The Morphe artifact starts with `node server.js` from the standalone root.
 
 ### Who Are You script flags
@@ -236,15 +233,3 @@ A separate model (config `extractor.model`, e.g. `deepseek/deepseek-v4-pro`) lab
 
 ### Path aliases (`tsconfig.json`)
 `@/*` → `src/*`, `@research/*` → `research/*`. The Next.js page imports types via `@research/lib/types`.
-
-### Cloudflare Workers target
-
-Use `.agents/skills/migrate-to-vinext/SKILL.md` for Workers migration work.
-`pnpm cf:ci` is the native Cloudflare Git build command (quality gates + build).
-Cloudflare Git Builds is the configured CI/CD path; no Actions workflow is installed.
-`pnpm cf:build` packages allowlisted immutable inputs and builds with Vinext;
-`pnpm cf:test` checks exact research-shard parity, and `pnpm cf:smoke` exercises
-a secret-free local Worker. Never run `study:test` as a regression suite.
-Keep the private-asset proxy guard paired with `run_worker_first`, and preserve
-Node/Next's native filesystem and renderer fallback. Read `docs/cloudflare.md`
-before changing these adapters. CI/dry-run does not authorize deployment.

@@ -17,7 +17,6 @@
 // The launch-window avg-daily metric needs the MANAGEMENT key (ZENMUX_MANAGEMENT_API_KEY);
 // without it the usage fetch is skipped and avg-daily fields stay null.
 
-import "../../scripts/local-env";
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "../lib/args";

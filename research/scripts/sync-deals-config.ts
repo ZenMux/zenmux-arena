@@ -11,7 +11,8 @@
 //   pnpm tokendeals:sync            # merge + write + print roster
 //   pnpm tokendeals:sync --dry-run  # print what would change, write nothing
 
-import "../../scripts/local-env";
+import { config as loadDotenv } from "dotenv";
+import path from "node:path";
 import {
   dealsConfigPath,
   loadDealsConfig,
@@ -21,6 +22,7 @@ import {
 import { discoverRosterFromDb, mergeDealsConfig } from "@research/token-deals/sync";
 import { closeDealsDbPool } from "@research/token-deals/db";
 
+loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
 
 const DRY_RUN = process.argv.includes("--dry-run");
 

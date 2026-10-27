@@ -15,7 +15,6 @@
 //   pnpm study:mix --runs <stampA,stampB,...>   [--config config/study.yaml]
 //   pnpm study:mix --all                         (pool every native run; skips prior mixes)
 
-import "../../scripts/local-env";
 import fs from "node:fs";
 import path from "node:path";
 import YAML from "yaml";

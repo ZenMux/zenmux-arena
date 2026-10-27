@@ -1,4 +1,4 @@
-import { compressedJson } from "@/lib/compressed-json";
+import { gzipSync } from "node:zlib";
 import { after } from "next/server";
 import {
   DealsDbConfigError,
@@ -43,8 +43,10 @@ function jsonResponse(
   };
   const json = JSON.stringify(data);
   if (acceptEncoding.includes("gzip")) {
-    const encoded = compressedJson(json);
-    return new Response(encoded.body, { status, headers: { ...headers, ...encoded.headers } });
+    const gz = gzipSync(json);
+    headers["Content-Encoding"] = "gzip";
+    headers["Content-Length"] = String(gz.length);
+    return new Response(gz, { status, headers });
   }
   return new Response(json, { status, headers });
 }

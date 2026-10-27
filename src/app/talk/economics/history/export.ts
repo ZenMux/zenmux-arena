@@ -1,12 +1,13 @@
 // Explicit one-time research export. Never imported by the application.
 import { writeFile } from "node:fs/promises";
-import "../../../../../scripts/local-env";
+import { config } from "dotenv";
 import { serviceSupabase } from "@research/cache/supabase";
 import { payloadHash, snapshotId, snapshotKey, validEconomics } from "@research/cache/payload";
 import { HISTORY_END_DATE, HISTORY_FROM, HISTORY_TO, selectHistoricalWindow } from "./window";
 import type { HistoricalEconomicsData } from "./types";
 
 async function main() {
+  config({ path: ".env.local", quiet: true });
   const key = snapshotKey(snapshotId("token-economics", "all"));
   // SELECT only. Do not call getLiveTokenEconomics/read-through/API routes:
   // those may trigger refresh, lease acquisition and persistence writes.
