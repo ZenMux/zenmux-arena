@@ -86,6 +86,7 @@ export async function fetchModelsApi(
   cache?: { revalidate?: number | false; tags?: string[] },
 ): Promise<ApiModel[]> {
   const res = await fetch(url, {
+    signal: AbortSignal.timeout(30_000),
     headers: { "User-Agent": UA, Accept: "application/json" },
     ...(cache ? { next: cache } : {}),
   });

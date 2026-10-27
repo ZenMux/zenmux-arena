@@ -1,10 +1,8 @@
 import { gzipSync } from "node:zlib";
-import { after } from "next/server";
 import {
-  DealsDbConfigError,
   buildDegradedPayload,
   getTokenDealsWithMeta,
-} from "@research/token-deals/query";
+} from "@research/token-deals/snapshot";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,7 +56,6 @@ export async function GET(request: Request) {
     const { payload, source, persistence, elapsedMs } = await getTokenDealsWithMeta(
       searchParams.get("range"),
       new Date(),
-      { waitUntil: work => after(work) },
     );
     const cachePolicy: CachePolicy = !payload.live
       ? "degraded"
@@ -76,15 +73,7 @@ export async function GET(request: Request) {
       },
       cachePolicy,
     );
-  } catch (error) {
-    // Billing DB missing/unreachable → DEGRADED, not an error: deal facts fall
-    // back to the shared snapshot and must stay usable (PRD 图 5). The
-    // client keys off `live: false` to show the unavailable state + retry.
-    if (error instanceof DealsDbConfigError) {
-      console.warn("[token-deals] live DB not configured, serving degraded payload");
-    } else {
-      console.error("[token-deals] live aggregation failed, serving degraded payload:", error);
-    }
+  } catch {
     try {
       const degraded = await buildDegradedPayload(new Date());
       return jsonResponse(degraded, acceptEncoding, { "X-Cache-Source": "degraded" });

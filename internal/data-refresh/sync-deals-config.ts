@@ -4,25 +4,26 @@
 // Pulls deal candidates (model_discount windows + `-free` models) and merges
 // them INCREMENTALLY into the config — manual edits (early endDate, online,
 // display) are never overwritten; nothing is ever deleted (see
-// research/token-deals/sync.ts for the rules). Run it, review the printed
-// roster, then hand-adjust the file if needed. The runtime only reads the
-// config, so nothing goes live until the file is committed/deployed.
+// ./deal-sync.ts for the rules). Run it, review the printed roster, then
+// hand-adjust the file if needed. Rebuild the internal package and run a
+// producer refresh to publish the new roster for public pages.
 //
 //   pnpm tokendeals:sync            # merge + write + print roster
 //   pnpm tokendeals:sync --dry-run  # print what would change, write nothing
 
 import { config as loadDotenv } from "dotenv";
 import path from "node:path";
+import { safeFailure } from "./job";
 import {
   dealsConfigPath,
   loadDealsConfig,
   saveDealsConfig,
   type DealsConfigFile,
 } from "@research/token-deals/deals-config";
-import { discoverRosterFromDb, mergeDealsConfig } from "@research/token-deals/sync";
-import { closeDealsDbPool } from "@research/token-deals/db";
+import { discoverRosterFromDb, mergeDealsConfig } from "./deal-sync";
+import { closeDealsDbPool } from "./billing-db";
 
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
+loadDotenv({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -101,7 +102,7 @@ async function main() {
 }
 
 main().catch(async (err) => {
-  console.error("[tokendeals:sync] Fatal error:", err);
+  console.error("[tokendeals:sync] Fatal error:", safeFailure(err));
   await closeDealsDbPool();
   process.exit(1);
 });

@@ -1,11 +1,12 @@
 #!/usr/bin/env tsx
 import { config as loadDotenv } from "dotenv";
 import path from "path";
-import { closeDbPool, fetchLiveTokenEconomics, incrementallyUpdateCache, readSharedCache } from "@research/token-economics/live-query";
+import { safeFailure } from "./job";
+import { closeDbPool, fetchLiveTokenEconomics, incrementallyUpdateCache, readSharedCache } from "./economics";
 import { LIVE_RANGE_OPTIONS, type LiveRangeKey } from "@research/token-economics/live-config";
 
-// Load .env.local for local runs (Morphe deployments inject env vars directly)
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
+// Local maintenance only; public deployments never run this command.
+loadDotenv({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
 
 function formatPercent(p?: number): string {
   if (p == null) return "    ";
@@ -77,7 +78,7 @@ async function main() {
       results.push({ status: "fulfilled", range });
     } catch (err) {
       results.push({ status: "rejected", reason: err, range });
-      console.error(`[refresh-live] [${i + 1}/${ranges.length}] ${range} ❌ Failed: ${err instanceof Error ? err.message : err}`);
+      console.error(`[refresh-live] [${i + 1}/${ranges.length}] ${range} ❌ Failed: ${safeFailure(err)}`);
     }
     console.log();
   }
@@ -95,7 +96,7 @@ async function main() {
   if (failed.length > 0) {
     console.error(`[refresh-live] ❌ ${failed.length}/${ranges.length} ranges failed:`);
     failed.forEach((f) => {
-      console.error(`  - ${f.range}: ${f.reason instanceof Error ? f.reason.message : f.reason}`);
+      console.error(`  - ${f.range}: ${safeFailure(f.reason)}`);
     });
     await closeDbPool();
     process.exit(1);
@@ -106,7 +107,7 @@ async function main() {
 }
 
 main().catch(async (err) => {
-  console.error("[refresh-live] Fatal error:", err);
+  console.error("[refresh-live] Fatal error:", safeFailure(err));
   await closeDbPool();
   process.exit(1);
 });

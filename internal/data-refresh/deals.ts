@@ -3,7 +3,7 @@
 // Mirrors the token-economics live pipeline's architecture (same DB, same env
 // vars, same shared Supabase cache) with independent per-deal-window money math.
 //
-// Sources (v3): deal FACTS come from model_discount + model (./discovery.ts);
+// Sources (v4): deal FACTS come from the curated roster (./deal-discovery.ts);
 // usage/cost/subsidy come from valid_usage. Two billing families, one ledger:
 //
 //   PAYG（metered / fallbackMetered）— discount_amount is EXACTLY the model
@@ -21,12 +21,8 @@
 //   point.paid / point.saved are the TOTALS of both families; subPaid/subSaved
 //   ride along so the UI can split PAYG vs 订阅.
 //
-// Layers, cheapest first (see getTokenDealsWithMeta):
-//   1. L1 in-memory cache — held until the next refresh boundary closes.
-//   2. Single-flight — concurrent callers share one in-progress merge.
-//   3. Supabase snapshot + an incremental DB query for just the tail buckets;
-//      every successful refresh is committed back to the shared snapshot.
-//   4. Full DB aggregation as the cold fallback; stale baseline on DB blips.
+// Scheduled jobs read a Supabase baseline, query a bounded tail and publish
+// under a fenced lease. Public pages use read-only loaders in research/.
 //
 // Bucketing: range "all" uses 1-day buckets (a deal can run for months), range
 // "72h" uses 1-hour buckets. In both cases the window's upper bound is the
@@ -43,11 +39,10 @@ import {
   queryRows,
   sqlDate,
   toNumber,
-} from "./db";
-import { discoverDeals } from "./discovery";
+} from "./billing-db";
+import { discoverDeals } from "./deal-discovery";
 import {
   DEALS_SCHEMA_VERSION,
-  DEFAULT_DEAL_RANGE,
   dateStartMs,
   dealRangeOption,
   dealStatus,
@@ -59,13 +54,14 @@ import {
   type DealUsagePoint,
   type DealsTotals,
   type TokenDealsPayload,
-} from "./types";
+} from "@research/token-deals/types";
 
-import { snapshotId, snapshotKey, validDeals } from "../cache/payload";
-import { supabaseSnapshotStore, writeSharedSnapshot } from "../cache/supabase";
-import { sharedSnapshotCache, type CacheSource, type CacheResult, type RefreshOptions } from "../cache/read-through";
+import { snapshotId, validDeals } from "@research/cache/payload";
+import { supabaseSnapshotStore } from "@research/cache/supabase";
+import { writeSharedSnapshot } from "./supabase-writer";
+import { compactDealsPayload } from "@research/token-deals/presentation";
 
-export { DealsDbConfigError, closeDealsDbPool } from "./db";
+export { DealsDbConfigError, closeDealsDbPool } from "./billing-db";
 
 const TABLE = "valid_usage";
 // OceanBase hint for the aggregation queries. The (model_slug, created_at)
@@ -78,9 +74,9 @@ const QUERY_HINT = "/*+ READ_CONSISTENCY(WEAK) PARALLEL(4) */";
 // Re-fetch this many trailing buckets on incremental merges so late-arriving
 // billing rows (backfills) still land. 3 days / 12 hours of overlap. This deep
 // sweep is for explicit Supabase refresh/backfill commands with a longer
-// query budget than request-driven refreshes.
+// query budget than frequent scheduled refreshes.
 const OVERLAP_BUCKETS: Record<number, number> = { [DAY]: 3, [HOUR]: 12 };
-// The runtime refreshes every 5 minutes, so re-querying 3 extra days of DAY
+// The scheduled task refreshes every 5 minutes, so re-querying 3 extra days of DAY
 // buckets on every poll is what pushed the healthy-path query to ~100s and
 // made it timeout-prone. One trailing day is enough for rows that arrive
 // minutes-to-hours late; anything later is swept up by an explicit maintenance
@@ -110,11 +106,6 @@ function bucketIso(bucket: string | Date): string {
     5-minute refresh boundary. Pure arithmetic, no IO. */
 function currentDataAsOf(now: Date): number {
   return floorTo(now.getTime(), REFRESH_INTERVAL_SECONDS);
-}
-
-function msUntilNextBoundary(now: Date): number {
-  const step = REFRESH_INTERVAL_SECONDS * 1000;
-  return Math.max(1_000, floorTo(now.getTime(), REFRESH_INTERVAL_SECONDS) + step - now.getTime());
 }
 
 function bucketSecondsFor(range: DealRangeKey): number {
@@ -384,52 +375,7 @@ function assemble(params: {
 // available standalone for legacy baselines read off disk.
 // ---------------------------------------------------------------------------
 
-const MONEY_DECIMALS = 4;
-
-function roundMoney(n: number): number {
-  return Number(n.toFixed(MONEY_DECIMALS));
-}
-
-function compactPoint(p: DealUsagePoint): DealUsagePoint {
-  return {
-    ...p,
-    paid: roundMoney(p.paid),
-    saved: roundMoney(p.saved),
-    subPaid: roundMoney(p.subPaid),
-    subSaved: roundMoney(p.subSaved),
-  };
-}
-
-function compactStats(s: DealStats): DealStats {
-  return {
-    ...s,
-    paid: roundMoney(s.paid),
-    saved: roundMoney(s.saved),
-    subPaid: roundMoney(s.subPaid),
-    subSaved: roundMoney(s.subSaved),
-  };
-}
-
-/** Round every money field in the payload to MONEY_DECIMALS. Idempotent. */
-export function compactDealsPayload(payload: TokenDealsPayload): TokenDealsPayload {
-  return {
-    ...payload,
-    totals: payload.totals
-      ? {
-          ...payload.totals,
-          saved: roundMoney(payload.totals.saved),
-          paid: roundMoney(payload.totals.paid),
-          subSaved: roundMoney(payload.totals.subSaved),
-          subPaid: roundMoney(payload.totals.subPaid),
-        }
-      : null,
-    deals: payload.deals.map((deal) => ({
-      ...deal,
-      stats: deal.stats ? compactStats(deal.stats) : null,
-      points: deal.points ? deal.points.map(compactPoint) : null,
-    })),
-  };
-}
+export { compactDealsPayload } from "@research/token-deals/presentation";
 
 /** Saved-weighted mean discount across active PAID deals; plain mean before any
     usage lands (all weights zero). Free deals (discount 0) are excluded so they
@@ -695,94 +641,3 @@ export async function incrementallyUpdate(
   return payload;
 }
 
-// ---------------------------------------------------------------------------
-// Degraded payload — deal facts from the freshest shared snapshot, no money
-// numbers. (Deal discovery lives in the DB now, so when the DB is down the
-// baseline is the only fact source left; with no baseline the page shows its
-// error panel and retries.)
-// ---------------------------------------------------------------------------
-
-let lastSuccessAt: string | null = null;
-
-export async function buildDegradedPayload(now = new Date()): Promise<TokenDealsPayload> {
-  // Only a same-schema baseline is safe to surface — an older baseline's deals
-  // lack fields the client relies on (dealType/providers/sub split).
-  const candidates = await Promise.all(["all", "72h"].map(range =>
-    readSharedCache(range as DealRangeKey).catch(() => null)));
-  const baseline = candidates.find((b) => b?.schema === DEALS_SCHEMA_VERSION) ?? null;
-  const dataAsOfMs = currentDataAsOf(now);
-  const visible: DealSeries[] = (baseline?.deals ?? [])
-    .map(
-      (deal): DealSeries => ({
-        ...deal,
-        status: dealStatus(deal, now),
-        stats: null,
-        points: null,
-      }),
-    )
-    .filter((d) => d.status !== "scheduled");
-  // Deepest discount first — with no SAVED to rank by, rule 6's tiebreak is the order.
-  visible.sort((a, b) => a.discount - b.discount);
-  return {
-    schema: DEALS_SCHEMA_VERSION,
-    generatedAt: now.toISOString(),
-    refreshIntervalSeconds: REFRESH_INTERVAL_SECONDS,
-    range: DEFAULT_DEAL_RANGE,
-    bucketSeconds: DAY,
-    from: new Date(dataAsOfMs).toISOString(),
-    to: new Date(dataAsOfMs).toISOString(),
-    live: false,
-    lastSuccessAt: lastSuccessAt ?? baseline?.lastSuccessAt ?? null,
-    activeCount: visible.filter((d) => d.status === "active").length,
-    endedCount: visible.filter((d) => d.status === "ended").length,
-    totals: null,
-    deals: visible,
-  };
-}
-
-// Runtime refreshes preserve incremental progress in Supabase across deployments.
-export type DealsFetchSource = CacheSource;
-export type DealsFetchResult = CacheResult<TokenDealsPayload>;
-const RUNTIME_MAX_TAIL_MS = DAY * 1000;
-
-async function refreshPayload(
-  range: DealRangeKey,
-  baseline: TokenDealsPayload | null,
-  now: Date,
-): Promise<{ payload: TokenDealsPayload; source: DealsFetchSource }> {
-  if (baseline) {
-    const merged = await incrementallyUpdate(range, baseline, now,
-      range === "all" ? { maxTailMs: RUNTIME_MAX_TAIL_MS } : {});
-    if (merged) return { payload: merged, source: "incremental-db" };
-  }
-  if (range === "all") {
-    if (baseline) throw new Error("The shared ledger is incompatible with the current aggregation.");
-    // Missing ledger: initialize a bounded chunk, then visits extend it. Never
-    // issue a full-history query inside a request. The migration normally seeds it.
-    const deals = await discoverDeals();
-    const first = Math.max(dealsStartMs(), Math.min(...deals.map(d => dateStartMs(d.startDate))));
-    const target = Math.min(currentDataAsOf(now), first + RUNTIME_MAX_TAIL_MS);
-    if (!Number.isFinite(target)) return { payload: await buildDegradedPayload(now), source: "degraded-no-baseline" };
-    const payload = await fetchTokenDeals(range, new Date(target));
-    return { payload: { ...payload, generatedAt: now.toISOString(), lastSuccessAt: now.toISOString() }, source: "full-db" };
-  }
-  return { payload: await fetchTokenDeals(range, now), source: "full-db" };
-}
-
-export async function getTokenDealsWithMeta(
-  requestedRange: string | null | undefined,
-  now = new Date(),
-  options: RefreshOptions = {},
-): Promise<DealsFetchResult> {
-  const range = dealRangeOption(requestedRange).key;
-  const id = snapshotId("token-deals", range);
-  const result = await sharedSnapshotCache().get<TokenDealsPayload>({
-    key: snapshotKey(id), store: supabaseSnapshotStore(id), now, ...options,
-    valid: (value): value is TokenDealsPayload => validDeals(value, range),
-    fresh: (p, at) => Date.parse(p.to) >= currentDataAsOf(at),
-    ttlMs: (_, at) => Math.min(15_000, msUntilNextBoundary(at)),
-    load: baseline => refreshPayload(range, baseline, now),
-  });
-  if (result.payload.live) lastSuccessAt = result.payload.lastSuccessAt ?? lastSuccessAt;
-  return { ...result, payload: compactDealsPayload(result.payload) };
-}

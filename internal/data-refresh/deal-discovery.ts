@@ -1,10 +1,9 @@
-// Token Deals（让利账本）— config-driven deal discovery (SERVER-ONLY).
+// Token Deals（让利账本）— config-driven deal discovery (INTERNAL-ONLY).
 //
 // v4: the human-curated roster in config/token-deals.json is the single source
 // of deal FACTS (windows, factors, online/display switches) — produced by
-// `pnpm tokendeals:sync` (see ./sync.ts) and confirmed by hand. The runtime
-// never queries model_discount/model anymore; the only DB the serverless path
-// touches is valid_usage (money aggregation in ./query.ts).
+// `pnpm tokendeals:sync` (see ./deal-sync.ts) and confirmed by hand. Scheduled
+// aggregation reads valid_usage in ./deals.ts. The website reads Supabase only.
 //
 // Display prices still come from the PUBLIC models API (https://zenmux.ai/api/
 // v1/models): pricings.prompt / pricings.completion are $/1M and reflect the
@@ -14,13 +13,14 @@
 // 0.1401 = 0.15 × the xiaomi 0.9339 factor, not the kingsoftcloud 0.34).
 // Free models price at 0; their struck-through list price is the paid
 // sibling's (config `sourceSlug`). The money math never uses these prices —
-// a failed API fetch just hides the card's price rows.
+// an unavailable price API preserves the previous publication.
 
 import { VENDORS } from "@research/lib/vendors";
 import { vendorForSlug } from "@research/token-economics/normalize";
-import { dealsStartMs, utcDateOf } from "./db";
-import { loadDealsConfig, type DiscountEntry, type FreeEntry } from "./deals-config";
-import type { DealPeriod, DealProvider } from "./types";
+import { dealsStartMs, utcDateOf } from "./billing-db";
+import { loadDealsConfig, type DiscountEntry, type FreeEntry } from "@research/token-deals/deals-config";
+import type { DealPeriod, DealProvider } from "@research/token-deals/types";
+import { safeFailure } from "./job";
 
 // ---------------------------------------------------------------------------
 // Display prices from the public models API
@@ -45,9 +45,8 @@ function pricingValue(model: ModelsApiModel, key: string): number | null {
   return typeof entry?.value === "number" && Number.isFinite(entry.value) ? entry.value : null;
 }
 
-/** Fetch (with in-memory TTL cache) the public per-model prompt/completion
-    prices. NEVER throws — prices are display garnish; on failure the last
-    good map (or an empty one) is returned and cards hide their price rows. */
+/** Fetch prices for publication; retain a good process memo on transient failure.
+    Without a memo, reject publication so good persisted prices are preserved. */
 async function fetchNetPrices(): Promise<PriceMap> {
   if (priceCache && Date.now() - priceCache.at < PRICES_TTL_MS) return priceCache.prices;
   try {
@@ -58,7 +57,8 @@ async function fetchNetPrices(): Promise<PriceMap> {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const body = (await res.json()) as { data?: ModelsApiModel[] };
     const prices: PriceMap = new Map();
-    for (const model of body.data ?? []) {
+    if (!Array.isArray(body.data)) throw new Error("Model listing returned an invalid envelope.");
+    for (const model of body.data) {
       const prompt = pricingValue(model, "prompt");
       const completion = pricingValue(model, "completion");
       if (model.id && prompt != null && completion != null) {
@@ -70,10 +70,10 @@ async function fetchNetPrices(): Promise<PriceMap> {
     return prices;
   } catch (err) {
     console.warn(
-      "[token-deals] models API price fetch failed, price rows will be hidden:",
-      err instanceof Error ? err.message : err,
+      "[token-deals] models API price fetch failed:", safeFailure(err),
     );
-    return priceCache?.prices ?? new Map();
+    if (priceCache) return priceCache.prices;
+    throw new Error("Model listing prices unavailable; previous publication retained.", { cause: err });
   }
 }
 

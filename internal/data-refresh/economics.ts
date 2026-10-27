@@ -1,7 +1,7 @@
 import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
 import { VENDORS } from "@research/lib/vendors";
 import type { VendorId } from "@research/lib/types";
-import { vendorForSlug } from "./normalize";
+import { vendorForSlug } from "@research/token-economics/normalize";
 import {
   DEFAULT_LIVE_BUCKET_SECONDS,
   DEFAULT_LIVE_REFRESH_INTERVAL_SECONDS,
@@ -13,13 +13,13 @@ import {
   type LiveModelSeries,
   type LiveTokenEconomicsPayload,
   type LiveUsagePoint,
-} from "./live-config";
-import { loadLiveModelConfig } from "./live-models";
-import { snapshotId, snapshotKey, validEconomics } from "../cache/payload";
-import { supabaseSnapshotStore, writeSharedSnapshot } from "../cache/supabase";
-import { sharedSnapshotCache, type CacheResult, type RefreshOptions } from "../cache/read-through";
+} from "@research/token-economics/live-config";
+import { loadLiveModelConfig } from "@research/token-economics/live-models";
+import { snapshotId, validEconomics } from "@research/cache/payload";
+import { supabaseSnapshotStore } from "@research/cache/supabase";
+import { writeSharedSnapshot } from "./supabase-writer";
 
-export { LiveConfigError } from "./live-config";
+export { LiveConfigError } from "@research/token-economics/live-config";
 
 const TABLE = "valid_usage";
 // OceanBase hint: the (model_slug, created_at) index is used but every matched
@@ -31,10 +31,10 @@ const QUERY_HINT = "/*+ READ_CONSISTENCY(WEAK) PARALLEL(4) */";
 export const LIVE_START_ENV = "TOKEN_ECON_LIVE_START_ISO";
 export const LIVE_BUCKET_SECONDS_ENV = "TOKEN_ECON_LIVE_BUCKET_SECONDS";
 export const LIVE_REFRESH_INTERVAL_SECONDS_ENV = "TOKEN_ECON_LIVE_REFRESH_INTERVAL_SECONDS";
-const QUERY_TIMEOUT_ENV = "TOKEN_ECON_LIVE_QUERY_TIMEOUT_MS";
+const QUERY_TIMEOUT_ENV = "BILLING_ECON_QUERY_TIMEOUT_MS";
 const DEFAULT_QUERY_TIMEOUT_MS = 60_000;
 
-/** Supabase snapshots are the baseline for runtime and maintenance refreshes. */
+/** Supabase snapshots are the baseline for scheduled and maintenance refreshes. */
 export async function readSharedCache(range: LiveRangeKey): Promise<LiveTokenEconomicsPayload | null> {
   const value = await supabaseSnapshotStore<LiveTokenEconomicsPayload>(snapshotId("token-economics", range)).read();
   return validEconomics(value, range) ? value : null;
@@ -46,18 +46,18 @@ async function writeSharedCache(range: LiveRangeKey, data: LiveTokenEconomicsPay
 }
 
 const DB_ENV = {
-  host: "TOKEN_ECON_LIVE_DB_HOST",
-  port: "TOKEN_ECON_LIVE_DB_PORT",
-  user: "TOKEN_ECON_LIVE_DB_USER",
-  password: "TOKEN_ECON_LIVE_DB_PASSWORD",
-  database: "TOKEN_ECON_LIVE_DB_DATABASE",
+  host: "BILLING_DB_HOST",
+  port: "BILLING_DB_PORT",
+  user: "BILLING_DB_USER",
+  password: "BILLING_DB_PASSWORD",
+  database: "BILLING_DB_DATABASE",
 } as const;
 
 const POOL_ENV = {
-  connectionLimit: "TOKEN_ECON_LIVE_DB_POOL_SIZE",
-  queueLimit: "TOKEN_ECON_LIVE_DB_QUEUE_LIMIT",
-  maxIdle: "TOKEN_ECON_LIVE_DB_MAX_IDLE",
-  idleTimeoutMs: "TOKEN_ECON_LIVE_DB_IDLE_TIMEOUT_MS",
+  connectionLimit: "BILLING_DB_POOL_SIZE",
+  queueLimit: "BILLING_DB_QUEUE_LIMIT",
+  maxIdle: "BILLING_DB_MAX_IDLE",
+  idleTimeoutMs: "BILLING_DB_IDLE_TIMEOUT_MS",
 } as const;
 
 const DEFAULT_POOL_CONFIG = {
@@ -210,34 +210,6 @@ function liveRefreshIntervalSeconds(): number {
 
 function addSeconds(d: Date, seconds: number): Date {
   return new Date(d.getTime() + seconds * 1000);
-}
-
-/**
- * The timestamp the live data SHOULD currently be advanced to, computed with
- * pure arithmetic from env config (no file/DB IO). Mirrors how both
- * `fetchLiveTokenEconomics` and `incrementallyUpdateCache` derive `dataAsOf`:
- * floor `now` to the refresh interval, then to the bucket. As long as a cached
- * payload's `to` is >= this value, nothing new could have closed yet, so the
- * cache is exact (not stale) and no DB query is needed.
- */
-function currentDataAsOf(now: Date, bucketSeconds: number): Date {
-  const refreshIntervalSeconds = liveRefreshIntervalSeconds();
-  const refreshBoundary = floorToBucket(now, refreshIntervalSeconds);
-  return floorToBucket(refreshBoundary, bucketSeconds);
-}
-
-/**
- * Milliseconds from `now` until the next refresh boundary closes — i.e. how
- * long the current answer stays bit-for-bit valid. Used as the L1 TTL so a hot
- * range is held in memory across the whole bucket window (often minutes),
- * instead of being recomputed every 10s. Clamped to a small floor so a request
- * landing exactly on a boundary still caches briefly.
- */
-function msUntilNextBoundary(now: Date): number {
-  const refreshIntervalSeconds = liveRefreshIntervalSeconds();
-  const boundary = floorToBucket(now, refreshIntervalSeconds);
-  const next = addSeconds(boundary, refreshIntervalSeconds);
-  return Math.max(1_000, next.getTime() - now.getTime());
 }
 
 function sqlDate(d: Date): string {
@@ -599,7 +571,7 @@ export async function fetchLiveTokenEconomics(
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
   });
 
-  // Maintenance commands persist here; request refreshes commit under their shared lease.
+  // Maintenance commands persist here; scheduled jobs publish under their own lease.
   if (options.persist) {
     onProgress({ stage: "write-cache", message: "Writing shared snapshot to Supabase...", percent: 95 });
     await writeSharedCache(range.key, result);
@@ -802,7 +774,7 @@ export async function incrementallyUpdateCache(
       .sort((a, b) => b.totalTokens - a.totalTokens || a.model.localeCompare(b.model)),
   });
 
-  // Maintenance commands persist here; request refreshes commit under their shared lease.
+  // Maintenance commands persist here; scheduled jobs publish under their own lease.
   if (options.persist) {
     onProgress({ stage: "write-cache", message: "Writing updated snapshot to Supabase...", percent: 95 });
     await writeSharedCache(range.key, result);
@@ -812,34 +784,3 @@ export async function incrementallyUpdateCache(
   return result;
 }
 
-export type LiveFetchResult = CacheResult<LiveTokenEconomicsPayload>;
-
-/** L1 → Supabase → incremental billing query → fenced Supabase commit. */
-export async function getLiveTokenEconomicsWithMeta(
-  requestedRange: string | null | undefined,
-  now = new Date(),
-  options: RefreshOptions = {},
-): Promise<LiveFetchResult> {
-  const range = liveRangeOption(requestedRange).key;
-  const id = snapshotId("token-economics", range);
-  const result = await sharedSnapshotCache().get<LiveTokenEconomicsPayload>({
-    key: snapshotKey(id), store: supabaseSnapshotStore(id), now, ...options,
-    valid: (value): value is LiveTokenEconomicsPayload => validEconomics(value, range),
-    fresh: (p, at) => Date.parse(p.to) >= currentDataAsOf(at, p.bucketSeconds).getTime(),
-    ttlMs: (_, at) => Math.min(15_000, msUntilNextBoundary(at)),
-    async load(baseline) {
-      if (baseline) {
-        const merged = await incrementallyUpdateCache(range, baseline, now);
-        if (merged) return { payload: merged, source: "incremental-db" };
-      }
-      return { payload: await fetchLiveTokenEconomics(range, now), source: "full-db" };
-    },
-  });
-  return {
-    ...result,
-    payload: await overlayLiveModelConfig({
-      ...compactLivePayload(result.payload),
-      dataLagSeconds: Math.max(0, Math.floor((now.getTime() - Date.parse(result.payload.to)) / 1000)),
-    }),
-  };
-}

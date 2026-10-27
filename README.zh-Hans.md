@@ -183,7 +183,7 @@ config/study.yaml
 
 <br/>
 
-线上页面是实时拉取数据的：模型列表（含全时段 `all_tokens`）是一次廉价、无需鉴权的请求，每次页面加载都会重新拉取；14 个工作日的上线窗口用量序列来自约 130 次带鉴权、限流的 `model_usage` 调用，缓存 24 小时，由每日一次的 Vercel Cron 预热。
+线上页面统一读取 Supabase 中的模型价格、模型列表用量和上市窗口对比。独立的内网任务每天采集模型列表和带鉴权的 `model_usage` 数据，计算后发布共享快照。页面请求只需要 Supabase 凭据。
 
 ```bash
 pnpm tokenecon              # 本地运行 + 审计快照（写入 results/，已不是线上数据源）
@@ -223,7 +223,7 @@ ZenMux 正在为一批旗舰模型的 token 账单支付部分费用——这是
 
 <br/>
 
-**配置文件驱动。** [`config/token-deals.json`](config/token-deals.json)（由 `research/token-deals/deals-config.ts` 读写）是所有优惠事实的唯一来源——线上页面在运行时**零**数据库查询，只读取这份配置和公开的定价 API。`pnpm tokendeals:sync` 会把从计费数据库中新发现的信息增量合并进配置（打印 diff 供人工确认），且绝不覆盖任何被手动编辑过的字段。
+**内网任务由配置驱动。** [`config/token-deals.json`](config/token-deals.json) 定义优惠窗口、折扣和可见性。内网任务结合该名单、公开模型价格和计费汇总，发布到 Supabase。`pnpm tokendeals:sync` 增量合并新事实并保留人工选择；重新构建内网任务并刷新后，名单变更才会进入公开页面。
 
 **合并保护规则。** 一条优惠的键是 `slug@startDate`。一旦它的 `endDate` 已经过去，整条记录就被冻结；一条进行中的记录只会*填补*空缺的 `endDate`（或在优惠实际提前结束时把日期往前拉）——绝不会往后推。任何记录都不会被删除。
 
@@ -235,7 +235,7 @@ pnpm tokendeals:backfill     # （重新）构建完整的逐日账本
 pnpm tokendeals:refresh   # 增量刷新 Supabase 共享快照
 ```
 
-**共享实时快照。** 线上接口读取 Supabase，过期后增量回源并写回；跨实例锁协调刷新，Next `after()` 跟踪后台任务。部署只打包代码和配置。初始化或回源失败时会显示实际的数据截止时间与降级状态。
+**共享实时快照。** 线上接口只读 Supabase。独立内网任务通过租约和写入围栏维护数据；过期快照保留真实截止时间并标记为 stale。公开构建产物不包含内网查询代码和 MySQL 驱动。详见 [定时更新与恢复说明](docs/shared-cache.md)。
 
 </details>
 
@@ -269,7 +269,7 @@ pnpm study:report      # aggregate.json → report.md
 pnpm dev               # http://localhost:3000
 ```
 
-Token Economics 与 Token Deals 通过 Supabase 共享快照提供实时数据：访问时读取快照，过期后增量查询计费库并写回，所有实例共享刷新结果。部署只打包代码和配置，不再携带本地 JSON 缓存。共享快照、权限配置和回填步骤见 [数据链路说明](docs/shared-cache.md)，凭据见 `.env.example`。
+Token Economics、Token Deals 和模型价格对比统一读取 Supabase。通过 `pnpm data:refresh:build` 构建可独立部署的内网更新包，环境模板与 cron 示例位于 `internal/data-refresh/`。项目 Node 命令会自动启用代理支持，代理地址仍由环境变量配置。权限和回填步骤见 [数据链路说明](docs/shared-cache.md)，公开应用凭据见 `.env.example`。
 
 ---
 
@@ -309,7 +309,7 @@ src/
 - **抽取模型的解析是防御性的。** 一个独立的模型为每条身份回答打标签；解析顺序是严格 JSON → 第一个配对的 `{…}` → 兜底的别名扫描，未识别的标签会通过 `vendorFromText` 归一化，否则退化为 `unknown`。
 - **厂商分类体系。** `research/lib/vendors.ts` 是规范注册表——67 个厂商，别名（含中文名如通义千问 / 文心一言）按最长匹配优先。`self`、`unknown`、`refused` 是分析用的伪厂商，并非真实厂商。
 - **关系图只在网页端渲染。** `buildGraphSvg` 手写构建 Who Are You? 的 SVG；`/api/export` 通过 `@resvg/resvg-js` 把它栅格化为 PNG。Graph Studio 用同一份 `RenderConfig` 同时驱动实时预览和导出，因此导出结果所见即所得。
-- **实时数据。** 快照过期后增量读取计费数据库，结果写回 Supabase；跨实例锁避免重复刷新，失败时保留历史快照。无快照的冷启动仍可能较慢，Token Deals 全历史账本按有界时间段逐步恢复。
+- **独立数据更新。** 公开请求只读 Supabase；内网定时任务按有界时间段推进计费数据，失败时保留有效快照，并通过回读验证写入结果。
 - **前端技术栈。** Next.js 16 · React 19 · Tailwind v4（CSS-first，没有 `tailwind.config.js`）· shadcn/ui（风格 `radix-nova`，基础色 `neutral`，图标用 `lucide`）。多数页面是 RSC + `force-dynamic`，因此新数据刷新页面即可看到，无需重新构建。
 
 </details>

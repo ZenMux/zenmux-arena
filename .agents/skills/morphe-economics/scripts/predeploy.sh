@@ -1,23 +1,9 @@
 #!/bin/bash
-# Shared snapshots persist independently of deployments. Default: readiness only.
+# Public releases consume already-published data; producers run independently.
 set -euo pipefail
-
-if [[ "${1:-}" != "" && "${1:-}" != "--refresh" ]]; then
-  echo "Usage: predeploy.sh [--refresh]" >&2
+if [[ $# -ne 0 ]]; then
+  echo "Usage: predeploy.sh (run the internal producer separately to refresh data)" >&2
   exit 2
 fi
-
 pnpm supabase:check --require-data
-if [[ "${1:-}" == "--refresh" ]]; then
-  for module in tokenecon tokendeals; do
-    if pnpm "$module:refresh"; then
-      echo "[$module] shared refresh succeeded"
-    else
-      echo "[$module] REFRESH FAILED: retaining the previous Supabase snapshot" >&2
-    fi
-  done
-  # Re-check usability and print actual persisted cutoffs after both attempts.
-  pnpm supabase:check --require-data
-fi
-
-echo "Shared data is ready. Build/package code without .cache or .env files."
+echo "Shared data is ready. Build/package the public read-only application."

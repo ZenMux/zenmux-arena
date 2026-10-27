@@ -124,7 +124,7 @@ function Shell({
             Every text model ZenMux serves, scored on two axes:{" "}
             <b className="text-[#141414]">what it costs</b> and{" "}
             <b className="text-[#141414]">how much it&apos;s actually used</b>.
-            Prices are scraped live from the model listing; consumption is the
+            Prices come from the latest model listing; consumption is the
             observed token volume. The question: where does the compute — and the
             money — really flow? The Live view adds minute-to-day token tapes for
             the newly discounted DeepSeek anchor cohorts.

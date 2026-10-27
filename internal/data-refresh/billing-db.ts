@@ -15,7 +15,7 @@ export const DAY = 86400;
     backfill), which don't care about first-byte latency, can run with a much
     larger budget than the serverless runtime — a chunk that needs 150s should
     succeed on the build machine, not die at 120s. */
-const QUERY_TIMEOUT_ENV = "TOKEN_DEALS_QUERY_TIMEOUT_MS";
+const QUERY_TIMEOUT_ENV = "BILLING_DEALS_QUERY_TIMEOUT_MS";
 const DEFAULT_QUERY_TIMEOUT_MS = 120_000;
 
 export function queryTimeoutMs(): number {
@@ -26,11 +26,11 @@ export function queryTimeoutMs(): number {
 }
 
 const DB_ENV = {
-  host: "TOKEN_ECON_LIVE_DB_HOST",
-  port: "TOKEN_ECON_LIVE_DB_PORT",
-  user: "TOKEN_ECON_LIVE_DB_USER",
-  password: "TOKEN_ECON_LIVE_DB_PASSWORD",
-  database: "TOKEN_ECON_LIVE_DB_DATABASE",
+  host: "BILLING_DB_HOST",
+  port: "BILLING_DB_PORT",
+  user: "BILLING_DB_USER",
+  password: "BILLING_DB_PASSWORD",
+  database: "BILLING_DB_DATABASE",
 } as const;
 
 /** Ledger start: ZenMux's launch day. Deal windows and free-model ledgers are

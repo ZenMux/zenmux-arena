@@ -32,7 +32,7 @@
 //   · Existing free entry → never touched (online is maintained by hand).
 
 import type { RowDataPacket } from "mysql2/promise";
-import { dealsStartMs, parseSqlUtc, queryRows, toNumber, utcDateOf } from "./db";
+import { dealsStartMs, parseSqlUtc, queryRows, toNumber, utcDateOf } from "./billing-db";
 import { shortName } from "@research/token-economics/normalize";
 import {
   discountKey,
@@ -40,7 +40,7 @@ import {
   type DiscountEntry,
   type FreeEntry,
   DEALS_CONFIG_SCHEMA,
-} from "./deals-config";
+} from "@research/token-deals/deals-config";
 
 const FREE_SUFFIX = "-free";
 const FREE_ONLINE_SEED_DAYS = 7;

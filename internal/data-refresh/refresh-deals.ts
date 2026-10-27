@@ -3,6 +3,7 @@
 // of builds. Billing calculations and deep late-arrival overlap are preserved.
 import { config as loadDotenv } from "dotenv";
 import path from "node:path";
+import { safeFailure } from "./job";
 import {
   DEAL_RANGE_OPTIONS,
   type DealRangeKey,
@@ -13,14 +14,14 @@ import {
   fetchTokenDeals,
   incrementallyUpdate,
   readSharedCache,
-} from "@research/token-deals/query";
+} from "./deals";
 
-// Load .env.local for local runs (Morphe deployments inject env vars directly)
-loadDotenv({ path: path.resolve(process.cwd(), ".env.local") });
+// Local maintenance only; public deployments never run this command.
+loadDotenv({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
 
 // Maintenance refresh: same relaxed query budget as the backfill script (the
 // runtime keeps the tight default). Explicit env still wins.
-process.env.TOKEN_DEALS_QUERY_TIMEOUT_MS ||= "300000";
+process.env.BILLING_DEALS_QUERY_TIMEOUT_MS ||= "300000";
 
 function summarize(payload: TokenDealsPayload): string {
   const freeCount = payload.deals.filter((d) => d.dealType === "free").length;
@@ -79,7 +80,7 @@ async function main() {
       await refreshRange(ranges[i], i, ranges.length);
     } catch (err) {
       failures.push({ range: ranges[i], reason: err });
-      console.error(`[refresh-deals] [${i + 1}/${ranges.length}] ${ranges[i]} ❌ Failed: ${err instanceof Error ? err.message : err}`);
+      console.error(`[refresh-deals] [${i + 1}/${ranges.length}] ${ranges[i]} ❌ Failed: ${safeFailure(err)}`);
     }
     console.log();
   }
@@ -94,7 +95,7 @@ async function main() {
 }
 
 main().catch(async (err) => {
-  console.error("[refresh-deals] Fatal error:", err);
+  console.error("[refresh-deals] Fatal error:", safeFailure(err));
   await closeDealsDbPool();
   process.exit(1);
 });
