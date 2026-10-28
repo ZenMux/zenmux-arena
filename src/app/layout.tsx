@@ -9,6 +9,7 @@ import {
 import "./globals.css";
 import { BuildStamp } from "@/components/BuildStamp";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -66,6 +67,7 @@ export default function RootLayout({
             time. Baked in at package time, shown on every page. */}
         <BuildStamp />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
