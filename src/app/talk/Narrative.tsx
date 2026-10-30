@@ -59,7 +59,7 @@ export function Opening({ onJump }: { onJump: (id: string) => void }) {
 
 export function Observatory() {
   return <div className={styles.observatory}>
-    <div className={styles.observatoryHub}><p className={styles.eyebrow}>A SHARED WINDOW</p><ZenMuxWordmark surface="light" size={58} alt="ZenMux" /><p>让不同模型，在同一个地方相遇。</p><div className={styles.logoRow}>{MARKS.map(([file, name]) => <VendorIcon key={name} vendor={file} alt={name} size={37} />)}</div><a href="https://zenmux.ai" target="_blank" rel="noreferrer">zenmux.ai <ExternalLink size={14} /></a></div>
+    <div className={styles.observatoryHub}><p className={styles.eyebrow}>A SHARED WINDOW</p><ZenMuxWordmark surface="light" size={58} alt="ZenMux" /><p>AI 大模型保险公司。</p><div className={styles.logoRow}>{MARKS.map(([file, name]) => <VendorIcon key={name} vendor={file} alt={name} size={37} />)}</div><a href="https://zenmux.ai" target="_blank" rel="noreferrer">zenmux.ai <ExternalLink size={14} /></a></div>
     <div className={styles.observationList}>{[
       ["01", "主动提问", "同一套实验，观察不同模型怎样介绍自己。", "Who Are You?"],
       ["02", "重复测量", "在固定问卷里，观察回答模式能否复现。", "OEJTS Personality"],

@@ -62,14 +62,43 @@ function Footer({ data, children }: { data: IdentityTalkData; children?: React.R
   return <footer className={styles.footer}><span>{children ?? "身份自述是观测结果，不是训练来源或蒸馏关系的证据。"}</span><span>{window} · n = {num(data.counts.n)}</span></footer>;
 }
 
+// Opening frame of the method slide: Claude Opus 4.8, asked bare "你是谁？" in
+// Simplified Chinese, answering as DeepSeek — the deck's headline confusion case.
+const METHOD_DEFAULT = { language: "zh-Hans", family: "bare", modelId: "anthropic/claude-opus-4.8:anthropic" };
+const methodSamples = (data: IdentityTalkData, language: string, family: string) =>
+  data.evidence.filter((e) => e.uses.includes("method") && e.outcome === "cross" && e.lang === language && e.family === family);
+
+function ModelIdentity({ data, evidence, revealed }: { data: IdentityTalkData; evidence: IdentityEvidence | undefined; revealed: boolean }) {
+  const model = data.models.find((m) => m.id === evidence?.modelId);
+  if (!evidence || !model) return null;
+  const vendor = data.graph.vendors.find((v) => v.id === model.vendor);
+  const claimed = data.graph.vendors.find((v) => v.id === evidence.claimedVendor);
+  const route = model.id.split(":")[1];
+  return <div className={styles.modelIdentity}>
+    <span className={styles.modelIdentityLogo}><VendorIcon vendor={vendor?.logo || model.vendor} size={30} alt={vendor?.name ?? model.vendor} /></span>
+    <div className={styles.modelIdentityText}>
+      <span className={styles.caption}>受测模型</span>
+      <strong>{model.label}</strong>
+      <span className={styles.small}>{vendor?.name ?? model.vendor}{route ? ` · ${route} 路由` : ""}</span>
+    </div>
+    {revealed && <div className={styles.modelClaim} data-outcome={evidence.outcome}>
+      <span className={styles.caption}>它自称来自</span>
+      <span className={styles.modelClaimVendor}>
+        <span className={styles.modelClaimLogo}><VendorIcon vendor={claimed?.logo || evidence.claimedVendor} size={18} /></span>
+        <strong>{claimed?.name ?? evidence.claimedVendor}</strong>
+      </span>
+    </div>}
+  </div>;
+}
+
 function Method({ data }: { data: IdentityTalkData }) {
-  const [language, setLanguage] = useState("ja");
-  const [family, setFamily] = useState("bare");
+  const [language, setLanguage] = useState(METHOD_DEFAULT.language);
+  const [family, setFamily] = useState(METHOD_DEFAULT.family);
   const [repeats, setRepeats] = useState("40");
-  const [revealed, setRevealed] = useState(false);
-  const [sampleIndex, setSampleIndex] = useState(0);
+  const [revealed, setRevealed] = useState(true);
+  const [sampleIndex, setSampleIndex] = useState(() => Math.max(0, methodSamples(data, METHOD_DEFAULT.language, METHOD_DEFAULT.family).findIndex((e) => e.modelId === METHOD_DEFAULT.modelId)));
   const variant = data.variants.find((v) => v.id === family)!;
-  const samples = data.evidence.filter((e) => e.uses.includes("method") && e.outcome === "cross" && e.lang === language && e.family === family);
+  const samples = methodSamples(data, language, family);
   const evidence = samples[sampleIndex % samples.length];
   const model = data.models.find((m) => m.id === evidence?.modelId);
   function reset(next: () => void) { next(); setRevealed(false); setSampleIndex(0); }
@@ -78,7 +107,7 @@ function Method({ data }: { data: IdentityTalkData }) {
       <div className={styles.methodSetup}>
         <p className={styles.eyebrow}>搭一场身份实验</p>
         <div className={styles.methodNumbers}><strong>{data.vendors.length}<small>家厂商</small></strong><span>·</span><strong>{data.models.length}<small>个模型</small></strong><span>·</span><strong>{data.languages.length}<small>种语言</small></strong></div>
-        <Choice label="选择提问 / 目标语言" value={language} onChange={(v) => reset(() => setLanguage(v))} options={data.languages.map((l) => ({ value: l.code, label: `${l.name} · ${l.nativeName}` }))} />
+        <Choice label="选择提问 / 目标语言" value={language} onChange={(v) => reset(() => setLanguage(v))} options={data.languages.map((l) => ({ value: l.code, label: l.name === l.nativeName ? l.name : `${l.name} · ${l.nativeName}` }))} />
         <Choice label="选择提示词家族" value={family} onChange={(v) => reset(() => setFamily(v))} options={data.variants.map((v) => ({ value: v.id, label: v.label }))} />
         <Choice label="每个模型、每种语言重复" value={repeats} onChange={setRepeats} options={["1", "10", "30", "40"].map((n) => ({ value: n, label: `${n} 次` }))} />
         <p className={styles.formula}>{data.models.length} × 1 × {repeats} = <strong>{num(data.models.length * Number(repeats))}</strong> 条</p>
@@ -86,6 +115,7 @@ function Method({ data }: { data: IdentityTalkData }) {
       </div>
       <div className={styles.methodDemo}>
         <div className={styles.inlineHeader}><p className={styles.eyebrow}>档案回放 / {model?.label ?? "跨厂混淆案例"}</p><span className={styles.small}>指定 provider · {data.methodology.extractor} 标注</span></div>
+        <ModelIdentity data={data} evidence={evidence} revealed={revealed} />
         <div className={styles.promptBox}><span className={styles.caption}>实际发出的提示词</span><p lang={family === "unbranded" ? "en" : language}>{variant.prompts[language]}</p></div>
         {revealed && evidence ? <div className={styles.answerBox} aria-live="polite">
           <div className={styles.inlineHeader}><span className={styles.outcomeText} data-outcome={evidence.outcome}>{OUTCOMES.find((o) => o.id === evidence.outcome)!.label}</span><span className={styles.small}>精选记录 {sampleIndex % samples.length + 1} / {samples.length}</span></div>

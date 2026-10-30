@@ -90,6 +90,16 @@
 .formula { padding-top: 14px; border-top: 1px solid var(--line); color: var(--quiet); font-size: 20px; }
 .formula strong { color: var(--teal); font-size: 26px; }
 .methodDemo { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.modelIdentity { display: flex; align-items: center; gap: 14px; padding: 10px 16px 10px 10px; border: 1px solid var(--line); border-radius: 12px; background: #fff; flex-shrink: 0; }
+.modelIdentityLogo { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; border-radius: 10px; background: #efefe8; }
+.modelIdentityText { display: flex; flex-direction: column; min-width: 0; }
+.modelIdentityText .caption { margin-bottom: 2px; }
+.modelIdentityText strong { font-size: 22px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modelClaim { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; padding-left: 16px; border-left: 1px solid var(--line); flex-shrink: 0; }
+.modelClaim .caption { margin-bottom: 4px; }
+.modelClaimVendor { display: flex; align-items: center; gap: 8px; color: var(--outcome); }
+.modelClaimVendor strong { font-size: 18px; font-weight: 650; }
+.modelClaimLogo { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: color-mix(in srgb, var(--outcome) 10%, #fff); }
 .promptBox { background: #eceee6; padding: 18px 22px; border-radius: 12px; flex-shrink: 0; }
 .promptBox p { max-height: 96px; overflow-y: auto; font-size: 18px; line-height: 1.65; overflow-wrap: anywhere; }
 .promptBox p[lang="en"] { font-size: 15px; }
