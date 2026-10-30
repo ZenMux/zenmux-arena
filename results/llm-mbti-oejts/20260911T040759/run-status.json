@@ -1,6 +1,6 @@
 {
   "runId": "llm-mbti-oejts/20260911T040759",
-  "updatedAt": "2026-09-11T06:21:52.140Z",
+  "updatedAt": "2026-10-29T23:57:54.805Z",
   "complete": true,
   "models": [
     {
@@ -188,6 +188,146 @@
     {
       "modelId": "mistralai/mistral-large-2512:azure",
       "label": "Mistral Large 3 (Azure)",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "label": "GPT-6.1 Terra",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "label": "GPT-6.1 Sol",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "label": "GPT-6 Luna",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "label": "Kimi K3.1 Pro",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "label": "MiniMax M3.1 Flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "label": "Gemini 4 Argon",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "label": "Muse Wonder 1.0",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "label": "Mistral Large 4",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "label": "Claude Haiku 5.5",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "label": "Ling 3.1 Flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "label": "Claude Sonnet 5.5",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "label": "LongCat 2.5 Preview",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "label": "Claude Opus 5.5",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "label": "MiMo V2.6 Flash",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "label": "MiMo V2.6 Pro",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "label": "Grok 4.7",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "label": "Step 5 Preview",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "label": "GLM 5.3 Prime",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "label": "GLM 5.3 FlashX",
+      "valid": 16,
+      "expected": 16,
+      "status": "complete"
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "label": "Fugu Ultra v2",
       "valid": 16,
       "expected": 16,
       "status": "complete"

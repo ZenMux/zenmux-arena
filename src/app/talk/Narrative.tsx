@@ -144,7 +144,7 @@ export function Reflection({ slide }: { slide: TalkSlide }) {
 
 export function Closing({ onJump }: { onJump: (id: string) => void }) {
   return <div className={styles.closing}><p className={styles.eyebrow}>THE CONVERSATION CONTINUES</p><h1>如果 Token 会说话，<br />我们愿意继续听<span>。</span></h1><p>名字里的回声，回答中的习惯，账单上的选择。</p><div className={styles.closingLinks}>{[
-    ["01", "身份关系图", "/who-are-you/studio?run=who-are-you/mix-20260601T062425", "把每一条线，点开看看。"],
+    ["01", "身份关系图", "/who-are-you/studio?run=who-are-you/mix-20261030T004019", "把每一条线，点开看看。"],
     ["02", "模型人格图谱", "#mbti-explorer", "比起标签，更值得看的是过程。"],
     ["03", "Token 经济学", "#live", "回看这段时间，Token 投给了谁。"],
   ].map(([n, title, href, desc]) => <a key={n} href={href} target={href.startsWith("#") ? undefined : "_blank"} rel="noreferrer" onClick={href.startsWith("#") ? e => { e.preventDefault(); onJump(href.slice(1)); } : undefined}><span>{n}</span><h2>{title}<ArrowRight size={22} /></h2><p>{desc}</p></a>)}</div><div className={styles.closingFooter}><span><strong>thinkthinking</strong><small>Ideas Worth Spreading.</small></span><a href="https://github.com/ZenMux/zenmux-arena" target="_blank" rel="noreferrer"><GitBranch size={18} /> 源码、研究与原始数据 <ExternalLink size={14} /></a></div></div>;

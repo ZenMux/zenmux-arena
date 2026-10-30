@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../../..");
-const dir = path.join(root, "results/who-are-you/mix-20260601T062425");
+// Pass the pooled run stamp to regenerate against a newer mix; the talk deck pins it.
+const mixStamp = process.argv[2] ?? "mix-20261030T004019";
+const dir = path.join(root, "results/who-are-you", mixStamp);
 const manifest = JSON.parse(fs.readFileSync(path.join(dir, "mix.json"), "utf8"));
 const graph = JSON.parse(fs.readFileSync(path.join(dir, "aggregate.json"), "utf8"));
 const sources = new Set(manifest.sources.map((s) => s.run));
@@ -68,7 +70,7 @@ for await (const r of lines("records.jsonl")) {
 for (const [bucket, count] of expectedMethodCounts) {
   if ((used.get(bucket) ?? 0) !== Math.min(2, count)) throw new Error(`Cross-vendor evidence coverage mismatch: ${bucket}`);
 }
-if (["tencent", "glm", "doubao", "inclusionai", ...[...stable].map((id) => `stable:${id}`)].some((bucket) => used.get(bucket) !== 1) || evidence.length > 72) throw new Error("Unexpected evidence coverage; review the pinned study before replacing the sample.");
+if (["tencent", "glm", "doubao", "inclusionai", ...[...stable].map((id) => `stable:${id}`)].some((bucket) => used.get(bucket) !== 1) || evidence.length > 100) throw new Error("Unexpected evidence coverage; review the pinned study before replacing the sample.");
 const output = { runId: manifest.runId, experimentalWindow: { from, to }, evidence };
 fs.writeFileSync(path.join(here, "evidence.json"), JSON.stringify(output, null, 2) + "\n");
 console.log(`Wrote ${evidence.length} allowlisted excerpts (${Buffer.byteLength(JSON.stringify(output))} bytes).`);

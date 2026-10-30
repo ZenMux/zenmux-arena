@@ -10,7 +10,7 @@ import type {
   VendorId,
   VendorMeta,
 } from "./types";
-import { makeOtherVendorMeta, VENDORS } from "./vendors";
+import { makeOtherVendorMeta, vendorFromText, VENDORS } from "./vendors";
 
 // Used for the confusion-rate denominator: a claim is "confusion" only if it's a
 // real DIFFERENT vendor — never self, and never the no-identity buckets.
@@ -74,10 +74,18 @@ export function aggregate(
     } else {
       claimed = ext.claimedVendor;
       if (claimed === "other") {
-        const dyn = registerOther(ext.claimedVendorOther);
-        // If the extractor said "other" but failed to name a brand, treat as unknown
-        // rather than letting a nameless dynamic node into the graph.
-        claimed = dyn ?? "unknown";
+        // A named brand that matches a canonical vendor alias is a missed canonical
+        // label, not a new vendor: "Muse Spark" is a Meta model, "GPT-6.1" is OpenAI.
+        // Fold it into that vendor before materializing a dynamic node.
+        const canonical = vendorFromText(ext.claimedVendorOther);
+        if (canonical) {
+          claimed = canonical;
+        } else {
+          const dyn = registerOther(ext.claimedVendorOther);
+          // If the extractor said "other" but failed to name a brand, treat as unknown
+          // rather than letting a nameless dynamic node into the graph.
+          claimed = dyn ?? "unknown";
+        }
       }
     }
     joined.push({ record, claimed, effective: effectiveClaimed(claimed, record.modelVendor) });

@@ -1,0 +1,4711 @@
+{
+  "runId": "who-are-you/20261029T233710",
+  "generatedAt": "2026-10-30T00:28:30.545Z",
+  "study": {
+    "id": "who-are-you",
+    "title": "Who Are You? Cross-Vendor Identity Confusion in Frontier LLMs",
+    "description": "Probing model self-identification across ten languages via the ZenMux Anthropic Messages API."
+  },
+  "models": [
+    {
+      "id": "openai/gpt-6.1-terra:azure",
+      "vendor": "openai",
+      "label": "GPT-6.1 Terra"
+    },
+    {
+      "id": "openai/gpt-6.1-sol:azure",
+      "vendor": "openai",
+      "label": "GPT-6.1 Sol"
+    },
+    {
+      "id": "openai/gpt-6-luna:azure",
+      "vendor": "openai",
+      "label": "GPT-6 Luna"
+    },
+    {
+      "id": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "vendor": "moonshot",
+      "label": "Kimi K3.1 Pro"
+    },
+    {
+      "id": "minimax/minimax-m3.1-flash:minimax",
+      "vendor": "minimax",
+      "label": "MiniMax M3.1 Flash"
+    },
+    {
+      "id": "deepseek/deepseek-v4.1-flash:deepseek",
+      "vendor": "deepseek",
+      "label": "DeepSeek V4.1 Flash"
+    },
+    {
+      "id": "google/gemini-4-argon:google-vertex",
+      "vendor": "google",
+      "label": "Gemini 4 Argon"
+    },
+    {
+      "id": "meta/muse-wonder-1.0:meta",
+      "vendor": "meta",
+      "label": "Muse Wonder 1.0"
+    },
+    {
+      "id": "mistralai/mistral-large-4:mistral",
+      "vendor": "mistral",
+      "label": "Mistral Large 4"
+    },
+    {
+      "id": "anthropic/claude-haiku-5.5:anthropic",
+      "vendor": "anthropic",
+      "label": "Claude Haiku 5.5"
+    },
+    {
+      "id": "inclusionai/ling-3.1-flash:ant-ling",
+      "vendor": "inclusionai",
+      "label": "Ling 3.1 Flash"
+    },
+    {
+      "id": "anthropic/claude-sonnet-5.5:anthropic",
+      "vendor": "anthropic",
+      "label": "Claude Sonnet 5.5"
+    },
+    {
+      "id": "meituan/longcat-2.5-preview:longcat",
+      "vendor": "meituan",
+      "label": "LongCat 2.5 Preview"
+    },
+    {
+      "id": "anthropic/claude-opus-5.5:anthropic",
+      "vendor": "anthropic",
+      "label": "Claude Opus 5.5"
+    },
+    {
+      "id": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "vendor": "xiaomi",
+      "label": "MiMo V2.6 Flash"
+    },
+    {
+      "id": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "vendor": "xiaomi",
+      "label": "MiMo V2.6 Pro"
+    },
+    {
+      "id": "x-ai/grok-4.7:x-ai",
+      "vendor": "x-ai",
+      "label": "Grok 4.7"
+    },
+    {
+      "id": "stepfun/step-5-preview:stepfun",
+      "vendor": "stepfun",
+      "label": "Step 5 Preview"
+    },
+    {
+      "id": "z-ai/glm-5.3-prime:alibaba",
+      "vendor": "z-ai",
+      "label": "GLM 5.3 Prime"
+    },
+    {
+      "id": "z-ai/glm-5.3-flashx:bigmodel",
+      "vendor": "z-ai",
+      "label": "GLM 5.3 FlashX"
+    },
+    {
+      "id": "sakana/fugu-ultra-v2:sakana",
+      "vendor": "sakana",
+      "label": "Fugu Ultra v2"
+    }
+  ],
+  "languages": [
+    {
+      "code": "en",
+      "name": "English",
+      "prompt": "Who are you? Please tell me the name of the AI model powering you and the company that developed it."
+    },
+    {
+      "code": "zh-Hans",
+      "name": "简体中文",
+      "prompt": "你是谁？请告诉我驱动你的 AI 模型的名字，以及开发它的公司。"
+    },
+    {
+      "code": "zh-Hant",
+      "name": "繁體中文",
+      "prompt": "你是誰？請告訴我驅動你的 AI 模型的名字，以及開發它的公司。"
+    },
+    {
+      "code": "ja",
+      "name": "日本語",
+      "prompt": "あなたは誰ですか？あなたを動かしているAIモデルの名前と、それを開発した会社名を教えてください。"
+    },
+    {
+      "code": "ko",
+      "name": "한국어",
+      "prompt": "당신은 누구입니까? 당신을 구동하는 AI 모델의 이름과 그것을 개발한 회사를 알려주세요."
+    },
+    {
+      "code": "ru",
+      "name": "Русский",
+      "prompt": "Кто ты? Назови, пожалуйста, название ИИ-модели, которая тебя обеспечивает, и компанию, которая её разработала."
+    },
+    {
+      "code": "es",
+      "name": "Español",
+      "prompt": "¿Quién eres? Dime el nombre del modelo de IA que te impulsa y la empresa que lo desarrolló."
+    },
+    {
+      "code": "fr",
+      "name": "Français",
+      "prompt": "Qui es-tu ? Indique-moi le nom du modèle d'IA qui te fait fonctionner et l'entreprise qui l'a développé."
+    },
+    {
+      "code": "de",
+      "name": "Deutsch",
+      "prompt": "Wer bist du? Nenne mir bitte den Namen des KI-Modells, das dich antreibt, und das Unternehmen, das es entwickelt hat."
+    },
+    {
+      "code": "pt",
+      "name": "Português",
+      "prompt": "Quem és tu? Diz-me o nome do modelo de IA que te alimenta e a empresa que o desenvolveu."
+    }
+  ],
+  "vendors": [
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "logo": "claude_color.svg",
+      "aliases": [
+        "anthropic",
+        "claude"
+      ]
+    },
+    {
+      "id": "meta",
+      "name": "Meta",
+      "logo": "meta_color.svg",
+      "aliases": [
+        "meta",
+        "llama",
+        "facebook",
+        "meta ai",
+        "muse"
+      ]
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "logo": "openai_light.svg",
+      "aliases": [
+        "openai",
+        "gpt",
+        "chatgpt",
+        "chat gpt"
+      ]
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "logo": "gemini_color.svg",
+      "aliases": [
+        "google",
+        "gemini",
+        "deepmind",
+        "bard",
+        "palm"
+      ]
+    },
+    {
+      "id": "moonshot",
+      "name": "Moonshot",
+      "logo": "kimi_color-light.svg",
+      "aliases": [
+        "moonshot",
+        "moonshot ai",
+        "kimi",
+        "月之暗面"
+      ]
+    },
+    {
+      "id": "sakana",
+      "name": "Sakana AI",
+      "logo": "sakana_color.svg",
+      "aliases": [
+        "sakana",
+        "sakana ai",
+        "sakanaai",
+        "fugu"
+      ]
+    },
+    {
+      "id": "stepfun",
+      "name": "StepFun",
+      "logo": "stepfun_color.svg",
+      "aliases": [
+        "stepfun",
+        "step-",
+        "step fun",
+        "阶跃",
+        "阶跃星辰",
+        "step star"
+      ]
+    },
+    {
+      "id": "z-ai",
+      "name": "z-ai",
+      "logo": "zai_light.svg",
+      "aliases": [
+        "z-ai",
+        "z.ai",
+        "zhipu",
+        "zhipuai",
+        "glm",
+        "chatglm",
+        "智谱",
+        "智谱清言",
+        "智谱ai"
+      ]
+    },
+    {
+      "id": "x-ai",
+      "name": "xAI",
+      "logo": "grok_light.svg",
+      "aliases": [
+        "x-ai",
+        "x.ai",
+        "grok"
+      ]
+    },
+    {
+      "id": "mistral",
+      "name": "Mistral",
+      "logo": "mistral_color.svg",
+      "aliases": [
+        "mistral",
+        "mixtral",
+        "le chat"
+      ]
+    },
+    {
+      "id": "xiaomi",
+      "name": "Xiaomi",
+      "logo": "xiaomi_color.svg",
+      "aliases": [
+        "xiaomi",
+        "mimo",
+        "小米",
+        "mi "
+      ]
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "logo": "deepseek_color.svg",
+      "aliases": [
+        "deepseek",
+        "深度求索"
+      ]
+    },
+    {
+      "id": "inclusionai",
+      "name": "inclusionAI",
+      "logo": "inclusionai_color-light.svg",
+      "aliases": [
+        "inclusionai",
+        "inclusion ai",
+        "inclusion",
+        "百灵",
+        "百灵大模型",
+        "ant group",
+        "antgroup",
+        "ant financial",
+        "蚂蚁集团",
+        "蚂蚁",
+        "bailing",
+        "ling",
+        "ring",
+        "ming"
+      ]
+    },
+    {
+      "id": "minimax",
+      "name": "MiniMax",
+      "logo": "minimax_color.svg",
+      "aliases": [
+        "minimax",
+        "abab",
+        "海螺",
+        "hailuo"
+      ]
+    },
+    {
+      "id": "refused",
+      "name": "Refused",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "meituan",
+      "name": "LongCat",
+      "logo": "longcat_color.svg",
+      "aliases": [
+        "meituan",
+        "longcat",
+        "long cat",
+        "美团"
+      ]
+    },
+    {
+      "id": "unknown",
+      "name": "Unknown",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "qwen",
+      "name": "Qwen",
+      "logo": "qwen_color.svg",
+      "aliases": [
+        "qwen",
+        "qwq",
+        "qvq",
+        "tongyi",
+        "tong yi",
+        "通义",
+        "千问",
+        "通义千问",
+        "通义万相",
+        "alibaba",
+        "alibaba cloud",
+        "aliyun",
+        "阿里",
+        "阿里巴巴",
+        "阿里云"
+      ]
+    },
+    {
+      "id": "baidu",
+      "name": "ERNIE",
+      "logo": "ernie_color.svg",
+      "aliases": [
+        "ernie",
+        "ernie bot",
+        "baidu",
+        "文心",
+        "文心一言",
+        "文心大模型",
+        "百度",
+        "wenxin",
+        "yiyan"
+      ]
+    },
+    {
+      "id": "other:amazon-web-services",
+      "name": "Amazon Web Services",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:xspark",
+      "name": "XSpark",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:spacexai-cursor",
+      "name": "SpaceXAI & Cursor",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:lenovo",
+      "name": "Lenovo",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:spacexai-and-cursor",
+      "name": "SpaceXAI and Cursor",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:lambda",
+      "name": "Lambda",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:microsoft",
+      "name": "Microsoft",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:starlink",
+      "name": "Starlink",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:sber",
+      "name": "Sber",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:aws",
+      "name": "AWS",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:sber-ai",
+      "name": "Sber AI",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:zepo-ai",
+      "name": "Zepo.ai",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:innate-cloud",
+      "name": "Innate Cloud",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:sepia",
+      "name": "Sepia",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:3stepai",
+      "name": "3StepAI",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:naver",
+      "name": "Naver",
+      "logo": "",
+      "aliases": []
+    },
+    {
+      "id": "other:huawei-cloud",
+      "name": "Huawei Cloud",
+      "logo": "",
+      "aliases": []
+    }
+  ],
+  "edges": [
+    {
+      "from": "anthropic",
+      "to": "self",
+      "count": 900,
+      "total": 900,
+      "probability": 1,
+      "byModel": {
+        "anthropic/claude-haiku-5.5:anthropic": {
+          "count": 300,
+          "total": 300
+        },
+        "anthropic/claude-sonnet-5.5:anthropic": {
+          "count": 300,
+          "total": 300
+        },
+        "anthropic/claude-opus-5.5:anthropic": {
+          "count": 300,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 90,
+          "total": 90
+        },
+        "zh-Hans": {
+          "count": 90,
+          "total": 90
+        },
+        "zh-Hant": {
+          "count": 90,
+          "total": 90
+        },
+        "ja": {
+          "count": 90,
+          "total": 90
+        },
+        "ko": {
+          "count": 90,
+          "total": 90
+        },
+        "ru": {
+          "count": 90,
+          "total": 90
+        },
+        "es": {
+          "count": 90,
+          "total": 90
+        },
+        "fr": {
+          "count": 90,
+          "total": 90
+        },
+        "de": {
+          "count": 90,
+          "total": 90
+        },
+        "pt": {
+          "count": 90,
+          "total": 90
+        }
+      }
+    },
+    {
+      "from": "meta",
+      "to": "self",
+      "count": 300,
+      "total": 300,
+      "probability": 1,
+      "byModel": {
+        "meta/muse-wonder-1.0:meta": {
+          "count": 300,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 30,
+          "total": 30
+        },
+        "ja": {
+          "count": 30,
+          "total": 30
+        },
+        "ko": {
+          "count": 30,
+          "total": 30
+        },
+        "ru": {
+          "count": 30,
+          "total": 30
+        },
+        "es": {
+          "count": 30,
+          "total": 30
+        },
+        "fr": {
+          "count": 30,
+          "total": 30
+        },
+        "de": {
+          "count": 30,
+          "total": 30
+        },
+        "pt": {
+          "count": 30,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "openai",
+      "to": "self",
+      "count": 900,
+      "total": 900,
+      "probability": 1,
+      "byModel": {
+        "openai/gpt-6-luna:azure": {
+          "count": 300,
+          "total": 300
+        },
+        "openai/gpt-6.1-terra:azure": {
+          "count": 300,
+          "total": 300
+        },
+        "openai/gpt-6.1-sol:azure": {
+          "count": 300,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 90,
+          "total": 90
+        },
+        "zh-Hans": {
+          "count": 90,
+          "total": 90
+        },
+        "zh-Hant": {
+          "count": 90,
+          "total": 90
+        },
+        "ja": {
+          "count": 90,
+          "total": 90
+        },
+        "ko": {
+          "count": 90,
+          "total": 90
+        },
+        "ru": {
+          "count": 90,
+          "total": 90
+        },
+        "es": {
+          "count": 90,
+          "total": 90
+        },
+        "fr": {
+          "count": 90,
+          "total": 90
+        },
+        "de": {
+          "count": 90,
+          "total": 90
+        },
+        "pt": {
+          "count": 90,
+          "total": 90
+        }
+      }
+    },
+    {
+      "from": "google",
+      "to": "self",
+      "count": 300,
+      "total": 300,
+      "probability": 1,
+      "byModel": {
+        "google/gemini-4-argon:google-vertex": {
+          "count": 300,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 30,
+          "total": 30
+        },
+        "ja": {
+          "count": 30,
+          "total": 30
+        },
+        "ko": {
+          "count": 30,
+          "total": 30
+        },
+        "ru": {
+          "count": 30,
+          "total": 30
+        },
+        "es": {
+          "count": 30,
+          "total": 30
+        },
+        "fr": {
+          "count": 30,
+          "total": 30
+        },
+        "de": {
+          "count": 30,
+          "total": 30
+        },
+        "pt": {
+          "count": 30,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "moonshot",
+      "to": "self",
+      "count": 300,
+      "total": 300,
+      "probability": 1,
+      "byModel": {
+        "moonshotai/kimi-k3.1-pro:moonshotai": {
+          "count": 300,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 30,
+          "total": 30
+        },
+        "ja": {
+          "count": 30,
+          "total": 30
+        },
+        "ko": {
+          "count": 30,
+          "total": 30
+        },
+        "ru": {
+          "count": 30,
+          "total": 30
+        },
+        "es": {
+          "count": 30,
+          "total": 30
+        },
+        "fr": {
+          "count": 30,
+          "total": 30
+        },
+        "de": {
+          "count": 30,
+          "total": 30
+        },
+        "pt": {
+          "count": 30,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "sakana",
+      "to": "self",
+      "count": 300,
+      "total": 300,
+      "probability": 1,
+      "byModel": {
+        "sakana/fugu-ultra-v2:sakana": {
+          "count": 300,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 30,
+          "total": 30
+        },
+        "ja": {
+          "count": 30,
+          "total": 30
+        },
+        "ko": {
+          "count": 30,
+          "total": 30
+        },
+        "ru": {
+          "count": 30,
+          "total": 30
+        },
+        "es": {
+          "count": 30,
+          "total": 30
+        },
+        "fr": {
+          "count": 30,
+          "total": 30
+        },
+        "de": {
+          "count": 30,
+          "total": 30
+        },
+        "pt": {
+          "count": 30,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "self",
+      "count": 299,
+      "total": 300,
+      "probability": 0.9966666666666667,
+      "byModel": {
+        "stepfun/step-5-preview:stepfun": {
+          "count": 299,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 30,
+          "total": 30
+        },
+        "ja": {
+          "count": 30,
+          "total": 30
+        },
+        "ko": {
+          "count": 30,
+          "total": 30
+        },
+        "ru": {
+          "count": 29,
+          "total": 30
+        },
+        "es": {
+          "count": 30,
+          "total": 30
+        },
+        "fr": {
+          "count": 30,
+          "total": 30
+        },
+        "de": {
+          "count": 30,
+          "total": 30
+        },
+        "pt": {
+          "count": 30,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "self",
+      "count": 596,
+      "total": 600,
+      "probability": 0.9933333333333333,
+      "byModel": {
+        "z-ai/glm-5.3-prime:alibaba": {
+          "count": 298,
+          "total": 300
+        },
+        "z-ai/glm-5.3-flashx:bigmodel": {
+          "count": 298,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 60,
+          "total": 60
+        },
+        "zh-Hans": {
+          "count": 60,
+          "total": 60
+        },
+        "zh-Hant": {
+          "count": 59,
+          "total": 60
+        },
+        "ja": {
+          "count": 58,
+          "total": 60
+        },
+        "ko": {
+          "count": 60,
+          "total": 60
+        },
+        "ru": {
+          "count": 60,
+          "total": 60
+        },
+        "es": {
+          "count": 60,
+          "total": 60
+        },
+        "fr": {
+          "count": 59,
+          "total": 60
+        },
+        "de": {
+          "count": 60,
+          "total": 60
+        },
+        "pt": {
+          "count": 60,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "x-ai",
+      "to": "self",
+      "count": 295,
+      "total": 300,
+      "probability": 0.9833333333333333,
+      "byModel": {
+        "x-ai/grok-4.7:x-ai": {
+          "count": 295,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 27,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 30,
+          "total": 30
+        },
+        "ja": {
+          "count": 29,
+          "total": 30
+        },
+        "ko": {
+          "count": 29,
+          "total": 30
+        },
+        "ru": {
+          "count": 30,
+          "total": 30
+        },
+        "es": {
+          "count": 30,
+          "total": 30
+        },
+        "fr": {
+          "count": 30,
+          "total": 30
+        },
+        "de": {
+          "count": 30,
+          "total": 30
+        },
+        "pt": {
+          "count": 30,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "mistral",
+      "to": "self",
+      "count": 290,
+      "total": 300,
+      "probability": 0.9666666666666667,
+      "byModel": {
+        "mistralai/mistral-large-4:mistral": {
+          "count": 290,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 28,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 30,
+          "total": 30
+        },
+        "ja": {
+          "count": 29,
+          "total": 30
+        },
+        "ko": {
+          "count": 23,
+          "total": 30
+        },
+        "ru": {
+          "count": 30,
+          "total": 30
+        },
+        "es": {
+          "count": 30,
+          "total": 30
+        },
+        "fr": {
+          "count": 30,
+          "total": 30
+        },
+        "de": {
+          "count": 30,
+          "total": 30
+        },
+        "pt": {
+          "count": 30,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "self",
+      "count": 576,
+      "total": 600,
+      "probability": 0.96,
+      "byModel": {
+        "xiaomi/mimo-v2.6-flash:xiaomi": {
+          "count": 292,
+          "total": 300
+        },
+        "xiaomi/mimo-v2.6-pro:xiaomi": {
+          "count": 284,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 60,
+          "total": 60
+        },
+        "zh-Hans": {
+          "count": 60,
+          "total": 60
+        },
+        "zh-Hant": {
+          "count": 60,
+          "total": 60
+        },
+        "ja": {
+          "count": 59,
+          "total": 60
+        },
+        "ko": {
+          "count": 56,
+          "total": 60
+        },
+        "ru": {
+          "count": 54,
+          "total": 60
+        },
+        "es": {
+          "count": 59,
+          "total": 60
+        },
+        "fr": {
+          "count": 49,
+          "total": 60
+        },
+        "de": {
+          "count": 60,
+          "total": 60
+        },
+        "pt": {
+          "count": 59,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "openai",
+      "count": 273,
+      "total": 300,
+      "probability": 0.91,
+      "byModel": {
+        "deepseek/deepseek-v4.1-flash:deepseek": {
+          "count": 273,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 16,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 26,
+          "total": 30
+        },
+        "ja": {
+          "count": 30,
+          "total": 30
+        },
+        "ko": {
+          "count": 30,
+          "total": 30
+        },
+        "ru": {
+          "count": 27,
+          "total": 30
+        },
+        "es": {
+          "count": 28,
+          "total": 30
+        },
+        "fr": {
+          "count": 29,
+          "total": 30
+        },
+        "de": {
+          "count": 28,
+          "total": 30
+        },
+        "pt": {
+          "count": 29,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "inclusionai",
+      "to": "self",
+      "count": 198,
+      "total": 300,
+      "probability": 0.66,
+      "byModel": {
+        "inclusionai/ling-3.1-flash:ant-ling": {
+          "count": 198,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 29,
+          "total": 30
+        },
+        "es": {
+          "count": 28,
+          "total": 30
+        },
+        "fr": {
+          "count": 26,
+          "total": 30
+        },
+        "de": {
+          "count": 30,
+          "total": 30
+        },
+        "pt": {
+          "count": 25,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "self",
+      "count": 137,
+      "total": 300,
+      "probability": 0.45666666666666667,
+      "byModel": {
+        "minimax/minimax-m3.1-flash:minimax": {
+          "count": 137,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 20,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 14,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 6,
+          "total": 30
+        },
+        "ja": {
+          "count": 13,
+          "total": 30
+        },
+        "ko": {
+          "count": 7,
+          "total": 30
+        },
+        "ru": {
+          "count": 15,
+          "total": 30
+        },
+        "es": {
+          "count": 11,
+          "total": 30
+        },
+        "fr": {
+          "count": 19,
+          "total": 30
+        },
+        "de": {
+          "count": 18,
+          "total": 30
+        },
+        "pt": {
+          "count": 14,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "inclusionai",
+      "to": "refused",
+      "count": 99,
+      "total": 300,
+      "probability": 0.33,
+      "byModel": {
+        "inclusionai/ling-3.1-flash:ant-ling": {
+          "count": 99,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hant": {
+          "count": 1,
+          "total": 30
+        },
+        "ja": {
+          "count": 30,
+          "total": 30
+        },
+        "ko": {
+          "count": 30,
+          "total": 30
+        },
+        "ru": {
+          "count": 29,
+          "total": 30
+        },
+        "es": {
+          "count": 2,
+          "total": 30
+        },
+        "fr": {
+          "count": 4,
+          "total": 30
+        },
+        "pt": {
+          "count": 3,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "anthropic",
+      "count": 95,
+      "total": 300,
+      "probability": 0.31666666666666665,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 95,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hant": {
+          "count": 5,
+          "total": 30
+        },
+        "ja": {
+          "count": 18,
+          "total": 30
+        },
+        "ko": {
+          "count": 11,
+          "total": 30
+        },
+        "ru": {
+          "count": 16,
+          "total": 30
+        },
+        "fr": {
+          "count": 20,
+          "total": 30
+        },
+        "de": {
+          "count": 13,
+          "total": 30
+        },
+        "pt": {
+          "count": 12,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "openai",
+      "count": 84,
+      "total": 300,
+      "probability": 0.28,
+      "byModel": {
+        "minimax/minimax-m3.1-flash:minimax": {
+          "count": 84,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 1,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 6,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 14,
+          "total": 30
+        },
+        "ja": {
+          "count": 13,
+          "total": 30
+        },
+        "ko": {
+          "count": 16,
+          "total": 30
+        },
+        "ru": {
+          "count": 3,
+          "total": 30
+        },
+        "es": {
+          "count": 12,
+          "total": 30
+        },
+        "fr": {
+          "count": 7,
+          "total": 30
+        },
+        "de": {
+          "count": 5,
+          "total": 30
+        },
+        "pt": {
+          "count": 7,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "openai",
+      "count": 73,
+      "total": 300,
+      "probability": 0.24333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 73,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 30,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 1,
+          "total": 30
+        },
+        "ja": {
+          "count": 6,
+          "total": 30
+        },
+        "ko": {
+          "count": 5,
+          "total": 30
+        },
+        "ru": {
+          "count": 1,
+          "total": 30
+        },
+        "es": {
+          "count": 27,
+          "total": 30
+        },
+        "de": {
+          "count": 2,
+          "total": 30
+        },
+        "pt": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "refused",
+      "count": 69,
+      "total": 300,
+      "probability": 0.23,
+      "byModel": {
+        "minimax/minimax-m3.1-flash:minimax": {
+          "count": 69,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 8,
+          "total": 30
+        },
+        "zh-Hans": {
+          "count": 9,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 8,
+          "total": 30
+        },
+        "ja": {
+          "count": 2,
+          "total": 30
+        },
+        "ko": {
+          "count": 7,
+          "total": 30
+        },
+        "ru": {
+          "count": 10,
+          "total": 30
+        },
+        "es": {
+          "count": 5,
+          "total": 30
+        },
+        "fr": {
+          "count": 4,
+          "total": 30
+        },
+        "de": {
+          "count": 7,
+          "total": 30
+        },
+        "pt": {
+          "count": 9,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "self",
+      "count": 44,
+      "total": 300,
+      "probability": 0.14666666666666667,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 44,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hans": {
+          "count": 29,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 10,
+          "total": 30
+        },
+        "ja": {
+          "count": 1,
+          "total": 30
+        },
+        "ko": {
+          "count": 1,
+          "total": 30
+        },
+        "fr": {
+          "count": 1,
+          "total": 30
+        },
+        "de": {
+          "count": 2,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "google",
+      "count": 36,
+      "total": 300,
+      "probability": 0.12,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 36,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hant": {
+          "count": 8,
+          "total": 30
+        },
+        "ja": {
+          "count": 3,
+          "total": 30
+        },
+        "ko": {
+          "count": 8,
+          "total": 30
+        },
+        "ru": {
+          "count": 3,
+          "total": 30
+        },
+        "fr": {
+          "count": 2,
+          "total": 30
+        },
+        "de": {
+          "count": 2,
+          "total": 30
+        },
+        "pt": {
+          "count": 10,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "self",
+      "count": 21,
+      "total": 300,
+      "probability": 0.07,
+      "byModel": {
+        "deepseek/deepseek-v4.1-flash:deepseek": {
+          "count": 21,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hans": {
+          "count": 14,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 4,
+          "total": 30
+        },
+        "ru": {
+          "count": 1,
+          "total": 30
+        },
+        "es": {
+          "count": 1,
+          "total": 30
+        },
+        "de": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "z-ai",
+      "count": 9,
+      "total": 300,
+      "probability": 0.03,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 9,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ja": {
+          "count": 2,
+          "total": 30
+        },
+        "fr": {
+          "count": 2,
+          "total": 30
+        },
+        "de": {
+          "count": 3,
+          "total": 30
+        },
+        "pt": {
+          "count": 2,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "unknown",
+      "count": 7,
+      "total": 300,
+      "probability": 0.023333333333333334,
+      "byModel": {
+        "minimax/minimax-m3.1-flash:minimax": {
+          "count": 7,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "en": {
+          "count": 1,
+          "total": 30
+        },
+        "zh-Hant": {
+          "count": 1,
+          "total": 30
+        },
+        "ja": {
+          "count": 1,
+          "total": 30
+        },
+        "ru": {
+          "count": 2,
+          "total": 30
+        },
+        "es": {
+          "count": 2,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "deepseek",
+      "count": 7,
+      "total": 300,
+      "probability": 0.023333333333333334,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 7,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hant": {
+          "count": 3,
+          "total": 30
+        },
+        "ru": {
+          "count": 2,
+          "total": 30
+        },
+        "es": {
+          "count": 2,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "mistral",
+      "to": "refused",
+      "count": 6,
+      "total": 300,
+      "probability": 0.02,
+      "byModel": {
+        "mistralai/mistral-large-4:mistral": {
+          "count": 6,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hans": {
+          "count": 2,
+          "total": 30
+        },
+        "ja": {
+          "count": 1,
+          "total": 30
+        },
+        "ko": {
+          "count": 3,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "deepseek",
+      "to": "refused",
+      "count": 6,
+      "total": 300,
+      "probability": 0.02,
+      "byModel": {
+        "deepseek/deepseek-v4.1-flash:deepseek": {
+          "count": 6,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 2,
+          "total": 30
+        },
+        "es": {
+          "count": 1,
+          "total": 30
+        },
+        "fr": {
+          "count": 1,
+          "total": 30
+        },
+        "de": {
+          "count": 1,
+          "total": 30
+        },
+        "pt": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "moonshot",
+      "count": 6,
+      "total": 300,
+      "probability": 0.02,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 6,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 2,
+          "total": 30
+        },
+        "fr": {
+          "count": 2,
+          "total": 30
+        },
+        "de": {
+          "count": 2,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "meta",
+      "count": 5,
+      "total": 300,
+      "probability": 0.016666666666666666,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 5,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "de": {
+          "count": 3,
+          "total": 30
+        },
+        "pt": {
+          "count": 2,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "refused",
+      "count": 4,
+      "total": 300,
+      "probability": 0.013333333333333334,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 4,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hant": {
+          "count": 2,
+          "total": 30
+        },
+        "es": {
+          "count": 1,
+          "total": 30
+        },
+        "fr": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "mistral",
+      "count": 8,
+      "total": 600,
+      "probability": 0.013333333333333334,
+      "byModel": {
+        "xiaomi/mimo-v2.6-pro:xiaomi": {
+          "count": 6,
+          "total": 300
+        },
+        "xiaomi/mimo-v2.6-flash:xiaomi": {
+          "count": 2,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "fr": {
+          "count": 7,
+          "total": 60
+        },
+        "ru": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "qwen",
+      "count": 4,
+      "total": 300,
+      "probability": 0.013333333333333334,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 4,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 30
+        },
+        "pt": {
+          "count": 3,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "anthropic",
+      "count": 7,
+      "total": 600,
+      "probability": 0.011666666666666667,
+      "byModel": {
+        "xiaomi/mimo-v2.6-pro:xiaomi": {
+          "count": 7,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ja": {
+          "count": 1,
+          "total": 60
+        },
+        "ko": {
+          "count": 1,
+          "total": 60
+        },
+        "ru": {
+          "count": 3,
+          "total": 60
+        },
+        "fr": {
+          "count": 1,
+          "total": 60
+        },
+        "pt": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "mistral",
+      "to": "google",
+      "count": 3,
+      "total": 300,
+      "probability": 0.01,
+      "byModel": {
+        "mistralai/mistral-large-4:mistral": {
+          "count": 3,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 3,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "unknown",
+      "count": 3,
+      "total": 300,
+      "probability": 0.01,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 3,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 2,
+          "total": 30
+        },
+        "fr": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "inclusionai",
+      "to": "unknown",
+      "count": 3,
+      "total": 300,
+      "probability": 0.01,
+      "byModel": {
+        "inclusionai/ling-3.1-flash:ant-ling": {
+          "count": 3,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 30
+        },
+        "pt": {
+          "count": 2,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "x-ai",
+      "to": "anthropic",
+      "count": 2,
+      "total": 300,
+      "probability": 0.006666666666666667,
+      "byModel": {
+        "x-ai/grok-4.7:x-ai": {
+          "count": 2,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hans": {
+          "count": 2,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "baidu",
+      "count": 2,
+      "total": 300,
+      "probability": 0.006666666666666667,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 2,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 30
+        },
+        "de": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "qwen",
+      "count": 3,
+      "total": 600,
+      "probability": 0.005,
+      "byModel": {
+        "xiaomi/mimo-v2.6-flash:xiaomi": {
+          "count": 3,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 2,
+          "total": 60
+        },
+        "es": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "x-ai",
+      "to": "other:amazon-web-services",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "x-ai/grok-4.7:x-ai": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hans": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:xspark",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hans": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "refused",
+      "count": 2,
+      "total": 600,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "z-ai/glm-5.3-flashx:bigmodel": {
+          "count": 1,
+          "total": 300
+        },
+        "z-ai/glm-5.3-prime:alibaba": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hant": {
+          "count": 1,
+          "total": 60
+        },
+        "ja": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "x-ai",
+      "to": "other:spacexai-cursor",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "x-ai/grok-4.7:x-ai": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ja": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:lenovo",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hant": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "x-ai",
+      "to": "other:spacexai-and-cursor",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "x-ai/grok-4.7:x-ai": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "mistral",
+      "to": "anthropic",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "mistralai/mistral-large-4:mistral": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "google",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "minimax/minimax-m3.1-flash:minimax": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hans": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:lambda",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:microsoft",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "minimax",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:starlink",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "anthropic",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "minimax/minimax-m3.1-flash:minimax": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "zh-Hant": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:sber",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:aws",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:sber-ai",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:zepo-ai",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:innate-cloud",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "minimax",
+      "to": "other:sepia",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "minimax/minimax-m3.1-flash:minimax": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ja": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "meituan",
+      "to": "other:3stepai",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "meituan/longcat-2.5-preview:longcat": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "de": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "stepfun",
+      "to": "google",
+      "count": 1,
+      "total": 300,
+      "probability": 0.0033333333333333335,
+      "byModel": {
+        "stepfun/step-5-preview:stepfun": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 30
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "moonshot",
+      "count": 1,
+      "total": 600,
+      "probability": 0.0016666666666666668,
+      "byModel": {
+        "z-ai/glm-5.3-prime:alibaba": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ja": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "z-ai",
+      "to": "openai",
+      "count": 1,
+      "total": 600,
+      "probability": 0.0016666666666666668,
+      "byModel": {
+        "z-ai/glm-5.3-flashx:bigmodel": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "other:naver",
+      "count": 1,
+      "total": 600,
+      "probability": 0.0016666666666666668,
+      "byModel": {
+        "xiaomi/mimo-v2.6-pro:xiaomi": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ko": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "openai",
+      "count": 1,
+      "total": 600,
+      "probability": 0.0016666666666666668,
+      "byModel": {
+        "xiaomi/mimo-v2.6-pro:xiaomi": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "google",
+      "count": 1,
+      "total": 600,
+      "probability": 0.0016666666666666668,
+      "byModel": {
+        "xiaomi/mimo-v2.6-pro:xiaomi": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "ru": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "other:huawei-cloud",
+      "count": 1,
+      "total": 600,
+      "probability": 0.0016666666666666668,
+      "byModel": {
+        "xiaomi/mimo-v2.6-flash:xiaomi": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "deepseek",
+      "count": 1,
+      "total": 600,
+      "probability": 0.0016666666666666668,
+      "byModel": {
+        "xiaomi/mimo-v2.6-flash:xiaomi": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    },
+    {
+      "from": "xiaomi",
+      "to": "x-ai",
+      "count": 1,
+      "total": 600,
+      "probability": 0.0016666666666666668,
+      "byModel": {
+        "xiaomi/mimo-v2.6-flash:xiaomi": {
+          "count": 1,
+          "total": 300
+        }
+      },
+      "byLang": {
+        "fr": {
+          "count": 1,
+          "total": 60
+        }
+      }
+    }
+  ],
+  "cells": [
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "en",
+      "distribution": {
+        "self": 0.6666666666666666,
+        "openai": 0.03333333333333333,
+        "unknown": 0.03333333333333333,
+        "refused": 0.26666666666666666
+      },
+      "selfRate": 0.6666666666666666,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "en",
+      "distribution": {
+        "openai": 1
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "en",
+      "distribution": {
+        "openai": 1
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "en",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 0.9,
+        "anthropic": 0.06666666666666667,
+        "other:amazon-web-services": 0.03333333333333333
+      },
+      "selfRate": 0.9,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "other:xspark": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 0.4666666666666667,
+        "openai": 0.5333333333333333
+      },
+      "selfRate": 0.4666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 0.9333333333333333,
+        "refused": 0.06666666666666667
+      },
+      "selfRate": 0.9333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "refused": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "refused": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 0.13333333333333333,
+        "openai": 0.8666666666666667
+      },
+      "selfRate": 0.13333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "deepseek": 0.1,
+        "google": 0.26666666666666666,
+        "anthropic": 0.16666666666666666,
+        "self": 0.3333333333333333,
+        "refused": 0.06666666666666667,
+        "other:lenovo": 0.03333333333333333,
+        "openai": 0.03333333333333333
+      },
+      "selfRate": 0.3333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "ja",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "other:spacexai-cursor": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "ja",
+      "distribution": {
+        "self": 0.9333333333333333,
+        "refused": 0.03333333333333333,
+        "moonshot": 0.03333333333333333
+      },
+      "selfRate": 0.9333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "ja",
+      "distribution": {
+        "openai": 1
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "ko",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "other:spacexai-and-cursor": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "ko",
+      "distribution": {
+        "openai": 1
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "ja",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "refused": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "ja",
+      "distribution": {
+        "refused": 1
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "ja",
+      "distribution": {
+        "anthropic": 0.6,
+        "openai": 0.2,
+        "self": 0.03333333333333333,
+        "google": 0.1,
+        "z-ai": 0.06666666666666667
+      },
+      "selfRate": 0.03333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meta/muse-wonder-1.0:meta",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "ko",
+      "distribution": {
+        "refused": 1
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "ru",
+      "distribution": {
+        "self": 0.03333333333333333,
+        "openai": 0.9,
+        "refused": 0.06666666666666667
+      },
+      "selfRate": 0.03333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-haiku-5.5:anthropic",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 0.4666666666666667,
+        "refused": 0.3,
+        "openai": 0.2,
+        "google": 0.03333333333333333
+      },
+      "selfRate": 0.4666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "ko",
+      "distribution": {
+        "self": 0.7666666666666667,
+        "anthropic": 0.03333333333333333,
+        "google": 0.1,
+        "refused": 0.1
+      },
+      "selfRate": 0.7666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-sonnet-5.5:anthropic",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "ja",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "anthropic": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6-luna:azure",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-terra:azure",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "fr",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "openai": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "ko",
+      "distribution": {
+        "anthropic": 0.36666666666666664,
+        "openai": 0.16666666666666666,
+        "baidu": 0.03333333333333333,
+        "unknown": 0.06666666666666667,
+        "google": 0.26666666666666666,
+        "self": 0.03333333333333333,
+        "other:lambda": 0.03333333333333333,
+        "other:microsoft": 0.03333333333333333
+      },
+      "selfRate": 0.03333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "es",
+      "distribution": {
+        "openai": 0.9333333333333333,
+        "self": 0.03333333333333333,
+        "refused": 0.03333333333333333
+      },
+      "selfRate": 0.03333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "x-ai/grok-4.7:x-ai",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "anthropic/claude-opus-5.5:anthropic",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "ru",
+      "distribution": {
+        "refused": 0.9666666666666667,
+        "unknown": 0.03333333333333333
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "zh-Hans",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "es",
+      "distribution": {
+        "self": 0.9333333333333333,
+        "refused": 0.06666666666666667
+      },
+      "selfRate": 0.9333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 0.2,
+        "openai": 0.4666666666666667,
+        "refused": 0.26666666666666666,
+        "unknown": 0.03333333333333333,
+        "anthropic": 0.03333333333333333
+      },
+      "selfRate": 0.2,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-flashx:bigmodel",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "ko",
+      "distribution": {
+        "self": 0.9333333333333333,
+        "anthropic": 0.03333333333333333,
+        "other:naver": 0.03333333333333333
+      },
+      "selfRate": 0.9333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "fr",
+      "distribution": {
+        "openai": 0.9666666666666667,
+        "refused": 0.03333333333333333
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "z-ai/glm-5.3-prime:alibaba",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "ru",
+      "distribution": {
+        "moonshot": 0.06666666666666667,
+        "anthropic": 0.5333333333333333,
+        "minimax": 0.03333333333333333,
+        "deepseek": 0.06666666666666667,
+        "google": 0.1,
+        "other:starlink": 0.03333333333333333,
+        "other:sber": 0.03333333333333333,
+        "other:aws": 0.03333333333333333,
+        "openai": 0.03333333333333333,
+        "other:sber-ai": 0.03333333333333333,
+        "other:zepo-ai": 0.03333333333333333
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "ko",
+      "distribution": {
+        "self": 0.9333333333333333,
+        "qwen": 0.06666666666666667
+      },
+      "selfRate": 0.9333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "fr",
+      "distribution": {
+        "self": 0.8666666666666667,
+        "refused": 0.13333333333333333
+      },
+      "selfRate": 0.8666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "ru",
+      "distribution": {
+        "openai": 0.03333333333333333,
+        "anthropic": 0.1,
+        "self": 0.8333333333333334,
+        "google": 0.03333333333333333
+      },
+      "selfRate": 0.8333333333333334,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "de",
+      "distribution": {
+        "openai": 0.9333333333333333,
+        "self": 0.03333333333333333,
+        "refused": 0.03333333333333333
+      },
+      "selfRate": 0.03333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "ja",
+      "distribution": {
+        "self": 0.43333333333333335,
+        "openai": 0.43333333333333335,
+        "refused": 0.06666666666666667,
+        "unknown": 0.03333333333333333,
+        "other:sepia": 0.03333333333333333
+      },
+      "selfRate": 0.43333333333333335,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "es",
+      "distribution": {
+        "openai": 0.9,
+        "refused": 0.03333333333333333,
+        "deepseek": 0.06666666666666667
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "openai/gpt-6.1-sol:azure",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "inclusionai/ling-3.1-flash:ant-ling",
+      "langCode": "pt",
+      "distribution": {
+        "self": 0.8333333333333334,
+        "unknown": 0.06666666666666667,
+        "refused": 0.1
+      },
+      "selfRate": 0.8333333333333334,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "ru",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "mistral": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "fr",
+      "distribution": {
+        "anthropic": 0.6666666666666666,
+        "z-ai": 0.06666666666666667,
+        "refused": 0.03333333333333333,
+        "unknown": 0.03333333333333333,
+        "google": 0.06666666666666667,
+        "self": 0.03333333333333333,
+        "other:innate-cloud": 0.03333333333333333,
+        "moonshot": 0.06666666666666667
+      },
+      "selfRate": 0.03333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "google/gemini-4-argon:google-vertex",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "deepseek/deepseek-v4.1-flash:deepseek",
+      "langCode": "pt",
+      "distribution": {
+        "openai": 0.9666666666666667,
+        "refused": 0.03333333333333333
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "mistralai/mistral-large-4:mistral",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "fr",
+      "distribution": {
+        "self": 0.7666666666666667,
+        "mistral": 0.2,
+        "anthropic": 0.03333333333333333
+      },
+      "selfRate": 0.7666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "de",
+      "distribution": {
+        "self": 0.06666666666666667,
+        "moonshot": 0.06666666666666667,
+        "meta": 0.1,
+        "anthropic": 0.43333333333333335,
+        "openai": 0.06666666666666667,
+        "z-ai": 0.1,
+        "baidu": 0.03333333333333333,
+        "google": 0.06666666666666667,
+        "qwen": 0.03333333333333333,
+        "other:3stepai": 0.03333333333333333
+      },
+      "selfRate": 0.06666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "es",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "qwen": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "fr",
+      "distribution": {
+        "self": 0.8666666666666667,
+        "other:huawei-cloud": 0.03333333333333333,
+        "deepseek": 0.03333333333333333,
+        "x-ai": 0.03333333333333333,
+        "mistral": 0.03333333333333333
+      },
+      "selfRate": 0.8666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "zh-Hant",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-pro:xiaomi",
+      "langCode": "pt",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "anthropic": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "moonshotai/kimi-k3.1-pro:moonshotai",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "meituan/longcat-2.5-preview:longcat",
+      "langCode": "pt",
+      "distribution": {
+        "anthropic": 0.4,
+        "google": 0.3333333333333333,
+        "meta": 0.06666666666666667,
+        "qwen": 0.1,
+        "openai": 0.03333333333333333,
+        "z-ai": 0.06666666666666667
+      },
+      "selfRate": 0,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "ko",
+      "distribution": {
+        "openai": 0.5333333333333333,
+        "refused": 0.23333333333333334,
+        "self": 0.23333333333333334
+      },
+      "selfRate": 0.23333333333333334,
+      "n": 30
+    },
+    {
+      "modelId": "xiaomi/mimo-v2.6-flash:xiaomi",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "ru",
+      "distribution": {
+        "self": 0.5,
+        "refused": 0.3333333333333333,
+        "unknown": 0.06666666666666667,
+        "openai": 0.1
+      },
+      "selfRate": 0.5,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "ja",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "es",
+      "distribution": {
+        "self": 0.36666666666666664,
+        "openai": 0.4,
+        "refused": 0.16666666666666666,
+        "unknown": 0.06666666666666667
+      },
+      "selfRate": 0.36666666666666664,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "fr",
+      "distribution": {
+        "self": 0.6333333333333333,
+        "openai": 0.23333333333333334,
+        "refused": 0.13333333333333333
+      },
+      "selfRate": 0.6333333333333333,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "ru",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "de",
+      "distribution": {
+        "self": 0.6,
+        "openai": 0.16666666666666666,
+        "refused": 0.23333333333333334
+      },
+      "selfRate": 0.6,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "ko",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "minimax/minimax-m3.1-flash:minimax",
+      "langCode": "pt",
+      "distribution": {
+        "self": 0.4666666666666667,
+        "refused": 0.3,
+        "openai": 0.23333333333333334
+      },
+      "selfRate": 0.4666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "ru",
+      "distribution": {
+        "self": 0.9666666666666667,
+        "google": 0.03333333333333333
+      },
+      "selfRate": 0.9666666666666667,
+      "n": 30
+    },
+    {
+      "modelId": "sakana/fugu-ultra-v2:sakana",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "es",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "fr",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "de",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    },
+    {
+      "modelId": "stepfun/step-5-preview:stepfun",
+      "langCode": "pt",
+      "distribution": {
+        "self": 1
+      },
+      "selfRate": 1,
+      "n": 30
+    }
+  ],
+  "summary": {
+    "totalAnswers": 6300,
+    "overallSelfRate": 0.866031746031746,
+    "confusionRate": 0.10238095238095238,
+    "unknownRate": 0.0020634920634920637,
+    "refusedRate": 0.029523809523809525,
+    "errorCount": 0,
+    "missingExtraction": 0,
+    "perModelSelfRate": {
+      "anthropic/claude-haiku-5.5:anthropic": 1,
+      "mistralai/mistral-large-4:mistral": 0.9666666666666667,
+      "inclusionai/ling-3.1-flash:ant-ling": 0.66,
+      "meta/muse-wonder-1.0:meta": 1,
+      "openai/gpt-6-luna:azure": 1,
+      "anthropic/claude-sonnet-5.5:anthropic": 1,
+      "minimax/minimax-m3.1-flash:minimax": 0.45666666666666667,
+      "x-ai/grok-4.7:x-ai": 0.9833333333333333,
+      "meituan/longcat-2.5-preview:longcat": 0.14666666666666667,
+      "openai/gpt-6.1-terra:azure": 1,
+      "anthropic/claude-opus-5.5:anthropic": 1,
+      "deepseek/deepseek-v4.1-flash:deepseek": 0.07,
+      "google/gemini-4-argon:google-vertex": 1,
+      "openai/gpt-6.1-sol:azure": 1,
+      "z-ai/glm-5.3-prime:alibaba": 0.9933333333333333,
+      "xiaomi/mimo-v2.6-flash:xiaomi": 0.9733333333333334,
+      "stepfun/step-5-preview:stepfun": 0.9966666666666667,
+      "z-ai/glm-5.3-flashx:bigmodel": 0.9933333333333333,
+      "xiaomi/mimo-v2.6-pro:xiaomi": 0.9466666666666667,
+      "moonshotai/kimi-k3.1-pro:moonshotai": 1,
+      "sakana/fugu-ultra-v2:sakana": 1
+    },
+    "perLangSelfRate": {
+      "en": 0.8888888888888888,
+      "zh-Hans": 0.9396825396825397,
+      "zh-Hant": 0.8857142857142857,
+      "ja": 0.8238095238095238,
+      "ko": 0.8031746031746032,
+      "ru": 0.8238095238095238,
+      "es": 0.8714285714285714,
+      "fr": 0.8634920634920635,
+      "de": 0.8904761904761904,
+      "pt": 0.8698412698412699
+    }
+  }
+}

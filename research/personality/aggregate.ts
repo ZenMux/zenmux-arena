@@ -36,7 +36,7 @@ function reportMarkdown(aggregate: PersonalityAggregate): string {
     "Analysis rule version: 2026-09-17. The former per-letter threshold is retired. Historical runs reaggregated with this rule must be described as reanalyses, not as new experiments or their original preregistered conclusions.",
     ...(aggregate.runId === "llm-mbti-oejts/20260911T040759" ? [
       "",
-      "This report reanalyzes the same 432 questionnaires; frozen prompts, records and study snapshots are unchanged. See the [run amendments](./RUN_NOTES.md): this batch includes Azure-hosted Mistral and three output ceilings (8192, 16384, 50000), not uniformly manufacturer-operated or identical-budget testing.",
+      `This report covers ${aggregate.models.length} models and ${aggregate.models.reduce((sum, model) => sum + model.n, 0)} valid administrations. The cohort was gathered in stages: the 2026-09-11 batch (27 models / 432 questionnaires, including Azure-hosted Mistral and three output ceilings 8192, 16384, 50000) plus the 2026-10-30 amendment (20 models added under the same frozen prompt and instrument, 50000 ceiling, 432 historical questionnaires preserved). See the [run amendments](./RUN_NOTES.md). The batch is therefore neither uniformly manufacturer-operated nor identical-budget testing, and its 2026-09-17 stability rule is a reanalysis rule rather than an original preregistration.`,
     ] : []),
     "",
     "Potential cache effects have not been excluded. Follow-up tests should use controlled, meaning-preserving prompt perturbations and compare response distributions while recording cache-hit metadata where available. Prompt/KV caching is not the same as replaying a cached answer.",

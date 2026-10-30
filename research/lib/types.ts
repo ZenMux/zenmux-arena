@@ -33,6 +33,7 @@ export type VendorId =
   | "meta"
   | "mistral"
   | "agnes"
+  | "sakana"
   | "self"
   | "unknown"
   | "refused"

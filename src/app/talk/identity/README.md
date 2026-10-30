@@ -16,15 +16,20 @@ There are no fetches or model calls from the client.
 
 ## Fixed research snapshot
 
-- `who-are-you/mix-20260601T062425`: **29,700** answers, 27 models, 16 tested
-  vendors, 10 languages; generated answers from **2026-05-30 17:53 UTC through
-  2026-06-01 06:17 UTC**. This is historical research, not current model behavior.
-- Self 25,310; cross-vendor 2,112; refused 1,574; unknown 704.
-- Bare: `20260530T175319`, `20260601T012758`, `20260601T030822`;
-  386 / 10,800 = **3.6%**.
-- Probed: `20260531T175027`, `20260601T031851`;
-  338 / 8,100 = **4.2%**.
-- Unbranded: `20260601T053656`; 1,388 / 10,800 = **12.9%**.
+- `who-are-you/mix-20261030T004019`: **50,700** answers, 48 models, 20 tested
+  vendors, 10 languages; answers from **2026-05-30 17:53 UTC through
+  2026-10-30 00:21 UTC**, pooled from nine staged runs. This is historical
+  research, not current model behavior.
+- Self 42,823; cross-vendor 4,150; refused 2,313; unknown 1,414.
+- Bare: `20260530T175319`, `20260601T012758`, `20260601T030822`,
+  `20261029T233704`; 747 / 17,100 = **4.4%**.
+- Probed: `20260531T175027`, `20260601T031851`, `20261029T233710`;
+  983 / 14,400 = **6.8%**.
+- Unbranded: `20260601T053656`, `20261029T233716`;
+  2,420 / 19,200 = **12.6%**.
+- The 2026-05/06 cohorts were labelled by GPT-5.5, the 2026-10 cohort by
+  DeepSeek V4 Pro; the three 2026-10 OpenAI models are pinned to the azure
+  provider because the `:openai` route currently returns HTTP 500.
 
 The loader checks source contributions and prompts against `mix.json`, then
 reconciles all four outcome counts. Rates are weighted by actual cell counts.
@@ -32,7 +37,7 @@ The immutable JSON imports avoid runtime path discovery and standalone tracing
 of the full answer logs. Missing/inconsistent article data fails explicitly;
 there is no silent `latest` substitution.
 
-`evidence.json` contains 64 allowlisted original excerpts (54 for method controls,
+`evidence.json` contains 79 allowlisted original excerpts (60 for method controls,
 plus selected cases/controls; overlap is deduplicated). Every excerpt retains its
 original run, key, generation ID and timestamp. Responses over 900 characters
 are explicitly marked as excerpts. No raw extractor output, usage or credentials

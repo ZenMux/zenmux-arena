@@ -57,7 +57,8 @@ function Provenance({ evidence }: { evidence: IdentityEvidence }) {
 }
 
 function Footer({ data, children }: { data: IdentityTalkData; children?: React.ReactNode }) {
-  return <footer className={styles.footer}><span>{children ?? "身份自述是观测结果，不是训练来源或蒸馏关系的证据。"}</span><span>2026.05—06 · n = {num(data.counts.n)}</span></footer>;
+  const window = [data.experimentalWindow.from, data.experimentalWindow.to].map((iso) => (iso ?? "").slice(0, 7).replace("-", ".")).filter(Boolean).join("—");
+  return <footer className={styles.footer}><span>{children ?? "身份自述是观测结果，不是训练来源或蒸馏关系的证据。"}</span><span>{window} · n = {num(data.counts.n)}</span></footer>;
 }
 
 function Method({ data }: { data: IdentityTalkData }) {
@@ -79,11 +80,11 @@ function Method({ data }: { data: IdentityTalkData }) {
         <Choice label="选择提问 / 目标语言" value={language} onChange={(v) => reset(() => setLanguage(v))} options={data.languages.map((l) => ({ value: l.code, label: `${l.name} · ${l.nativeName}` }))} />
         <Choice label="选择提示词家族" value={family} onChange={(v) => reset(() => setFamily(v))} options={data.variants.map((v) => ({ value: v.id, label: v.label }))} />
         <Choice label="每个模型、每种语言重复" value={repeats} onChange={setRepeats} options={["1", "10", "30", "40"].map((n) => ({ value: n, label: `${n} 次` }))} />
-        <p className={styles.formula}>27 × 1 × {repeats} = <strong>{num(27 * Number(repeats))}</strong> 条</p>
-        <p className={styles.small}>上方是单语言方案计算。真实研究每模型、每语言为裸问 40 + 追问 30 + 去品牌 40 次，共 29,700 条。</p>
+        <p className={styles.formula}>{data.models.length} × 1 × {repeats} = <strong>{num(data.models.length * Number(repeats))}</strong> 条</p>
+        <p className={styles.small}>上方是单语言方案计算。真实研究每模型、每语言平均为裸问 {Math.round(data.variants[0].repeatsPerModelLanguage)} + 追问 {Math.round(data.variants[1].repeatsPerModelLanguage)} + 去品牌 {Math.round(data.variants[2].repeatsPerModelLanguage)} 次，共 {num(data.counts.n)} 条；按厂商分批汇集，重复次数并不完全一致。</p>
       </div>
       <div className={styles.methodDemo}>
-        <div className={styles.inlineHeader}><p className={styles.eyebrow}>档案回放 / {model?.label ?? "跨厂混淆案例"}</p><span className={styles.small}>原厂 provider · GPT-5.5 标注</span></div>
+        <div className={styles.inlineHeader}><p className={styles.eyebrow}>档案回放 / {model?.label ?? "跨厂混淆案例"}</p><span className={styles.small}>指定 provider · {data.methodology.extractor} 标注</span></div>
         <div className={styles.promptBox}><span className={styles.caption}>实际发出的提示词</span><p lang={family === "unbranded" ? "en" : language}>{variant.prompts[language]}</p></div>
         {revealed && evidence ? <div className={styles.answerBox} aria-live="polite">
           <div className={styles.inlineHeader}><span className={styles.outcomeText} data-outcome={evidence.outcome}>{OUTCOMES.find((o) => o.id === evidence.outcome)!.label}</span><span className={styles.small}>精选记录 {sampleIndex % samples.length + 1} / {samples.length}</span></div>
@@ -173,7 +174,7 @@ function Languages({ data }: { data: IdentityTalkData }) {
       <ToggleGroup type="single" value={outcome} onValueChange={(v) => { if (v) setOutcome(v as IdentityOutcome); }} aria-label="热力图指标" className={styles.toggles}>
         <ToggleGroupItem value="cross">跨厂混淆率</ToggleGroupItem><ToggleGroupItem value="self">自指率</ToggleGroupItem>
       </ToggleGroup>
-      <Choice label="观察层级" value={group} onChange={setGroup} options={[{ value: "vendors", label: "16 家厂商" }, { value: "models", label: "27 个模型" }]} />
+      <Choice label="观察层级" value={group} onChange={setGroup} options={[{ value: "vendors", label: `${data.vendors.length} 家厂商` }, { value: "models", label: `${data.models.length} 个模型` }]} />
       <Choice label="提示词" value={family} onChange={setFamily} options={[{ value: "all", label: "全部三组" }, ...data.variants.map((v) => ({ value: v.id, label: v.label }))]} />
       <span className={styles.heatLegend}>浅 0% <i /> 100% 深 · 点击格子看分母</span>
     </div>
@@ -222,8 +223,8 @@ const CASES = [
   { id: "tencent", label: "Tencent Hy3", title: "名片很具体，只是拿错了。", note: "日语裸问中，明确自称 Claude / Anthropic。跨厂混淆不是“没回答”。" },
   { id: "glm", label: "GLM 5.1", title: "问底层身份，回答滑向 Gemini。", note: "西班牙语追问中的真实回答。下方三组比率来自各自原始运行。" },
   { id: "doubao", label: "Doubao Code", title: "同一家厂商，模型差异很大。", note: "代码模型自指率明显低于 Lite / Pro；不能用厂商均值代替单个模型。" },
-  { id: "inclusionai", label: "inclusionAI", title: "有时是关门谢客，而非认错门。", note: "德语问题，中文拒答模板。下方统计汇总 Ling 与 Ring 两个模型。" },
-  { id: "stable", label: "稳定对照", title: "也有八个模型，次次报对厂商。", note: "这里只表示本次样本 100% 自指，不意味着所有未来提问都能正确回答。" },
+  { id: "inclusionai", label: "inclusionAI", title: "有时是关门谢客，而非认错门。", note: "Ling 2.6 与 Ring 2.6 六成以上拒答，常见模板化回复；新批次 Ling 3.1 Flash 约三成拒答。下方统计汇总 inclusionAI 的三款模型。" },
+  { id: "stable", label: "稳定对照", title: "也有十六个模型，次次报对厂商。", note: "这里只表示本次汇集样本 100% 自指，不意味着所有未来提问都能正确回答。" },
 ];
 
 function Cases({ data }: { data: IdentityTalkData }) {

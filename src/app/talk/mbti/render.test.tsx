@@ -13,11 +13,11 @@ const { MbtiPanel } = require("./MbtiPanel") as typeof import("./MbtiPanel");
 if (previousCssLoader) require.extensions[".css"] = previousCssLoader;
 else delete require.extensions[".css"];
 
-test("the gallery shows all 27 model cards with exact shares and explicit unstable labels", async () => {
+test("the gallery shows all 47 model cards with exact shares and explicit unstable labels", async () => {
   const data = await loadMbtiTalkData();
   const html = renderToStaticMarkup(<MbtiPanel data={data} view="gallery" />);
-  assert.equal((html.match(/data-stable="true"/g) ?? []).length, 22);
-  assert.equal((html.match(/data-stable="false"/g) ?? []).length, 5);
+  assert.equal((html.match(/data-stable="true"/g) ?? []).length, 37);
+  assert.equal((html.match(/data-stable="false"/g) ?? []).length, 10);
   for (const model of data.models) {
     const share = `${Number((model.modalCount / model.n * 100).toFixed(2))}%`;
     assert.ok(html.includes(`${model.modalCount}/${model.n}，${share}`), model.name);

@@ -37,9 +37,13 @@ async function main() {
       failures.push(`${configured.baseModelId}: not present in current catalogue`);
       continue;
     }
+    // The catalogue advertises ONE default route per base model, but a run may
+    // deliberately pin an alternate route (e.g. OpenAI models on azure while the
+    // :openai route returns 500). A mismatch is therefore a review item, not a
+    // failure — the pinned route is checked by actually calling it during the run.
     if (current.provider_slug !== configured.providerSlug) {
-      failures.push(
-        `${configured.baseModelId}: configured provider ${configured.providerSlug}, catalogue provider ${current.provider_slug}`,
+      review.push(
+        `${configured.baseModelId}: configured provider ${configured.providerSlug}, catalogue default ${current.provider_slug} — verify the pinned route still answers`,
       );
     }
     if (!current.suitable_api.split(",").includes(config.api.protocol)) {

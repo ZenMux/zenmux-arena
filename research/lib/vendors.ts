@@ -190,7 +190,7 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
     id: "meta",
     name: "Meta",
     logo: "meta_color.svg",
-    aliases: ["meta", "llama", "facebook", "meta ai"],
+    aliases: ["meta", "llama", "facebook", "meta ai", "muse"],
   },
   mistral: {
     id: "mistral",
@@ -203,6 +203,12 @@ export const VENDORS: Record<VendorId, VendorMeta> = {
     name: "Agnes",
     logo: "agnes_light.svg",
     aliases: ["agnes"],
+  },
+  sakana: {
+    id: "sakana",
+    name: "Sakana AI",
+    logo: "sakana_color.svg",
+    aliases: ["sakana", "sakana ai", "sakanaai", "fugu"],
   },
   // Pseudo-vendors: analytical buckets, no logo.
   self: { id: "self", name: "Self (correct)", logo: "", aliases: [] },
@@ -322,6 +328,7 @@ const DARK_CHIP_LOGO: Record<string, string> = {
   meta: "meta_color.svg",
   mistral: "mistral_color.svg",
   agnes: "agnes_light.svg",
+  sakana: "sakana_color.svg",
   "other:microsoft": "microsoft-copilot_color.svg",
   "other:nvidia": "nvidia_color.svg",
   "other:alibaba": "alibaba_color.svg",
@@ -350,6 +357,7 @@ const LIGHT_SURFACE_LOGO: Record<string, string> = {
   meta: "meta_color.svg",
   mistral: "mistral_color.svg",
   agnes: "agnes_dark.svg",
+  sakana: "sakana_color.svg",
   "other:microsoft": "microsoft-copilot_color.svg",
   "other:nvidia": "nvidia_color.svg",
   "other:alibaba": "alibaba_color.svg",

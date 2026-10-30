@@ -12,7 +12,7 @@ const LOGOS: Record<string, string> = {
   qwen: "qwen", bytedance: "doubao", "x-ai": "grok", "z-ai": "zai",
   moonshotai: "kimi", minimax: "minimax", baidu: "ernie", tencent: "hunyuan",
   xiaomi: "xiaomi", stepfun: "stepfun", meituan: "longcat", inclusionai: "ant-ling",
-  meta: "meta", mistralai: "mistral",
+  meta: "meta", mistralai: "mistral", sakana: "sakana",
 };
 
 /** No network, model SDK, environment variables, or mutable live configuration. */
@@ -90,9 +90,10 @@ export async function loadMbtiTalkData(): Promise<MbtiTalkData> {
     // Editorial summaries of the pinned RUN_NOTES.md, checked above. These are
     // methodological context, never inferred from the original plan's defaults.
     runNotes: [
-      { title: "判据修订 · 2026-09-17", detail: "仅保留完整类型唯一众数严格过半（≥9/16）。四字母频数只用于描述，不再参与判定。本页是既有 432 份问卷的重新分析，不是新增测试，也不是原始预注册判据。" },
-      { title: "三档输出上限", detail: "8192 → 16384 → 50000。保留首批 50 份有效问卷；Doubao 与 Azure Mistral 续跑使用 50000。上限含推理与可见输出，不等于实际用量。" },
-      { title: "供应商例外", detail: "最终包含 Azure 托管的 Mistral Large 3；Agnes 与原厂 :mistral 失败路由已排除。不能将本批次描述为全部原厂供应商。" },
+      { title: "批次扩充 · 2026-10-30", detail: "在冻结运行中追加 20 款新发布模型的 320 份问卷，合计 47 款模型 / 752 份有效问卷；原有 27 款 / 432 份完整保留。DeepSeek V4.1 Flash 在首批已测（同一 slug、同一路由、同一 resume key），未重复测试。提示词、题库与每模型 16 次的设计保持不变。" },
+      { title: "判据修订 · 2026-09-17", detail: "仅保留完整类型唯一众数严格过半（≥9/16）。四字母频数只用于描述，不再参与判定。这是既有问卷的重新分析规则，不是原始预注册判据。" },
+      { title: "三档输出上限", detail: "8192 → 16384 → 50000。保留首批 50 份有效问卷；Doubao、Azure Mistral 与 2026-10 新批次使用 50000。上限含推理与可见输出，不等于实际用量。" },
+      { title: "供应商例外", detail: "包含 Azure 托管的 Mistral Large 3；2026-10 新批次的三款 OpenAI 模型因原厂 :openai 路由不可用而固定在 azure。不能将本批次描述为全部原厂供应商。" },
       { title: "续跑与传输修订", detail: "并发从 8×4 增至 16×8，等待上限为 10 分钟；后续 Responses 改为 SSE。提示与题库保持冻结，失败或未完成响应不计分。" },
     ],
   };

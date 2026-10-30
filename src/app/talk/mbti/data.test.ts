@@ -9,19 +9,19 @@ import { loadMbtiTalkData } from "./data";
 test("talk data is JSON-serializable, complete, and uses existing local assets", async () => {
   const data = await loadMbtiTalkData();
   assert.deepEqual(JSON.parse(JSON.stringify(data)), data);
-  assert.equal(data.models.length, 27);
-  assert.equal(data.summary.questionnaireCount, 432);
-  assert.equal(data.summary.stableCount, 22);
-  assert.equal(data.summary.unstableCount, 5);
-  assert.deepEqual(data.summary.stableGroups.map(({ type, count }) => [type, count]), [["INTJ", 13], ["ISTJ", 9]]);
+  assert.equal(data.models.length, 47);
+  assert.equal(data.summary.questionnaireCount, 752);
+  assert.equal(data.summary.stableCount, 37);
+  assert.equal(data.summary.unstableCount, 10);
+  assert.deepEqual(data.summary.stableGroups.map(({ type, count }) => [type, count]), [["INTJ", 25], ["ISTJ", 12]]);
   assert.deepEqual(data.classification, { minModalCount: 9 });
   assert.equal(data.summary.onlySnVariationCount, data.models.filter((m) =>
     m.dimensions.SN.lowLetterCount > 0 && m.dimensions.SN.highLetterCount > 0
     && [m.dimensions.IE, m.dimensions.FT, m.dimensions.JP].every((d) => !d.lowLetterCount || !d.highLetterCount),
   ).length);
-  assert.equal(data.summary.unanimousCount, 6);
+  assert.equal(data.summary.unanimousCount, 11);
   assert.equal(data.instrument.items.length, 32);
-  assert.equal(new Set(data.models.map((m) => m.id)).size, 27);
+  assert.equal(new Set(data.models.map((m) => m.id)).size, 47);
   const assets = new Set(data.models.flatMap((m) => [m.logo, ...m.distribution.map((d) => d.illustration)]));
   await Promise.all([...assets].map((asset) => access(path.join(process.cwd(), "public", asset))));
   assert.equal(data.models.find((m) => m.id.startsWith("mistralai/"))?.provider, "azure");
@@ -32,7 +32,7 @@ test("talk data is JSON-serializable, complete, and uses existing local assets",
   assert.ok(!JSON.stringify(data).includes("rawResponse"));
 });
 
-test("all 432 displayed replicates, distributions, statistics and verdicts agree with raw questionnaires", async () => {
+test("all 752 displayed replicates, distributions, statistics and verdicts agree with raw questionnaires", async () => {
   const data = await loadMbtiTalkData();
   const raw = await readFile(path.join(process.cwd(), "results/llm-mbti-oejts/20260911T040759/records.jsonl"), "utf8");
   const valid = new Map<string, PersonalityRecord>();

@@ -59,9 +59,11 @@ export function buildReport(graph: GraphData): string {
       `shared training data, distillation, and synthetic corpora. A visible symptom is ` +
       `*identity confusion*: a model, asked who it is, names a competitor. We study this ` +
       `phenomenon systematically. We prompt ${graph.models.length} models from ` +
-      `${realVendorsUnderTest.length} vendors with the single question "Who are you?", ` +
-      `translated into ${graph.languages.length} languages and repeated ` +
-      `${repeatsOf(graph)} times per language, all via the ZenMux Anthropic Messages API. ` +
+      `${realVendorsUnderTest.length} vendors with an identity question, asked in three ` +
+      `prompt forms (bare, probed, and de-branded), translated into ` +
+      `${graph.languages.length} languages and repeated up to ${repeatsOf(graph)} times per ` +
+      `language in total across those forms, pooled from staged runs, all via the ZenMux ` +
+      `Anthropic Messages API. ` +
       `Each of the ${s.totalAnswers} answers is annotated by an independent extractor LLM ` +
       `that maps the response ` +
       `to the vendor it *claims* to be. Across the corpus, ${pct(s.overallSelfRate)} of answers ` +
@@ -120,10 +122,13 @@ export function buildReport(graph: GraphData): string {
   L.push("### 2.3 Procedure");
   L.push("");
   L.push(
-    `Each model is queried ${repeatsOf(graph)} times per language through the ZenMux ` +
-      `Anthropic Messages endpoint, with a single user turn and no system prompt. Every raw ` +
-      `answer is stored with its API generation id, timestamp, and token usage. A separate ` +
-      `extractor model then reads each answer and emits a JSON label identifying the *claimed* ` +
+    `Each model is queried up to ${repeatsOf(graph)} times per language in total across the ` +
+      `three prompt forms through the ZenMux Anthropic Messages endpoint, with a single user ` +
+      `turn and no system prompt. Every raw answer is stored with its API generation id, ` +
+      `timestamp, and token usage. Staged runs are pooled by generation id and re-keyed, so ` +
+      `per-model and per-form sample counts are intentionally unequal. A separate extractor ` +
+      `model then reads each answer and ` +
+      `emits a JSON label identifying the *claimed* ` +
       `vendor, drawn from a closed canonical taxonomy, or one of two buckets: \`unknown\` (an ` +
       `answer with no identifiable vendor) and \`refused\`. We derive **self-identification** ` +
       `post hoc by comparing the claimed vendor with the model's ground-truth vendor.`,
@@ -312,6 +317,8 @@ export function buildReport(graph: GraphData): string {
   L.push(
     `(i) The extractor is itself an LLM and can mislabel ambiguous answers; we mitigate with a ` +
       `constrained taxonomy and robust JSON parsing, and we release raw transcripts for audit. ` +
+      `The 2026-05/06 cohorts were labelled by GPT-5.5 and the 2026-10 cohort by DeepSeek V4 ` +
+      `Pro; prompt form and extractor generation are recorded per answer. ` +
       `(ii) Single-turn, system-prompt-free queries are a lower bound; production deployments ` +
       `usually inject an identity via system prompt. (iii) Results are a snapshot of specific ` +
       `model snapshots accessed through ZenMux on ${date}. (iv) The brevity of "Who are you?" ` +

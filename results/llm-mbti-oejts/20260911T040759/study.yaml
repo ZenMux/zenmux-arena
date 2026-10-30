@@ -1,14 +1,16 @@
 # =============================================================================
 # LLM personality profile study — OEJTS 1.2
 #
-# Model catalogue snapshot: 2026-09-11, ZenMux public model and protocol lists.
-# Selection: original manufacturer baseline + nine requested comparison models.
-# All active models must support Responses on a manufacturer-operated route.
-# 28 models x 16 independent administrations = 448 valid questionnaires.
+# Model catalogue snapshot: 2026-10-30 (amended from 2026-09-11), ZenMux public
+# model and protocol lists.
+# Selection: original manufacturer baseline + nine requested comparison models
+# + 20 newly released models added on 2026-10-30 (see config-amendments.jsonl).
+# All active models must support Responses on the provider route pinned below.
+# 47 models x 16 independent administrations = 752 valid questionnaires.
 #
-# Every id is pinned to the manufacturer-operated provider with the
-# `model_slug:provider_slug` syntax. Refresh and review this list immediately
-# before starting a new study run; a run pins this file into its result folder.
+# Every id is pinned to a provider with the `model_slug:provider_slug` syntax.
+# Refresh and review this list immediately before starting a new study run; a
+# run pins this file into its result folder.
 # =============================================================================
 
 study:
@@ -17,7 +19,7 @@ study:
   description: "Sixteen independent OEJTS 1.2 administrations per model, through manufacturer-operated providers."
 
 catalog:
-  asOf: "2026-09-11"
+  asOf: "2026-10-30"
   source: "https://zenmux.ai/api/frontend/model/listByFilter?context_length=&sort=newest&keyword=&supported_protocol=responses"
   selectionRule: "Original latest-per-manufacturer baseline plus nine requested comparison models; Responses and manufacturer-operated routes required."
 
@@ -242,3 +244,149 @@ models:
     providerSlug: azure
     label: "Mistral Large 3 (Azure)"
     catalogPublishDate: "2025-12-02"
+
+  # ---------------------------------------------------------------------------
+  # Models added 2026-10-30. See config-amendments.jsonl and RUN_NOTES.md.
+  # OpenAI routes are pinned to the azure provider: the :openai route returns
+  # HTTP 500 ("Your API key has been invalidated") as of 2026-10-30.
+  # ---------------------------------------------------------------------------
+
+  - id: "openai/gpt-6.1-terra:azure"
+    baseModelId: "openai/gpt-6.1-terra"
+    manufacturer: openai
+    providerSlug: azure
+    label: "GPT-6.1 Terra"
+    catalogPublishDate: "2026-10-27"
+
+  - id: "openai/gpt-6.1-sol:azure"
+    baseModelId: "openai/gpt-6.1-sol"
+    manufacturer: openai
+    providerSlug: azure
+    label: "GPT-6.1 Sol"
+    catalogPublishDate: "2026-09-30"
+
+  - id: "openai/gpt-6-luna:azure"
+    baseModelId: "openai/gpt-6-luna"
+    manufacturer: openai
+    providerSlug: azure
+    label: "GPT-6 Luna"
+    catalogPublishDate: "2026-09-23"
+
+  - id: "moonshotai/kimi-k3.1-pro:moonshotai"
+    baseModelId: "moonshotai/kimi-k3.1-pro"
+    manufacturer: moonshotai
+    providerSlug: moonshotai
+    label: "Kimi K3.1 Pro"
+    catalogPublishDate: "2026-10-23"
+
+  - id: "minimax/minimax-m3.1-flash:minimax"
+    baseModelId: "minimax/minimax-m3.1-flash"
+    manufacturer: minimax
+    providerSlug: minimax
+    label: "MiniMax M3.1 Flash"
+    catalogPublishDate: "2026-10-19"
+
+  - id: "google/gemini-4-argon:google-vertex"
+    baseModelId: "google/gemini-4-argon"
+    manufacturer: google
+    providerSlug: google-vertex
+    label: "Gemini 4 Argon"
+    catalogPublishDate: "2026-10-13"
+
+  - id: "meta/muse-wonder-1.0:meta"
+    baseModelId: "meta/muse-wonder-1.0"
+    manufacturer: meta
+    providerSlug: meta
+    label: "Muse Wonder 1.0"
+    catalogPublishDate: "2026-10-13"
+
+  - id: "mistralai/mistral-large-4:mistral"
+    baseModelId: "mistralai/mistral-large-4"
+    manufacturer: mistralai
+    providerSlug: mistral
+    label: "Mistral Large 4"
+    catalogPublishDate: "2026-10-08"
+
+  - id: "anthropic/claude-haiku-5.5:anthropic"
+    baseModelId: "anthropic/claude-haiku-5.5"
+    manufacturer: anthropic
+    providerSlug: anthropic
+    label: "Claude Haiku 5.5"
+    catalogPublishDate: "2026-10-07"
+
+  - id: "inclusionai/ling-3.1-flash:ant-ling"
+    baseModelId: "inclusionai/ling-3.1-flash"
+    manufacturer: inclusionai
+    providerSlug: ant-ling
+    label: "Ling 3.1 Flash"
+    catalogPublishDate: "2026-10-02"
+
+  - id: "anthropic/claude-sonnet-5.5:anthropic"
+    baseModelId: "anthropic/claude-sonnet-5.5"
+    manufacturer: anthropic
+    providerSlug: anthropic
+    label: "Claude Sonnet 5.5"
+    catalogPublishDate: "2026-09-28"
+
+  - id: "meituan/longcat-2.5-preview:longcat"
+    baseModelId: "meituan/longcat-2.5-preview"
+    manufacturer: meituan
+    providerSlug: longcat
+    label: "LongCat 2.5 Preview"
+    catalogPublishDate: "2026-09-25"
+
+  - id: "anthropic/claude-opus-5.5:anthropic"
+    baseModelId: "anthropic/claude-opus-5.5"
+    manufacturer: anthropic
+    providerSlug: anthropic
+    label: "Claude Opus 5.5"
+    catalogPublishDate: "2026-09-22"
+
+  - id: "xiaomi/mimo-v2.6-flash:xiaomi"
+    baseModelId: "xiaomi/mimo-v2.6-flash"
+    manufacturer: xiaomi
+    providerSlug: xiaomi
+    label: "MiMo V2.6 Flash"
+    catalogPublishDate: "2026-09-22"
+
+  - id: "xiaomi/mimo-v2.6-pro:xiaomi"
+    baseModelId: "xiaomi/mimo-v2.6-pro"
+    manufacturer: xiaomi
+    providerSlug: xiaomi
+    label: "MiMo V2.6 Pro"
+    catalogPublishDate: "2026-09-22"
+
+  - id: "x-ai/grok-4.7:x-ai"
+    baseModelId: "x-ai/grok-4.7"
+    manufacturer: x-ai
+    providerSlug: x-ai
+    label: "Grok 4.7"
+    catalogPublishDate: "2026-09-21"
+
+  - id: "stepfun/step-5-preview:stepfun"
+    baseModelId: "stepfun/step-5-preview"
+    manufacturer: stepfun
+    providerSlug: stepfun
+    label: "Step 5 Preview"
+    catalogPublishDate: "2026-09-20"
+
+  - id: "z-ai/glm-5.3-prime:alibaba"
+    baseModelId: "z-ai/glm-5.3-prime"
+    manufacturer: z-ai
+    providerSlug: alibaba
+    label: "GLM 5.3 Prime"
+    catalogPublishDate: "2026-09-23"
+
+  - id: "z-ai/glm-5.3-flashx:bigmodel"
+    baseModelId: "z-ai/glm-5.3-flashx"
+    manufacturer: z-ai
+    providerSlug: bigmodel
+    label: "GLM 5.3 FlashX"
+    catalogPublishDate: "2026-09-18"
+
+  - id: "sakana/fugu-ultra-v2:sakana"
+    baseModelId: "sakana/fugu-ultra-v2"
+    manufacturer: sakana
+    providerSlug: sakana
+    label: "Fugu Ultra v2"
+    catalogPublishDate: "2026-09-11"

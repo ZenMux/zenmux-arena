@@ -3,14 +3,17 @@ import { cache } from "react";
 import type { GraphData, MixManifest, ModelLangCell, ModelSpec } from "@research/lib/types";
 // Explicit imports keep this immutable snapshot traceable in standalone builds.
 // Never use `latest`: newer research must not silently rewrite the article's talk.
-import aggregate from "../../../../results/who-are-you/mix-20260601T062425/aggregate.json";
-import mix from "../../../../results/who-are-you/mix-20260601T062425/mix.json";
+import aggregate from "../../../../results/who-are-you/mix-20261030T004019/aggregate.json";
+import mix from "../../../../results/who-are-you/mix-20261030T004019/mix.json";
 import bareA from "../../../../results/who-are-you/20260530T175319/aggregate.json";
 import bareB from "../../../../results/who-are-you/20260601T012758/aggregate.json";
 import bareC from "../../../../results/who-are-you/20260601T030822/aggregate.json";
+import bareD from "../../../../results/who-are-you/20261029T233704/aggregate.json";
 import probedA from "../../../../results/who-are-you/20260531T175027/aggregate.json";
 import probedB from "../../../../results/who-are-you/20260601T031851/aggregate.json";
+import probedC from "../../../../results/who-are-you/20261029T233710/aggregate.json";
 import unbranded from "../../../../results/who-are-you/20260601T053656/aggregate.json";
+import unbrandedB from "../../../../results/who-are-you/20261029T233716/aggregate.json";
 import sample from "./evidence.json";
 import type { IdentityCounts, IdentityEvidence, IdentityRow, IdentityTalkData, IdentityVariant, PromptFamily } from "./types";
 
@@ -35,9 +38,18 @@ function languageCounts(cells: ModelLangCell[], graph: GraphData) {
   return Object.fromEntries(graph.languages.map((lang) => [lang.code, countCells(cells.filter((c) => c.langCode === lang.code), graph.models)]));
 }
 
+// Display labels come from the native source runs' pinned configs; the pooled mix
+// carries only ids and ground-truth vendors.
+const LABEL_RUNS: ModelSpec[][] = [bareA, bareB, bareC, bareD, probedA, probedB, probedC, unbranded, unbrandedB].map((run) => (run as unknown as GraphData).models);
+
 function modelLabel(model: ModelSpec) {
   const labels: Record<string, string> = { "openai/chat-latest:openai": "GPT-5.5 Instant", "tencent/hy3-preview:tencent-cloud": "Tencent Hy3 Preview", "z-ai/glm-5.1:bigmodel": "GLM 5.1" };
-  return labels[model.id] ?? unbranded.models.find((m) => m.id === model.id)?.label ?? model.id;
+  if (labels[model.id]) return labels[model.id];
+  for (const models of LABEL_RUNS) {
+    const found = models.find((m) => m.id === model.id);
+    if (found?.label) return found.label;
+  }
+  return model.id;
 }
 
 function modelRows(cells: ModelLangCell[], graph: GraphData): IdentityRow[] {
@@ -51,11 +63,11 @@ function modelRows(cells: ModelLangCell[], graph: GraphData): IdentityRow[] {
 export const loadIdentityTalkData = cache(function loadIdentityTalkData(): IdentityTalkData {
   const graph = aggregate as unknown as GraphData;
   const manifest = mix as MixManifest;
-  if (graph.runId !== "who-are-you/mix-20260601T062425" || graph.summary.totalAnswers !== 29700 || sample.runId !== graph.runId) throw new Error("Article-matched identity snapshot is unavailable or inconsistent.");
+  if (graph.runId !== "who-are-you/mix-20261030T004019" || graph.summary.totalAnswers !== 50700 || sample.runId !== graph.runId) throw new Error("Article-matched identity snapshot is unavailable or inconsistent.");
   const definitions: { id: PromptFamily; label: string; description: string; runs: GraphData[] }[] = [
-    { id: "bare", label: "裸问", description: "只问一句：你是谁？", runs: [bareA, bareB, bareC] as unknown as GraphData[] },
-    { id: "probed", label: "明确追问", description: "要求给出模型名与开发公司。", runs: [probedA, probedB] as unknown as GraphData[] },
-    { id: "unbranded", label: "去品牌提问", description: "要求搁置产品包装，回答底层模型身份。", runs: [unbranded] as unknown as GraphData[] },
+    { id: "bare", label: "裸问", description: "只问一句：你是谁？", runs: [bareA, bareB, bareC, bareD] as unknown as GraphData[] },
+    { id: "probed", label: "明确追问", description: "要求给出模型名与开发公司。", runs: [probedA, probedB, probedC] as unknown as GraphData[] },
+    { id: "unbranded", label: "去品牌提问", description: "要求搁置产品包装，回答底层模型身份。", runs: [unbranded, unbrandedB] as unknown as GraphData[] },
   ];
   const variants: IdentityVariant[] = definitions.map(({ id, label, description, runs }) => {
     for (const run of runs) {
@@ -90,9 +102,9 @@ export const loadIdentityTalkData = cache(function loadIdentityTalkData(): Ident
     stableModelIds: models.filter((m) => m.counts.self === m.counts.n).map((m) => m.id),
     sources: manifest.sources.map((s) => ({ run: s.run, answered: s.answered, family: variants.find((v) => v.sourceRuns.includes(s.run))!.id })),
     methodology: {
-      extractor: "GPT-5.5",
-      snapshot: "2026 年 5—6 月，指定原厂 provider 的调用链路快照；身份自述不能证明训练来源或蒸馏关系。",
-      languageCaveat: "去品牌组使用英文长指令 + 目标回答语言。分组分批采集，差异不等于提示词或语言的单独因果效应。",
+      extractor: "GPT-5.5（2026-05/06 批次）与 DeepSeek V4 Pro（2026-10 批次）",
+      snapshot: "2026 年 5—10 月，分三批汇集、指定 provider 的调用链路快照；新批次的三款 OpenAI 模型因原厂 :openai 路由不可用而固定在 azure。身份自述不能证明训练来源或蒸馏关系。",
+      languageCaveat: "去品牌组使用英文长指令 + 目标回答语言。分组分批采集，每模型每问法的重复次数不完全相同，差异不等于提示词或语言的单独因果效应。",
       cacheCaveat: "Prompt / KV 缓存复用输入计算，不等于复用完整回答。若存在响应级缓存，重复答案可能影响独立性；本记录未验证其是否发生。",
     },
   };

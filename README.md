@@ -70,20 +70,22 @@ The stimulus is a **de-branding / identity-elicitation probe**: the instruction 
 
 ### Headline findings
 
-From the latest pooled run: **27 models × 10 languages × 40 repeats ≈ 29,700 answers.**
+From the latest pooled run: **48 models · 10 languages · 3 prompt forms ≈ 50,700 answers**, pooled from nine staged runs (2026-05 → 2026-10).
 
 | Metric | Value | Meaning |
 |---|--:|---|
-| 🟢 **Self-identification** | **85.2%** | answered with its *own* true vendor |
-| 🔴 **Cross-vendor confusion** | **7.1%** | claimed a *different* vendor |
-| ⚪ **Unknown** | **2.4%** | answered, but no identity given |
-| ⛔ **Refused** | **5.3%** | declined to answer |
+| 🟢 **Self-identification** | **84.5%** | answered with its *own* true vendor |
+| 🔴 **Cross-vendor confusion** | **8.2%** | claimed a *different* vendor |
+| ⚪ **Unknown** | **2.8%** | answered, but no identity given |
+| ⛔ **Refused** | **4.6%** | declined to answer |
 
 **A few of the most striking confusions** *(model of vendor → vendor it claimed)*:
 
 ```
+meituan   → anthropic   41.2%   (412/1000)
+deepseek  → openai      25.0%   (801/3200)
 tencent   → anthropic   29.2%   (321/1100)
-z-ai      → google      25.0%   (275/1100)
+z-ai      → google       8.9%   (276/3100)
 kwai      → qwen        13.5%   (148/1100)
 bytedance → openai       7.2%   (317/4400)
 ```
@@ -109,13 +111,15 @@ pnpm study:report       # aggregate.json → report.md
 pnpm dev                # explore + export the graph at /who-are-you/studio
 ```
 
-Edit **[`config/study.yaml`](config/study.yaml)** to choose which models, languages, and repeat count to test. Each model entry pairs a ZenMux model `id` with its **ground-truth `vendor`** (one of the canonical ids in [`research/lib/vendors.ts`](research/lib/vendors.ts) — 67 vendors registered):
+Edit **[`config/study.yaml`](config/study.yaml)** to choose which models, languages, and repeat count to test. Each model entry pairs a ZenMux model `id` with its **ground-truth `vendor`** (one of the canonical ids in [`research/lib/vendors.ts`](research/lib/vendors.ts) — 20 real vendors under test in the current pooled run, plus extractor-discovered brands):
 
 ```yaml
 models:
-  - { id: "anthropic/claude-opus-4.8:anthropic", vendor: anthropic, label: "Claude Opus 4.8" }
-  - { id: "qwen/qwen3.7-max:alibaba",            vendor: qwen,      label: "Qwen3.7 Max" }
-  - { id: "openai/gpt-5.5:openai",               vendor: openai,    label: "GPT-5.5" }
+  - { id: "anthropic/claude-opus-5.5:anthropic",  vendor: anthropic, label: "Claude Opus 5.5" }
+  - { id: "qwen/qwen3.7-max:alibaba",             vendor: qwen,      label: "Qwen3.7 Max" }
+  # OpenAI models are pinned to the azure route while :openai is unavailable.
+  - { id: "openai/gpt-6.1-terra:azure",           vendor: openai,    label: "GPT-6.1 Terra" }
+  - { id: "sakana/fugu-ultra-v2:sakana",          vendor: sakana,    label: "Fugu Ultra v2" }
   # ...
 ```
 

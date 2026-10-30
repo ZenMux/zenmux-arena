@@ -145,9 +145,31 @@ models:
   - { id: "baidu/ernie-5.1:baidu", vendor: baidu, label: "ERNIE 5.1" }
   - { id: "meituan/longcat-2.0:meituan", vendor: meituan, label: "LongCat 2.0" }
 
+  - { id: "openai/gpt-6.1-terra:azure", vendor: openai, label: "GPT-6.1 Terra" }
+  - { id: "openai/gpt-6.1-sol:azure", vendor: openai, label: "GPT-6.1 Sol" }
+  - { id: "openai/gpt-6-luna:azure", vendor: openai, label: "GPT-6 Luna" }
+  - { id: "moonshotai/kimi-k3.1-pro:moonshotai", vendor: moonshot, label: "Kimi K3.1 Pro" }
+  - { id: "minimax/minimax-m3.1-flash:minimax", vendor: minimax, label: "MiniMax M3.1 Flash" }
+  - { id: "deepseek/deepseek-v4.1-flash:deepseek", vendor: deepseek, label: "DeepSeek V4.1 Flash" }
+  - { id: "google/gemini-4-argon:google-vertex", vendor: google, label: "Gemini 4 Argon" }
+  - { id: "meta/muse-wonder-1.0:meta", vendor: meta, label: "Muse Wonder 1.0" }
+  - { id: "mistralai/mistral-large-4:mistral", vendor: mistral, label: "Mistral Large 4" }
+  - { id: "anthropic/claude-haiku-5.5:anthropic", vendor: anthropic, label: "Claude Haiku 5.5" }
+  - { id: "inclusionai/ling-3.1-flash:ant-ling", vendor: inclusionai, label: "Ling 3.1 Flash" }
+  - { id: "anthropic/claude-sonnet-5.5:anthropic", vendor: anthropic, label: "Claude Sonnet 5.5" }
+  - { id: "meituan/longcat-2.5-preview:longcat", vendor: meituan, label: "LongCat 2.5 Preview" }
+  - { id: "anthropic/claude-opus-5.5:anthropic", vendor: anthropic, label: "Claude Opus 5.5" }
+  - { id: "xiaomi/mimo-v2.6-flash:xiaomi", vendor: xiaomi, label: "MiMo V2.6 Flash" }
+  - { id: "xiaomi/mimo-v2.6-pro:xiaomi", vendor: xiaomi, label: "MiMo V2.6 Pro" }
+  - { id: "x-ai/grok-4.7:x-ai", vendor: x-ai, label: "Grok 4.7" }
+  - { id: "stepfun/step-5-preview:stepfun", vendor: stepfun, label: "Step 5 Preview" }
+  - { id: "z-ai/glm-5.3-prime:alibaba", vendor: z-ai, label: "GLM 5.3 Prime" }
+  - { id: "z-ai/glm-5.3-flashx:bigmodel", vendor: z-ai, label: "GLM 5.3 FlashX" }
+  - { id: "sakana/fugu-ultra-v2:sakana", vendor: sakana, label: "Fugu Ultra v2" }
+
 # Identity extractor: reads each answer and returns the claimed vendor as JSON. gemini-3.5-flash
 extractor:
-  model: "gpt-5.5:openai"
+  model: "deepseek/deepseek-v4-pro:deepseek"
   maxTokens: 10240
 
 # Times each model is asked, per language.

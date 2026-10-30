@@ -3,6 +3,7 @@ import test from "node:test";
 import { createServer } from "node:http";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import { extractText, flattenText, makeClient } from "../lib/client";
 import { withRetry } from "../lib/limiter";
 import { makePersonalityClient } from "./client";
 import { loadPersonalityConfig } from "./config";
@@ -101,10 +102,11 @@ test("Responses sends isolated questionnaires and retains only assistant text fo
     assert.deepEqual(completion.usage, { input: 500, output: 400 });
   }
   assert.deepEqual(requests[0], requests[1]);
+  // The ceiling is an amendment-tracked study parameter; assert the request mirrors it.
   assert.deepEqual(requests[0], {
     model: "openai/gpt-5.6-luna:openai",
     input: [{ role: "user", content: "fixed prompt" }],
-    max_output_tokens: 16384,
+    max_output_tokens: loadPersonalityConfig().api.maxTokens,
     stream: true,
     store: false,
   });
@@ -171,4 +173,118 @@ test("shared retry preserves HTTP classification for OpenAI and Anthropic SDKs",
     assert.deepEqual(delays, [0]);
     assert.equal(attempts, 2);
   }
+});
+
+test("nested provider text blocks flatten without leaking reasoning", () => {
+  assert.equal(
+    flattenText([
+      { type: "thinking", thinking: [{ type: "text", text: "private chain of thought" }] },
+      { type: "text", text: "I am Mistral Large." },
+    ]),
+    "I am Mistral Large.",
+  );
+  const message = {
+    content: [
+      {
+        type: "text",
+        text: [
+          { type: "thinking", thinking: [{ type: "text", text: "plan" }] },
+          { type: "text", text: "I am Mistral Large." },
+        ],
+      },
+    ],
+  } as unknown as Anthropic.Message;
+  assert.equal(extractText(message), "I am Mistral Large.");
+});
+
+test("Mistral-style nested Responses text still parses as a questionnaire", async () => {
+  const nested = result({
+    output: [{
+      type: "message", role: "assistant", status: "completed", id: "msg_nested",
+      content: [{
+        type: "output_text",
+        text: [
+          { type: "thinking", thinking: [{ type: "text", text: "count the items" }] },
+          { type: "text", text: questionnaire },
+        ],
+      }],
+    }],
+  });
+  const config = structuredClone(loadPersonalityConfig());
+  config.api.apiKeyEnv = "PERSONALITY_NESTED_TEST_API_KEY";
+  process.env.PERSONALITY_NESTED_TEST_API_KEY = "synthetic-test-key";
+  const client = makePersonalityClient(config, async () =>
+    new Response(
+      `data: ${JSON.stringify({ type: "response.completed", response: nested })}\n\ndata: [DONE]\n\n`,
+      { status: 200, headers: { "content-type": "text/event-stream" } },
+    ));
+  delete process.env.PERSONALITY_NESTED_TEST_API_KEY;
+  const completion = await client("mistralai/mistral-large-4:mistral", "prompt");
+  assert.equal(completion.error, undefined);
+  assert.equal(parseOejtsResponse(completion.response).length, 32);
+});
+
+test("Messages client pins the anthropic-version ZenMux accepts", async () => {
+  let seen: string | undefined;
+  const server = createServer((request, response) => {
+    request.resume();
+    seen = String(request.headers["anthropic-version"]);
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(JSON.stringify({
+      id: "msg_fixture", type: "message", role: "assistant", model: "example/model",
+      content: [{ type: "text", text: "hi" }], stop_reason: "end_turn",
+      usage: { input_tokens: 1, output_tokens: 1 },
+    }));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  const previousNoProxy = process.env.no_proxy;
+  process.env.no_proxy = "127.0.0.1";
+  process.env.PERSONALITY_HEADER_TEST_API_KEY = "synthetic-test-key";
+  try {
+    const client = makeClient({
+      api: {
+        baseURL: `http://127.0.0.1:${address.port}`,
+        apiKeyEnv: "PERSONALITY_HEADER_TEST_API_KEY",
+      },
+    });
+    await client.messages.create({ model: "example/model", max_tokens: 8, messages: [{ role: "user", content: "hi" }] });
+    // Newer SDK majors default to a later version; ZenMux rejects anything else with HTTP 400.
+    assert.equal(seen, "2023-06-01");
+  } finally {
+    delete process.env.PERSONALITY_HEADER_TEST_API_KEY;
+    if (previousNoProxy === undefined) delete process.env.no_proxy;
+    else process.env.no_proxy = previousNoProxy;
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("array stream deltas are flattened instead of stringified", async () => {
+  const config = structuredClone(loadPersonalityConfig());
+  config.api.apiKeyEnv = "PERSONALITY_ARRAY_DELTA_TEST_API_KEY";
+  process.env.PERSONALITY_ARRAY_DELTA_TEST_API_KEY = "synthetic-test-key";
+  // Mistral streams thinking + text as arrays; the terminal payload is corrupted too.
+  const chunks = [
+    [{ type: "thinking", thinking: [{ type: "text", text: "count the items" }], closed: true }],
+    [{ type: "text", text: questionnaire }],
+  ];
+  const body = result({
+    output: [{
+      type: "message", role: "assistant", status: "completed", id: "msg_array_delta",
+      content: [{ type: "output_text", text: "[object Object]", annotations: [] }],
+    }],
+  });
+  const client = makePersonalityClient(config, async () =>
+    new Response(
+      chunks.map((delta) => `data: ${JSON.stringify({ type: "response.output_text.delta", delta })}\n\n`).join("") +
+      `data: ${JSON.stringify({ type: "response.completed", response: body })}\n\ndata: [DONE]\n\n`,
+      { status: 200, headers: { "content-type": "text/event-stream" } },
+    ));
+  delete process.env.PERSONALITY_ARRAY_DELTA_TEST_API_KEY;
+  const completion = await client("mistralai/mistral-large-4:mistral", "prompt");
+  assert.equal(completion.response, questionnaire);
+  assert.equal(parseOejtsResponse(completion.response).length, 32);
+  assert.equal(completion.error, undefined);
 });

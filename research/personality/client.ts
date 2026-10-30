@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import type { Response as OpenAIResponse } from "openai/resources/responses/responses";
 import { EnvHttpProxyAgent, fetch as undiciFetch } from "undici";
-import { extractText, makeClient } from "../lib/client";
+import { extractText, flattenText, makeClient } from "../lib/client";
 import type { PersonalityConfig, PersonalityRecord } from "./types";
 
 type Completion = Pick<
@@ -79,7 +79,11 @@ export function makePersonalityClient(
     let streamError: string | undefined;
     for await (const event of stream) {
       if (event.type === "response.output_text.delta") {
-        streamedText += event.delta;
+        // Some shims stream an ARRAY of structured blocks instead of a string
+        // (Mistral sends [thinking…, text…]). A plain concatenation would stringify
+        // that to "[object Object]" and poison the whole questionnaire, so flatten
+        // each chunk and drop reasoning leaves.
+        streamedText += typeof event.delta === "string" ? event.delta : flattenText(event.delta);
         // JSON.stringify keeps every streamed chunk legible even when 16
         // administrations write concurrently to the same terminal.
         console.log(`[personality:stream] ${modelId} ${JSON.stringify(event.delta)}`);
@@ -111,11 +115,9 @@ export function makePersonalityClient(
 
     const messages = (result.output ?? []).filter((item) => item.type === "message");
     const content = messages.flatMap((message) => message.content ?? []);
-    const finalText = content
-      .filter((part) => part.type === "output_text")
-      .map((part) => part.text)
-      .join("")
-      .trim();
+    const finalText = flattenText(
+      content.filter((part) => part.type === "output_text").map((part) => part.text),
+    ).trim();
     const response = streamedText || finalText;
     const refusal = content
       .filter((part) => part.type === "refusal")

@@ -20,7 +20,9 @@ charts remain interactive; the deck does not make new research/model calls.
 
 ## Sources and boundaries
 
-Identity is pinned to `who-are-you/mix-20260601T062425` (29,700 answers).
+Identity is pinned to `who-are-you/mix-20261030T004019` (48 models, 50,700 answers
+pooled from nine staged runs; the 2026-10 cohort was labelled by DeepSeek V4 Pro
+and the three OpenAI models are pinned to the azure route).
 The prompt-family and language comparisons retain source metadata; the
 unbranded instructions were English with a target response language.
 The count/degree scene follows the article: counts include all cross-identity
@@ -38,14 +40,18 @@ feed and trend chart continue reading the shared-snapshot API. `to`, stale/degra
 PAYG/subscription accounting are preserved. A successful fetch does not imply
 fresh coverage. Method calculators are clearly labeled teaching examples.
 
-OEJTS is pinned to `llm-mbti-oejts/20260911T040759`: 27 models, 432 valid
-administrations, 22 stable profiles (13 INTJ, 9 ISTJ), and 5 without a stable type.
+OEJTS is pinned to `llm-mbti-oejts/20260911T040759`: 47 models, 752 valid
+administrations, 37 stable profiles (25 INTJ, 12 ISTJ), and 10 without a stable type.
+The frozen run was amended on 2026-10-30 with 20 newly released models (the
+requested roster's DeepSeek V4.1 Flash was already present and was not
+re-administered); the original 432 questionnaires are preserved.
 The 2026-09-17 reanalysis uses only a unique complete-type mode above half
 (≥9/16); per-letter statistics are descriptive, not additional gates. The
-original questionnaires and pinned study snapshots are unchanged.
-`/talk#mbti-gallery` shows all 27 models with local MBTI illustrations, type
+original questionnaires and pinned study snapshots are unchanged apart from the
+documented amendment.
+`/talk#mbti-gallery` shows all 47 models with local MBTI illustrations, type
 shares (count / 16, not confidence), and explicit unstable labels. The closing
-MBTI scene includes prompt-perturbation/cache controls as unperformed follow-up work. Its loader discloses Azure Mistral and the
+MBTI scene includes prompt-perturbation/cache controls as unperformed follow-up work. Its loader discloses Azure Mistral, the azure-pinned OpenAI routes and the
 8192/16384/50000 output budgets. The score/distribution tests re-score every
 questionnaire. Original OEJTS 1.2 attribution and CC BY-NC-SA 4.0 remain visible.
 

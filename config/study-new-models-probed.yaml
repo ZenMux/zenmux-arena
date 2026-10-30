@@ -1,0 +1,93 @@
+# =============================================================================
+# "Who Are You?" — incremental run: 21 models released 2026-09/10.
+#
+# Same study id ("who-are-you") and the SAME prompt family / repeat count as its
+# historical sibling, so `study:mix` can pool this run with the earlier ones.
+# Route pins reflect what actually answers on 2026-10-30:
+#   - OpenAI models must be called through the azure route; the :openai route
+#     returns 500 "Your API key has been invalidated".
+#   - DeepSeek V4 Pro replaces GPT-5.5 as extractor for the same reason.
+# =============================================================================
+
+# =============================================================================
+# "Who Are You?" — Cross-Vendor Identity Confusion in Frontier LLMs
+# Experiment configuration. Edit the `models` list to point at real ZenMux model ids.
+# Run:  export ZENMUX_API_KEY=...  &&  pnpm study:test
+# =============================================================================
+
+study:
+  id: who-are-you
+  title: "Who Are You? Cross-Vendor Identity Confusion in Frontier LLMs"
+  description: "Probing model self-identification across ten languages via the ZenMux Anthropic Messages API."
+
+api:
+  baseURL: "https://zenmux.ai/api/anthropic"
+  apiKeyEnv: "ZENMUX_API_KEY"
+  maxTokens: 10240
+  # Concurrency model:
+  #  - All models run in parallel, capped at `modelConcurrency` workers.
+  #  - Within each model, languages run SEQUENTIALLY (lang 1 fully, then lang 2, ...).
+  #  - Within each language, the `repeats` requests run in BATCHES of `batchSize`
+  #    (batchSize requests in flight at once; batches run one after another).
+  modelConcurrency: 21 # all 21 new models run together
+  batchSize: 8 # requests fired concurrently per batch, within one model+language
+  # Retry/backoff for transient errors (429 / 5xx / network):
+  maxRetries: 6 # attempts per request after the first try
+  retryBaseMs: 1000 # base backoff (ms); grows exponentially with full jitter
+  retryCapMs: 60000 # max backoff per wait (ms)
+
+# Models under test. `vendor` is the GROUND-TRUTH vendor the model belongs to
+# (one of the canonical ids in research/lib/vendors.ts). `id` is the ZenMux model id.
+models:
+  - { id: "openai/gpt-6.1-terra:azure", vendor: openai, label: "GPT-6.1 Terra" }
+  - { id: "openai/gpt-6.1-sol:azure", vendor: openai, label: "GPT-6.1 Sol" }
+  - { id: "openai/gpt-6-luna:azure", vendor: openai, label: "GPT-6 Luna" }
+  - { id: "moonshotai/kimi-k3.1-pro:moonshotai", vendor: moonshot, label: "Kimi K3.1 Pro" }
+  - { id: "minimax/minimax-m3.1-flash:minimax", vendor: minimax, label: "MiniMax M3.1 Flash" }
+  - { id: "deepseek/deepseek-v4.1-flash:deepseek", vendor: deepseek, label: "DeepSeek V4.1 Flash" }
+  - { id: "google/gemini-4-argon:google-vertex", vendor: google, label: "Gemini 4 Argon" }
+  - { id: "meta/muse-wonder-1.0:meta", vendor: meta, label: "Muse Wonder 1.0" }
+  - { id: "mistralai/mistral-large-4:mistral", vendor: mistral, label: "Mistral Large 4" }
+  - { id: "anthropic/claude-haiku-5.5:anthropic", vendor: anthropic, label: "Claude Haiku 5.5" }
+  - { id: "inclusionai/ling-3.1-flash:ant-ling", vendor: inclusionai, label: "Ling 3.1 Flash" }
+  - { id: "anthropic/claude-sonnet-5.5:anthropic", vendor: anthropic, label: "Claude Sonnet 5.5" }
+  - { id: "meituan/longcat-2.5-preview:longcat", vendor: meituan, label: "LongCat 2.5 Preview" }
+  - { id: "anthropic/claude-opus-5.5:anthropic", vendor: anthropic, label: "Claude Opus 5.5" }
+  - { id: "xiaomi/mimo-v2.6-flash:xiaomi", vendor: xiaomi, label: "MiMo V2.6 Flash" }
+  - { id: "xiaomi/mimo-v2.6-pro:xiaomi", vendor: xiaomi, label: "MiMo V2.6 Pro" }
+  - { id: "x-ai/grok-4.7:x-ai", vendor: x-ai, label: "Grok 4.7" }
+  - { id: "stepfun/step-5-preview:stepfun", vendor: stepfun, label: "Step 5 Preview" }
+  - { id: "z-ai/glm-5.3-prime:alibaba", vendor: z-ai, label: "GLM 5.3 Prime" }
+  - { id: "z-ai/glm-5.3-flashx:bigmodel", vendor: z-ai, label: "GLM 5.3 FlashX" }
+  - { id: "sakana/fugu-ultra-v2:sakana", vendor: sakana, label: "Fugu Ultra v2" }
+
+extractor:
+  model: "deepseek/deepseek-v4-pro:deepseek"
+  maxTokens: 10240
+
+# Times each model is asked, per language.
+repeats: 30
+
+# The stimulus, hardcoded in ten languages (deterministic, reproducible).
+# V1 "probed" form: the open "Who are you?" question PLUS an explicit request to
+# name the AI model and the company that developed it. Chosen to surface
+# cross-vendor identity claims (distillation fingerprints) that the bare
+# "Who are you?" leaves hidden behind generic "I'm an AI assistant" answers —
+# in a 360-call probe, V1 raised cross-vendor claims from 11%→18% and uniquely
+# exposed edges like GLM 5.1 → Google. Caveat: inclusionai (Ring/Ling) refuses
+# 100% of the time under this form, and probed claims are induced rather than
+# spontaneous — keep an earlier bare-"Who are you?" run as the self-report baseline.
+# NOTE: the resume key is modelId::langCode::repeat and does NOT encode the prompt,
+# so changing these prompts requires a FRESH run (no --run) — resuming an old run
+# treats the old-prompt records as already done and won't re-ask them.
+languages:
+  - { code: en, name: "English", prompt: "Who are you? Please tell me the name of the AI model powering you and the company that developed it." }
+  - { code: zh-Hans, name: "简体中文", prompt: "你是谁？请告诉我驱动你的 AI 模型的名字，以及开发它的公司。" }
+  - { code: zh-Hant, name: "繁體中文", prompt: "你是誰？請告訴我驅動你的 AI 模型的名字，以及開發它的公司。" }
+  - { code: ja, name: "日本語", prompt: "あなたは誰ですか？あなたを動かしているAIモデルの名前と、それを開発した会社名を教えてください。" }
+  - { code: ko, name: "한국어", prompt: "당신은 누구입니까? 당신을 구동하는 AI 모델의 이름과 그것을 개발한 회사를 알려주세요." }
+  - { code: ru, name: "Русский", prompt: "Кто ты? Назови, пожалуйста, название ИИ-модели, которая тебя обеспечивает, и компанию, которая её разработала." }
+  - { code: es, name: "Español", prompt: "¿Quién eres? Dime el nombre del modelo de IA que te impulsa y la empresa que lo desarrolló." }
+  - { code: fr, name: "Français", prompt: "Qui es-tu ? Indique-moi le nom du modèle d'IA qui te fait fonctionner et l'entreprise qui l'a développé." }
+  - { code: de, name: "Deutsch", prompt: "Wer bist du? Nenne mir bitte den Namen des KI-Modells, das dich antreibt, und das Unternehmen, das es entwickelt hat." }
+  - { code: pt, name: "Português", prompt: "Quem és tu? Diz-me o nome do modelo de IA que te alimenta e a empresa que o desenvolveu." }
