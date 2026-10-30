@@ -1,0 +1,201 @@
+{
+  "source": "https://zenmux.ai/api/v1/models",
+  "fetchedAt": "2026-10-30T04:33:07.922Z",
+  "fallback": "results/token-economics/20260617T023212/models-api.json",
+  "models": {
+    "anthropic/claude-haiku-4.5:anthropic": {
+      "publishTime": "2025-10-15",
+      "source": "live"
+    },
+    "anthropic/claude-haiku-5.5:anthropic": {
+      "publishTime": "2026-10-07",
+      "source": "live"
+    },
+    "anthropic/claude-opus-4.8:anthropic": {
+      "publishTime": "2026-05-28",
+      "source": "live"
+    },
+    "anthropic/claude-opus-5.5:anthropic": {
+      "publishTime": "2026-09-22",
+      "source": "live"
+    },
+    "anthropic/claude-sonnet-4.6:anthropic": {
+      "publishTime": "2026-02-18",
+      "source": "live"
+    },
+    "anthropic/claude-sonnet-5.5:anthropic": {
+      "publishTime": "2026-09-28",
+      "source": "live"
+    },
+    "baidu/ernie-5.1:baidu": {
+      "publishTime": "2026-05-09",
+      "source": "live"
+    },
+    "bytedance/doubao-seed-2.0-code:volcengine": {
+      "publishTime": "2026-02-14",
+      "source": "live"
+    },
+    "bytedance/doubao-seed-2.0-lite:volcengine": {
+      "publishTime": "2026-02-14",
+      "source": "live"
+    },
+    "bytedance/doubao-seed-2.0-mini:volcengine": {
+      "publishTime": "2026-02-14",
+      "source": "live"
+    },
+    "bytedance/doubao-seed-2.0-pro:volcengine": {
+      "publishTime": "2026-02-14",
+      "source": "live"
+    },
+    "deepseek/deepseek-v4-flash:deepseek": {
+      "publishTime": "2026-04-24",
+      "source": "archive-20260617",
+      "liveListed": "2026-07-31"
+    },
+    "deepseek/deepseek-v4-pro:deepseek": {
+      "publishTime": "2026-04-24",
+      "source": "archive-20260617",
+      "liveListed": "2026-08-12"
+    },
+    "deepseek/deepseek-v4.1-flash:deepseek": {
+      "publishTime": "2026-10-17",
+      "source": "live"
+    },
+    "google/gemini-3.1-pro-preview:google-vertex": {
+      "publishTime": "2026-02-19",
+      "source": "live"
+    },
+    "google/gemini-3.5-flash:google-vertex": {
+      "publishTime": "2026-05-19",
+      "source": "live"
+    },
+    "google/gemini-4-argon:google-vertex": {
+      "publishTime": "2026-10-13",
+      "source": "live"
+    },
+    "inclusionai/ling-2.6-1t:theta": {
+      "publishTime": "2026-04-23",
+      "source": "live"
+    },
+    "inclusionai/ling-3.1-flash:ant-ling": {
+      "publishTime": "2026-10-02",
+      "source": "live"
+    },
+    "inclusionai/ring-2.6-1t:theta": {
+      "publishTime": "2026-05-09",
+      "source": "live"
+    },
+    "kuaishou/kat-coder-pro-v2:streamlake": {
+      "publishTime": "2026-03-30",
+      "source": "archive-20260617"
+    },
+    "meituan/longcat-2.5-preview:longcat": {
+      "publishTime": "2026-09-25",
+      "source": "live"
+    },
+    "meta/muse-wonder-1.0:meta": {
+      "publishTime": "2026-10-13",
+      "source": "live"
+    },
+    "minimax/minimax-m2.7:minimax": {
+      "publishTime": "2026-03-18",
+      "source": "live"
+    },
+    "minimax/minimax-m3:minimax": {
+      "publishTime": "2026-06-01",
+      "source": "live"
+    },
+    "minimax/minimax-m3.1-flash:minimax": {
+      "publishTime": "2026-10-19",
+      "source": "live"
+    },
+    "mistralai/mistral-large-4:mistral": {
+      "publishTime": "2026-10-08",
+      "source": "live"
+    },
+    "moonshotai/kimi-k2.6:moonshotai": {
+      "publishTime": "2026-04-21",
+      "source": "live"
+    },
+    "moonshotai/kimi-k3.1-pro:moonshotai": {
+      "publishTime": "2026-10-23",
+      "source": "live"
+    },
+    "openai/chat-latest:openai": {
+      "publishTime": "2026-05-05",
+      "source": "live"
+    },
+    "openai/gpt-5.3-codex:openai": {
+      "publishTime": "2026-02-06",
+      "source": "live"
+    },
+    "openai/gpt-5.5:openai": {
+      "publishTime": "2026-04-25",
+      "source": "live"
+    },
+    "openai/gpt-6-luna:azure": {
+      "publishTime": "2026-09-23",
+      "source": "live"
+    },
+    "openai/gpt-6.1-sol:azure": {
+      "publishTime": "2026-09-30",
+      "source": "live"
+    },
+    "openai/gpt-6.1-terra:azure": {
+      "publishTime": "2026-10-27",
+      "source": "live"
+    },
+    "qwen/qwen3.7-max:alibaba": {
+      "publishTime": "2026-05-22",
+      "source": "live"
+    },
+    "sakana/fugu-ultra-v2:sakana": {
+      "publishTime": "2026-09-11",
+      "source": "live"
+    },
+    "stepfun/step-3.7-flash:stepfun": {
+      "publishTime": "2026-05-29",
+      "source": "live"
+    },
+    "stepfun/step-5-preview:stepfun": {
+      "publishTime": "2026-09-20",
+      "source": "live"
+    },
+    "tencent/hy3-preview:tencent-cloud": {
+      "publishTime": "2026-04-23",
+      "source": "archive-20260617"
+    },
+    "x-ai/grok-4.3:x-ai": {
+      "publishTime": "2026-05-01",
+      "source": "live"
+    },
+    "x-ai/grok-4.7:x-ai": {
+      "publishTime": "2026-09-21",
+      "source": "live"
+    },
+    "xiaomi/mimo-v2.5-pro:xiaomi": {
+      "publishTime": "2026-04-23",
+      "source": "archive-20260617"
+    },
+    "xiaomi/mimo-v2.6-flash:xiaomi": {
+      "publishTime": "2026-09-22",
+      "source": "live"
+    },
+    "xiaomi/mimo-v2.6-pro:xiaomi": {
+      "publishTime": "2026-09-22",
+      "source": "live"
+    },
+    "z-ai/glm-5.1:bigmodel": {
+      "publishTime": "2026-04-03",
+      "source": "live"
+    },
+    "z-ai/glm-5.3-flashx:bigmodel": {
+      "publishTime": "2026-09-18",
+      "source": "live"
+    },
+    "z-ai/glm-5.3-prime:alibaba": {
+      "publishTime": "2026-09-23",
+      "source": "live"
+    }
+  }
+}

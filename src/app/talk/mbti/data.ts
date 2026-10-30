@@ -15,6 +15,15 @@ const LOGOS: Record<string, string> = {
   meta: "meta", mistralai: "mistral", sakana: "sakana",
 };
 
+// Display names for the manufacturer rows of the vendor × type scene.
+const VENDOR_NAMES: Record<string, string> = {
+  openai: "OpenAI", anthropic: "Anthropic", google: "Google", deepseek: "DeepSeek",
+  qwen: "Qwen", bytedance: "ByteDance", "x-ai": "xAI", "z-ai": "Z.ai",
+  moonshotai: "Moonshot", minimax: "MiniMax", baidu: "Baidu", tencent: "Tencent",
+  xiaomi: "Xiaomi", stepfun: "StepFun", meituan: "Meituan", inclusionai: "inclusionAI",
+  meta: "Meta", mistralai: "Mistral", sakana: "Sakana AI",
+};
+
 /** No network, model SDK, environment variables, or mutable live configuration. */
 export async function loadMbtiTalkData(): Promise<MbtiTalkData> {
   // Keep literal paths so Next's standalone file tracer can include the actual inputs.
@@ -47,6 +56,7 @@ export async function loadMbtiTalkData(): Promise<MbtiTalkData> {
     }
     return {
       id: model.modelId, name: model.label, provider: model.providerSlug,
+      vendor: model.manufacturer, vendorName: VENDOR_NAMES[model.manufacturer] ?? model.manufacturer,
       logo: `/model-logo/${LOGOS[model.manufacturer] ?? "zenmux"}_color.svg`,
       n: model.n, status: model.status, stableType: model.stableType,
       modalType: model.modalType, modalCount: model.modalCount, reasons: model.reasons,

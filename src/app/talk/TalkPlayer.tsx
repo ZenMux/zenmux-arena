@@ -8,7 +8,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Check, Expand, ExternalLink, Grid2X2, 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { CHAPTERS, SLIDES, type TalkSlide } from "./story";
+import { CHAPTERS, SLIDE_ALIASES, SLIDES, type TalkSlide } from "./story";
 import { Challenge, ChapterCard, Closing, Cover, LoadingPanel, Observatory, Opening, PriceMethod, Reflection, UsageMethod, ValueMethod } from "./Narrative";
 import type { IdentityTalkData, IdentityView } from "./identity/types";
 import type { MbtiTalkData, MbtiView } from "./mbti/types";
@@ -24,7 +24,8 @@ const LOCATION_EVENT = "arena:talk-slide";
 const FULL_BLEED = new Set(["cover", "opening", "chapter", "identity-end", "economics-end", "mbti-end", "closing"]);
 
 function readIndex() {
-  const index = SLIDES.findIndex(slide => slide.id === window.location.hash.slice(1));
+  const hash = window.location.hash.slice(1);
+  const index = SLIDES.findIndex(slide => slide.id === (SLIDE_ALIASES[hash] ?? hash));
   return index < 0 ? 0 : index;
 }
 function subscribeIndex(notify: () => void) {

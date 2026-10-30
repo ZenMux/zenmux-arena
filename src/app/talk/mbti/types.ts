@@ -4,13 +4,16 @@ import type {
   OejtsInstrument,
 } from "@research/personality/types";
 
-export type MbtiView = "method" | "overview" | "gallery" | "distribution" | "explorer" | "stability" | "dimensions";
+export type MbtiView = "method" | "overview" | "gallery" | "distribution" | "vendors" | "explorer" | "stability" | "dimensions";
 export type MbtiDimension = OejtsDimension;
 
 export interface MbtiModel {
   id: string;
   name: string;
   provider: string;
+  /** Manufacturer slug and display name (not the serving provider). */
+  vendor: string;
+  vendorName: string;
   logo: string;
   n: number;
   status: "stable" | "no_stable_type";

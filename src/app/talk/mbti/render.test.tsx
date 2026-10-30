@@ -27,24 +27,35 @@ test("the gallery shows all 47 model cards with exact shares and explicit unstab
   assert.equal(SLIDES.filter((s) => s.id === "mbti-gallery" && s.view === "gallery").length, 1);
 });
 
-test("the distribution view stacks only stable models over all 16 types", async () => {
+test("the distribution view defaults to all models, unstable ones dashed in their modal columns", async () => {
   const data = await loadMbtiTalkData();
   const html = renderToStaticMarkup(<MbtiPanel data={data} view="distribution" />);
   const stable = data.models.filter((m) => m.status === "stable");
   assert.equal((html.match(/aria-label="[^"]*，稳定 (?:INTJ|ISTJ)，\d+\/16 次"/g) ?? []).length, stable.length);
-  for (const model of data.models) assert.equal(html.includes(`title="${model.name}"`), model.status === "stable", model.name);
+  assert.equal((html.match(/data-stable="false"/g) ?? []).length, 11); // GPT-6.1 Terra sits in both tied columns
+  for (const model of data.models) assert.ok(html.includes(`title="${model.name}"`), model.name);
   for (const type of ["INTJ", "INTP", "ENFP", "ISTJ", "ESFP"]) assert.ok(html.includes(`<b>${type}</b>`), type);
-  assert.ok(html.includes("INTJ 25 款") && html.includes("ISTJ 12 款"));
+  assert.ok(html.includes("25 款") && html.includes("12 款"));
 });
 
-test("MBTI scenes follow method → stability → overview → distribution → gallery", () => {
+test("the vendor matrix lists every vendor, with unstable models dashed by default", async () => {
+  const data = await loadMbtiTalkData();
+  const html = renderToStaticMarkup(<MbtiPanel data={data} view="vendors" />);
+  for (const name of new Set(data.models.map((m) => m.vendorName))) assert.ok(html.includes(name), name);
+  // Default scope is "all": 37 stable + 10 unstable, GPT-6.1 Terra appears in both tied columns.
+  assert.equal((html.match(/data-stable="true"/g) ?? []).length, 37);
+  assert.equal((html.match(/data-stable="false"/g) ?? []).length, 11);
+  assert.ok(html.includes("并列最高频 INTJ") && html.includes("并列最高频 ISTJ"));
+});
+
+test("MBTI scenes follow method → stability → gallery → distribution → vendors; overview is hidden", () => {
   const order = SLIDES.filter((s) => s.kind === "mbti").map((s) => s.view);
-  assert.deepEqual(order, ["method", "stability", "overview", "distribution", "gallery", "explorer", "dimensions"]);
+  assert.deepEqual(order, ["method", "stability", "gallery", "distribution", "vendors", "explorer", "dimensions"]);
 });
 
 test("all MBTI views render under the majority-only classification contract", async () => {
   const data = await loadMbtiTalkData();
-  for (const view of ["method", "overview", "distribution", "explorer", "stability", "dimensions"] as const) {
+  for (const view of ["method", "overview", "distribution", "vendors", "explorer", "stability", "dimensions"] as const) {
     const html = renderToStaticMarkup(<MbtiPanel data={data} view={view} />);
     assert.ok(html.includes(`data-mbti-view="${view}"`));
     assert.ok(!html.includes("双重门槛"));

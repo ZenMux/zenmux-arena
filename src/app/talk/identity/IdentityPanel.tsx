@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import RelationshipGraph from "@/app/who-are-you/RelationshipGraph";
+import { VendorIcon } from "@/components/ZenMuxIcons";
 import { DEFAULT_RENDER, type RenderConfig } from "@research/lib/geometry";
 import type { VendorId } from "@research/lib/types";
 import { cn } from "@/lib/utils";
@@ -257,10 +258,47 @@ function Cases({ data }: { data: IdentityTalkData }) {
   </>;
 }
 
+const VENDOR_NAMES: Partial<Record<string, string>> = { bytedance: "ByteDance", "z-ai": "Z.ai", kwai: "Kuaishou", meituan: "Meituan", tencent: "Tencent", baidu: "Baidu", moonshot: "Moonshot AI" };
+type Cohort = "all" | "2026-05/06" | "2026-10";
+
+function Models({ data }: { data: IdentityTalkData }) {
+  const [cohort, setCohort] = useState<Cohort>("all");
+  const logos = useMemo(() => new Map(data.graph.vendors.map((v) => [v.id, v.logo || v.id])), [data.graph.vendors]);
+  // Newest ZenMux publish_time first; ties fall back to vendor, then label.
+  const ordered = useMemo(() => [...data.models].sort((a, b) =>
+    data.modelReleases[b.id].publishTime.localeCompare(data.modelReleases[a.id].publishTime) || a.vendor.localeCompare(b.vendor) || a.label.localeCompare(b.label)), [data.models, data.modelReleases]);
+  const count = (c: Cohort) => c === "all" ? data.models.length : data.models.filter((m) => data.modelCohorts[m.id] === c).length;
+  const vendorName = (id: string) => VENDOR_NAMES[id] ?? data.vendors.find((v) => v.id === id)?.label ?? id;
+  return <>
+    <div className={styles.toolbar}>
+      <ToggleGroup type="single" value={cohort} onValueChange={(v) => { if (v) setCohort(v as Cohort); }} aria-label="按采集批次筛选模型" className={styles.toggles}>
+        <ToggleGroupItem value="all">全部 {count("all")}</ToggleGroupItem>
+        <ToggleGroupItem value="2026-05/06">2026.05—06 · {count("2026-05/06")}</ToggleGroupItem>
+        <ToggleGroupItem value="2026-10">2026.10 新增 · {count("2026-10")}</ToggleGroupItem>
+      </ToggleGroup>
+      <span className={styles.small}>按 ZenMux 发布时间从新到旧 · 右上角为发布月份 · 悬停查看完整日期、厂商与路由</span>
+    </div>
+    <ul className={styles.modelGrid} aria-label={`受测模型名单，共 ${data.models.length} 个`}>
+      {ordered.map((m, i) => {
+        const active = cohort === "all" || data.modelCohorts[m.id] === cohort;
+        const { publishTime } = data.modelReleases[m.id];
+        return <li key={m.id} className={cn(styles.modelCard, !active && styles.modelMuted)} style={{ "--i": i } as CSSProperties} title={`${m.label} · ${vendorName(m.vendor)} · ${m.id.split(":")[1] ?? ""} 路由 · 发布于 ${publishTime}`} aria-hidden={!active || undefined}>
+          <span className={styles.modelTop}>
+            <span className={styles.modelLogo}><VendorIcon vendor={logos.get(m.vendor) ?? m.vendor} size={15} /></span>
+            <time className={styles.modelBadge} dateTime={publishTime.slice(0, 7)} title={`发布于 ${publishTime}`}>{Number(publishTime.slice(5, 7))}月</time>
+          </span>
+          <strong>{m.label}</strong>
+        </li>;
+      })}
+    </ul>
+    <Footer data={data}>发布时间取自 ZenMux 模型列表 publish_time（{data.releaseSource.fetchedAt.slice(0, 10)} 冻结）；已下架或后来重新上架的 {Object.values(data.modelReleases).filter((r) => r.source !== "live").length} 款沿用 2026-06-17 存档。名单是采样范围，不代表市场全景。</Footer>
+  </>;
+}
+
 /** Parent owns the slide heading and navigation. Each view occupies 570px. */
 export function IdentityPanel({ data, view }: { data: IdentityTalkData; view: IdentityView }) {
-  return <section className={styles.panel} data-identity-view={view} aria-label={`Who Are You 研究：${({ method: "实验方法", overview: "结果总览", prompts: "提示词比较", languages: "语言热力图", graph: "身份关系图", cases: "真实案例" })[view]}`}>
-    {view === "method" ? <Method data={data} /> : view === "overview" ? <Overview data={data} /> : view === "prompts" ? <Prompts data={data} /> : view === "languages" ? <Languages data={data} /> : view === "graph" ? <Graph data={data} /> : <Cases data={data} />}
+  return <section className={styles.panel} data-identity-view={view} aria-label={`Who Are You 研究：${({ method: "实验方法", overview: "结果总览", prompts: "提示词比较", languages: "语言热力图", graph: "身份关系图", cases: "真实案例", models: "受测模型" })[view]}`}>
+    {view === "method" ? <Method data={data} /> : view === "models" ? <Models data={data} /> : view === "overview" ? <Overview data={data} /> : view === "prompts" ? <Prompts data={data} /> : view === "languages" ? <Languages data={data} /> : view === "graph" ? <Graph data={data} /> : <Cases data={data} />}
   </section>;
 }
 

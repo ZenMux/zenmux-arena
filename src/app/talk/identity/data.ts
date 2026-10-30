@@ -15,6 +15,7 @@ import probedC from "../../../../results/who-are-you/20261029T233710/aggregate.j
 import unbranded from "../../../../results/who-are-you/20260601T053656/aggregate.json";
 import unbrandedB from "../../../../results/who-are-you/20261029T233716/aggregate.json";
 import sample from "./evidence.json";
+import release from "./release.json";
 import type { IdentityCounts, IdentityEvidence, IdentityRow, IdentityTalkData, IdentityVariant, PromptFamily } from "./types";
 
 const LANGUAGE_NAMES: Record<string, string> = { en: "英语", "zh-Hans": "简体中文", "zh-Hant": "繁体中文", ja: "日语", ko: "韩语", ru: "俄语", es: "西班牙语", fr: "法语", de: "德语", pt: "葡萄牙语" };
@@ -59,6 +60,27 @@ function modelRows(cells: ModelLangCell[], graph: GraphData): IdentityRow[] {
   });
 }
 
+const LATE_RUNS = new Set([bareD, probedC, unbrandedB].map((run) => (run as unknown as GraphData).runId));
+
+function modelCohorts(graph: GraphData): IdentityTalkData["modelCohorts"] {
+  const all = [bareA, bareB, bareC, bareD, probedA, probedB, probedC, unbranded, unbrandedB] as unknown as GraphData[];
+  return Object.fromEntries(graph.models.map((m) => {
+    const runs = all.filter((run) => run.models.some((x) => x.id === m.id));
+    const late = runs.filter((run) => LATE_RUNS.has(run.runId)).length;
+    if (!runs.length || (late && late !== runs.length)) throw new Error(`Model cohort is ambiguous: ${m.id}`);
+    return [m.id, late ? "2026-10" : "2026-05/06"];
+  }));
+}
+
+function modelReleases(graph: GraphData): IdentityTalkData["modelReleases"] {
+  const frozen = release.models as Record<string, { publishTime: string; source: string }>;
+  return Object.fromEntries(graph.models.map((m) => {
+    const r = frozen[m.id];
+    if (!r || !/^\d{4}-\d{2}-\d{2}$/.test(r.publishTime) || (r.source !== "live" && r.source !== "archive-20260617")) throw new Error(`Missing release date: ${m.id}`);
+    return [m.id, { publishTime: r.publishTime, source: r.source }];
+  }));
+}
+
 /** Synchronous, cached server loader; callers may also `await` it from an RSC. */
 export const loadIdentityTalkData = cache(function loadIdentityTalkData(): IdentityTalkData {
   const graph = aggregate as unknown as GraphData;
@@ -100,6 +122,9 @@ export const loadIdentityTalkData = cache(function loadIdentityTalkData(): Ident
     languages: graph.languages.map((l) => ({ code: l.code, name: LANGUAGE_NAMES[l.code] ?? l.name, nativeName: l.name, counts: languages[l.code] })),
     evidence: sample.evidence as IdentityEvidence[],
     stableModelIds: models.filter((m) => m.counts.self === m.counts.n).map((m) => m.id),
+    modelCohorts: modelCohorts(graph),
+    modelReleases: modelReleases(graph),
+    releaseSource: { url: release.source, fetchedAt: release.fetchedAt },
     sources: manifest.sources.map((s) => ({ run: s.run, answered: s.answered, family: variants.find((v) => v.sourceRuns.includes(s.run))!.id })),
     methodology: {
       extractor: "GPT-5.5（2026-05/06 批次）与 DeepSeek V4 Pro（2026-10 批次）",

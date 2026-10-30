@@ -1,6 +1,6 @@
 # 如果 Token 会说话
 
-Interactive Chinese research talk at `/talk`. Thirty-two scenes follow identity, the completed OEJTS study, then Token Economics:
+Interactive Chinese research talk at `/talk`. Thirty-four scenes follow identity, the completed OEJTS study, then Token Economics:
 “你是谁 → 你是什么性格 → 选择了谁”. The data-driven
 charts remain interactive; the deck does not make new research/model calls.
 
@@ -28,6 +28,10 @@ unbranded instructions were English with a target response language.
 The count/degree scene follows the article: counts include all cross-identity
 answers; degree counts only canonical vendor nodes, excluding `other:*` targets.
 The existing `RelationshipGraph` is rendered directly.
+`/talk#identity-models` orders the roster by ZenMux `publish_time`, frozen in
+`identity/release.json` by `node src/app/talk/identity/generate-release.mjs`
+(live listing, falling back to the 2026-06-17 archive for delisted models or
+later re-listing dates). The talk never fetches the listing at runtime.
 
 The DeepSeek challenge replays the frozen 2026-06-23 through 2026-08-23
 UTC window (inclusive dates), with no live fetch or polling during the talk.
@@ -49,14 +53,16 @@ The 2026-09-17 reanalysis uses only a unique complete-type mode above half
 (≥9/16); per-letter statistics are descriptive, not additional gates. The
 original questionnaires and pinned study snapshots are unchanged apart from the
 documented amendment.
-MBTI scenes run method → stability rule → overview → distribution → gallery →
-explorer → dimensions, so the strict-majority rule is introduced before results.
-`/talk#mbti-distribution` stacks only the 37 stable models over all 16 types
-(grouped NT/NF/SJ/SP); selecting a model shows its full 16-run type counts on the
-axis. `/talk#mbti-gallery` groups all 47 models into stable-type and unstable
+MBTI scenes run method → stability rule → gallery → distribution → vendors → explorer →
+dimensions, so the strict-majority rule is introduced before results.
+`/talk#mbti-distribution` stacks models over all 16 types (grouped NT/NF/SJ/SP)
+with a 稳定 / 全部 filter (default 全部): "全部" adds the 10 unstable models, dashed and lighter,
+in their modal-type column (tied modes appear in each tied column). Selecting a
+model shows its full 16-run type counts on the axis. `/talk#mbti-vendors` is a
+vendor-row × type-column matrix with the same filter and dashed unstable chips. `/talk#mbti-gallery` groups all 47 models into stable-type and unstable
 bands; each card shows the modal share (count / 16, not confidence) and a
-16-cell strip of every questionnaire's type. Overview, distribution and gallery
-can open the selected model directly in `/talk#mbti-explorer`. The closing
+16-cell strip of every questionnaire's type. The overview scene is hidden (`hidden: true` in `story.ts`;
+`#mbti-overview` redirects to the gallery). Distribution, vendors and gallery can open the selected model directly in `/talk#mbti-explorer`. The closing
 MBTI scene includes prompt-perturbation/cache controls as unperformed follow-up work. Its loader discloses Azure Mistral, the azure-pinned OpenAI routes and the
 8192/16384/50000 output budgets. The score/distribution tests re-score every
 questionnaire. Original OEJTS 1.2 attribution and CC BY-NC-SA 4.0 remain visible.

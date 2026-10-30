@@ -1,6 +1,6 @@
 import type { GraphData, VendorId } from "@research/lib/types";
 
-export type IdentityView = "method" | "overview" | "prompts" | "languages" | "graph" | "cases";
+export type IdentityView = "method" | "overview" | "prompts" | "languages" | "graph" | "cases" | "models";
 export type PromptFamily = "bare" | "probed" | "unbranded";
 export type IdentityOutcome = "self" | "cross" | "refused" | "unknown";
 
@@ -64,6 +64,11 @@ export interface IdentityTalkData {
   variants: IdentityVariant[];
   evidence: IdentityEvidence[];
   stableModelIds: string[];
+  /** Collection cohort per model id: the 2026-05/06 runs or the 2026-10 runs (disjoint rosters). */
+  modelCohorts: Record<string, "2026-05/06" | "2026-10">;
+  /** ZenMux `publish_time` (YYYY-MM-DD) per model id, frozen in `release.json`. */
+  modelReleases: Record<string, { publishTime: string; source: "live" | "archive-20260617" }>;
+  releaseSource: { url: string; fetchedAt: string };
   sources: { run: string; answered: number; family: PromptFamily }[];
   methodology: {
     extractor: string;

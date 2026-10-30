@@ -201,6 +201,18 @@
 .caseEvidence blockquote { font-size: 23px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; margin: 5px 0 10px; }
 .caseEvidence > .provenance { border-top: 1px solid var(--line); }
 .caseEvidence .provenance > p { padding-block: 8px; }
+.modelGrid { list-style: none; margin: 0; padding: 0; flex-shrink: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: 54px; gap: 8px 10px; }
+.modelCard { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; padding: 0 10px; border: 1px solid var(--line); border-radius: 10px; background: #fbfaf6; transition: opacity 200ms, border-color 200ms, transform 200ms; animation: modelIn 420ms cubic-bezier(.22,1,.36,1) both; animation-delay: calc(var(--i) * 12ms); }
+.modelCard:hover { border-color: #b9c3b7; transform: translateY(-1px); }
+.modelMuted { opacity: .22; }
+.modelMuted:hover { transform: none; border-color: var(--line); }
+.modelTop { display: flex; align-items: center; justify-content: space-between; gap: 6px; height: 22px; }
+.modelLogo { display: grid; place-items: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px; background: #efefe8; }
+.modelCard strong { display: block; font-size: 13px; font-weight: 600; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modelBadge { color: var(--quiet); font-size: 12px; line-height: 18px; white-space: nowrap; }
+@keyframes modelIn { from { opacity: 0; transform: translateY(6px); } }
+.modelMuted { animation-name: modelInMuted; }
+@keyframes modelInMuted { from { opacity: 0; } to { opacity: .22; } }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
   .panel *, .selectMenu * { animation: none !important; transition: none !important; }
@@ -244,4 +256,5 @@
   .caseAnalysis h3 { font-size: 27px; }
   .caseStats strong { font-size: 25px; }
   .caseEvidence { max-height: none; }
+  .modelGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 58px; }
 }
