@@ -248,29 +248,68 @@
 .notesContent > div { margin-bottom: 11px; }
 .notesContent strong { color: var(--ink); font-weight: 650; }
 .notesContent small { font-size: 10px; color: var(--muted-ink); }
-.gallery { display: grid; grid-template-rows: 32px minmax(0, 1fr) 44px; height: 100%; gap: 10px; padding-bottom: 8px; }
-.galleryHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--muted-ink); font-size: 12px; }
-.galleryHeading > span { display: flex; align-items: center; gap: 6px; }
-.galleryHeading b { color: var(--ink); font-weight: 650; }
-.galleryHeading i { width: 1px; height: 12px; background: var(--line); margin-inline: 9px; }
-.galleryGrid { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 9px; min-height: 0; }
-.personalityCard { display: flex; flex-direction: column; justify-content: space-between; gap: 5px; min-width: 0; border: 1px solid var(--line); border-radius: 11px; padding: 10px; background: var(--type-bg); text-align: left; }
-.personalityCard[data-stable="false"] { border-style: dashed; border-color: #9c977f; background: var(--surface); }
-.personalityCard:hover { border-color: var(--type-ink); }
-.personalitySelected { box-shadow: inset 0 0 0 1px var(--type-ink); border-color: var(--type-ink); }
-.personalityModel { display: flex; align-items: center; gap: 6px; min-height: 29px; font-size: 11px; font-weight: 650; line-height: 1.3; }
-.personalityModel > span { overflow-wrap: anywhere; }
-.personalityIdentity { display: flex; align-items: center; justify-content: center; gap: 5px; }
-.personalityIdentity > img { width: 53px; height: 60px; object-fit: contain; flex-shrink: 0; }
-.personalityIdentity > span { display: flex; flex-direction: column; min-width: 0; }
-.personalityIdentity b { font-size: 22px; line-height: 1.15; letter-spacing: -.025em; color: var(--type-ink); font-weight: 650; }
-.personalityIdentity strong { font-size: 15px; font-weight: 550; color: var(--ink); }
-.personalityIdentity small { font-size: 10px; color: var(--muted-ink); }
-.personalityStatus { display: flex; align-items: center; justify-content: center; gap: 3px; font-size: 9px; color: var(--type-ink); }
-.personalityCard[data-stable="false"] .personalityStatus { color: var(--amber); }
-.galleryReadout { display: flex; align-items: center; gap: 8px; padding-inline: 4px; font-size: 11px; color: var(--muted-ink); line-height: 1.5; }
+.gallery, .typeMap { display: grid; grid-template-rows: 30px minmax(0, 1fr) 40px; height: 100%; gap: 10px; padding-bottom: 6px; }
+.galleryHeading, .typeMapHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--muted-ink); font-size: 12px; }
+.galleryHeading > span, .typeMapHeading > span { display: flex; align-items: center; gap: 6px; }
+.galleryHeading b, .typeMapHeading b { color: var(--ink); font-weight: 650; }
+.galleryHeading i, .typeMapHeading i { width: 1px; height: 12px; background: var(--line); margin-inline: 9px; }
+.galleryBands { display: grid; gap: 8px; min-height: 0; }
+.galleryBand { display: grid; grid-template-columns: 118px minmax(0, 1fr); gap: 10px; min-height: 0; }
+.bandLabel { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 11px; background: var(--type-bg, #ece9dc); color: var(--type-ink, var(--amber)); min-height: 0; }
+.galleryBand[data-band="unstable"] .bandLabel { background: transparent; border: 1px dashed #b9a67e; }
+.bandLabel img { width: 34px; height: 38px; object-fit: contain; flex-shrink: 0; }
+.bandLabel b { display: block; font-size: 19px; line-height: 1.1; font-weight: 650; letter-spacing: -.02em; }
+.bandLabel span { display: block; margin-top: 3px; font-size: 10px; color: var(--muted-ink); line-height: 1.3; }
+.bandQuestion { flex-shrink: 0; display: grid !important; place-items: center; width: 32px; height: 32px; margin: 0 !important; border: 1px dashed #b9a67e; border-radius: 50%; font-family: Georgia, serif; font-size: 18px !important; color: var(--amber) !important; }
+.bandCards { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 6px; min-height: 0; }
+.personalityCard { display: flex; flex-direction: column; justify-content: space-between; gap: 3px; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid transparent; border-radius: 9px; padding: 6px 7px; background: var(--type-bg); text-align: left; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.personalityCard[data-stable="false"] { border-style: dashed; border-color: #b4ae96; background: var(--surface); }
+.personalityCard:hover { border-color: var(--type-ink); transform: translateY(-1px); }
+.personalitySelected, .personalitySelected:hover { box-shadow: inset 0 0 0 1px var(--type-ink); border-color: var(--type-ink); border-style: solid; }
+.personalityModel { display: flex; align-items: flex-start; gap: 5px; font-size: 11px; font-weight: 600; line-height: 1.2; min-height: 0; }
+.personalityModel > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.personalityModel > svg, .personalityModel > img { margin-top: -1px; }
+.personalityShare { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; line-height: 1.1; }
+.personalityShare b { font-size: 11px; font-weight: 700; color: var(--type-ink); letter-spacing: .02em; }
+.personalityShare strong { font-size: 13px; font-weight: 650; color: var(--ink); }
+.personalityShare small { font-size: 9px; color: var(--muted-ink); }
+.typeStrip { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 1px; height: 5px; flex-shrink: 0; }
+.typeStrip > i { border-radius: 1px; background: var(--type-bg); box-shadow: inset 0 0 0 .5px var(--type-ink); opacity: .9; }
+.typeStrip > i[data-modal="true"] { background: var(--type-ink); box-shadow: none; opacity: 1; }
+.galleryReadout { display: flex; align-items: center; gap: 8px; padding-inline: 4px; font-size: 11px; color: var(--muted-ink); line-height: 1.5; min-width: 0; }
 .galleryReadout > b { color: var(--ink); flex-shrink: 0; }
 .galleryReadout > svg { flex-shrink: 0; }
+.galleryReadout > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inspectButton { margin-left: auto; flex-shrink: 0; min-height: 32px; }
+.overviewReadout .inspectButton { color: var(--ink); }
+.orderChoice { min-width: 72px; min-height: 30px; font-size: 12px; }
+.typeMapChart { --empty-column: 34px; --filled-column: 0px; display: grid; grid-template-rows: 26px minmax(0, 1fr) 58px; column-gap: 3px; min-height: 0; }
+.temperament { grid-column: span 4; display: flex; align-items: center; gap: 6px; padding: 0 8px; border-radius: 7px 7px 0 0; border-bottom: 2px solid var(--type-ink); background: var(--type-bg); color: var(--type-ink); font-size: 11px; white-space: nowrap; overflow: hidden; min-width: 0; }
+.temperament b { font-weight: 650; }
+.temperament span { font-size: 10px; letter-spacing: .08em; opacity: .8; }
+.temperament small { margin-left: auto; font-size: 10px; color: var(--muted-ink); }
+.temperament[data-empty="true"] { background: transparent; border-bottom-style: dashed; opacity: .75; }
+.typeColumn { display: grid; gap: 3px; min-width: 0; min-height: 0; padding: 4px 0 3px; border-bottom: 1.5px solid #a8ad9e; }
+.typeColumnEmpty { background: repeating-linear-gradient(to bottom, transparent 0 5px, #e9e8dd 5px 6px) center / 1px 100% no-repeat; }
+.typeColumn[data-hit="true"].typeColumnEmpty { background: repeating-linear-gradient(to bottom, transparent 0 5px, var(--type-ink) 5px 6px) center / 1px 100% no-repeat; }
+.mapChip { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: 5px; min-width: 0; min-height: 0; padding: 0 7px; border: 1px solid transparent; border-radius: 6px; background: var(--type-bg); text-align: left; font-size: 11px; line-height: 1; transition: opacity .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.mapChip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 550; }
+.mapChip > small { font-size: 11px; font-weight: 650; color: var(--type-ink); }
+.mapChip > small i { font-style: normal; font-size: 9px; font-weight: 400; color: var(--muted-ink); }
+.mapChip:hover { border-color: var(--type-ink); }
+.typeMapChart[data-selecting="true"] .mapChip:not(.mapChipKin):not(.mapChipSelected) { opacity: .42; }
+.mapChipKin { border-color: color-mix(in srgb, var(--type-ink) 45%, transparent); border-style: dashed; }
+.mapChipSelected, .mapChipSelected:hover { border-color: var(--type-ink); border-style: solid; box-shadow: inset 0 0 0 1px var(--type-ink); background: var(--surface); }
+.typeAxis { display: flex; flex-direction: column; align-items: center; gap: 3px; padding-top: 6px; min-width: 0; color: var(--type-ink); font-size: 10px; }
+.typeAxis[data-empty="true"] { color: #8f9388; }
+.axisType { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.axisType img { width: 22px; height: 24px; object-fit: contain; }
+.axisType b { font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+.typeAxis[data-empty="true"] .axisType b { font-size: 10px; font-weight: 600; }
+.axisType small { font-size: 11px; color: var(--ink); font-weight: 600; }
+.axisZero { font-size: 10px; color: #a7aa9f; }
+.axisHit { width: min(100%, 64px); padding: 1px 0; border-radius: 4px; font-style: normal; font-size: 10px; font-weight: 700; text-align: center; color: var(--ink); background: linear-gradient(to right, color-mix(in srgb, var(--type-ink) 38%, transparent) var(--share), #ebeae0 var(--share)); }
+.axisHit[data-zero="true"] { color: #b2b5aa; font-weight: 400; background: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
   .panel [data-slot="button"], .panel [data-slot="badge"], .panel [data-slot="toggle-group-item"] { transition: none; }
@@ -327,13 +366,23 @@
 }
 
 @media (max-width: 900px) {
-  .gallery { height: auto; grid-template-rows: auto auto auto; }
-  .galleryHeading { flex-wrap: wrap; gap: 8px; }
-  .galleryGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; }
-  .personalityCard { min-height: 145px; }
+  .gallery, .typeMap { height: auto; grid-template-rows: auto auto auto; }
+  .galleryHeading, .typeMapHeading { flex-wrap: wrap; gap: 8px; }
+  .galleryHeading > span, .typeMapHeading > span { flex-wrap: wrap; }
+  .galleryBands { grid-template-rows: none !important; gap: 16px; }
+  .galleryBand { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .bandCards { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: auto; }
+  .personalityCard { min-height: 76px; gap: 6px; }
   .galleryReadout { flex-wrap: wrap; padding-block: 8px; }
+  .galleryReadout > span { white-space: normal; }
   .stableModels { overflow-y: visible; }
+  .typeMapChart { overflow-x: auto; min-width: 0; grid-template-rows: 26px 460px 58px; }
+  .typeMapChart { --filled-column: 300px; }
 }
 @media (max-width: 480px) {
-  .galleryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bandCards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .personalityCard, .mapChip { transition: none; }
+  .personalityCard:hover { transform: none; }
 }

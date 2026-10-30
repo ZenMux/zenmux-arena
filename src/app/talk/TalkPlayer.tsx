@@ -12,6 +12,7 @@ import { CHAPTERS, SLIDES, type TalkSlide } from "./story";
 import { Challenge, ChapterCard, Closing, Cover, LoadingPanel, Observatory, Opening, PriceMethod, Reflection, UsageMethod, ValueMethod } from "./Narrative";
 import type { IdentityTalkData, IdentityView } from "./identity/types";
 import type { MbtiTalkData, MbtiView } from "./mbti/types";
+import type { MbtiFocus } from "./mbti/MbtiPanel";
 import type { EconomicsView } from "./economics/types";
 import styles from "./talk.module.css";
 
@@ -66,6 +67,7 @@ export function TalkPlayer({ identity, mbti }: { identity: IdentityTalkData; mbt
   const [fullscreen, setFullscreen] = useState(false);
   const [message, setMessage] = useState("");
   const [direction, setDirection] = useState(1);
+  const [mbtiFocus, setMbtiFocus] = useState<MbtiFocus | null>(null);
   const stage = useRef<HTMLDivElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const slide = SLIDES[index];
@@ -136,7 +138,8 @@ export function TalkPlayer({ identity, mbti }: { identity: IdentityTalkData; mbt
       case "chapter": return <ChapterCard slide={item} />;
       case "identity": return <IdentityPanel data={identity} view={item.view as IdentityView} />;
       case "identity-relations": return <IdentityRelations data={identity} />;
-      case "mbti": return <MbtiPanel data={mbti} view={item.view as MbtiView} />;
+      case "mbti": return <MbtiPanel data={mbti} view={item.view as MbtiView} focus={item.view === "explorer" ? mbtiFocus : undefined}
+        onInspect={item.view === "explorer" ? undefined : (id) => { setMbtiFocus({ id, nonce: Date.now() }); jump("mbti-explorer"); }} />;
       case "economics": return <EconomicsPanel view={item.view as EconomicsView} />;
       case "usage-formula": return <UsageMethod />;
       case "price-formula": return <PriceMethod />;
@@ -153,7 +156,7 @@ export function TalkPlayer({ identity, mbti }: { identity: IdentityTalkData; mbt
       <main className={styles.main} aria-label="演讲舞台" tabIndex={-1}>
         {mounted.map(i => <Activity key={SLIDES[i].id} mode={i === index ? "visible" : "hidden"}><article className={cn(styles.slide, FULL_BLEED.has(SLIDES[i].kind) && styles.fullBleed)} data-slide={SLIDES[i].id} aria-label={`${i + 1} / ${SLIDES.length}：${SLIDES[i].title}`}>
           {!FULL_BLEED.has(SLIDES[i].kind) && <div className={styles.slideHeading}><div><h1>{SLIDES[i].title}</h1><p>{SLIDES[i].subtitle}</p></div><span className={styles.figureIndex}>FIG. {String(i).padStart(2, "0")}</span></div>}
-          {((SLIDES[i].kind === "identity" && ["graph", "languages"].includes(SLIDES[i].view ?? "")) || (SLIDES[i].kind === "economics" && SLIDES[i].view !== "deals")) && <p className={styles.mobileHint}>宽图表可左右滑动查看；横屏观看更舒适。</p>}
+          {((SLIDES[i].kind === "identity" && ["graph", "languages"].includes(SLIDES[i].view ?? "")) || (SLIDES[i].kind === "economics" && SLIDES[i].view !== "deals") || (SLIDES[i].kind === "mbti" && SLIDES[i].view === "distribution")) && <p className={styles.mobileHint}>宽图表可左右滑动查看；横屏观看更舒适。</p>}
           <div className={styles.slideBody}><ChartBoundary>{content(SLIDES[i])}</ChartBoundary></div>
         </article></Activity>)}
       </main>

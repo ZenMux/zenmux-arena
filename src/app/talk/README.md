@@ -1,6 +1,6 @@
 # 如果 Token 会说话
 
-Interactive Chinese research talk at `/talk`. Thirty scenes follow identity, the completed OEJTS study, then Token Economics:
+Interactive Chinese research talk at `/talk`. Thirty-two scenes follow identity, the completed OEJTS study, then Token Economics:
 “你是谁 → 你是什么性格 → 选择了谁”. The data-driven
 charts remain interactive; the deck does not make new research/model calls.
 
@@ -49,8 +49,14 @@ The 2026-09-17 reanalysis uses only a unique complete-type mode above half
 (≥9/16); per-letter statistics are descriptive, not additional gates. The
 original questionnaires and pinned study snapshots are unchanged apart from the
 documented amendment.
-`/talk#mbti-gallery` shows all 47 models with local MBTI illustrations, type
-shares (count / 16, not confidence), and explicit unstable labels. The closing
+MBTI scenes run method → stability rule → overview → distribution → gallery →
+explorer → dimensions, so the strict-majority rule is introduced before results.
+`/talk#mbti-distribution` stacks only the 37 stable models over all 16 types
+(grouped NT/NF/SJ/SP); selecting a model shows its full 16-run type counts on the
+axis. `/talk#mbti-gallery` groups all 47 models into stable-type and unstable
+bands; each card shows the modal share (count / 16, not confidence) and a
+16-cell strip of every questionnaire's type. Overview, distribution and gallery
+can open the selected model directly in `/talk#mbti-explorer`. The closing
 MBTI scene includes prompt-perturbation/cache controls as unperformed follow-up work. Its loader discloses Azure Mistral, the azure-pinned OpenAI routes and the
 8192/16384/50000 output budgets. The score/distribution tests re-score every
 questionnaire. Original OEJTS 1.2 attribution and CC BY-NC-SA 4.0 remain visible.

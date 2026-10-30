@@ -4,7 +4,7 @@ import type {
   OejtsInstrument,
 } from "@research/personality/types";
 
-export type MbtiView = "method" | "overview" | "gallery" | "explorer" | "stability" | "dimensions";
+export type MbtiView = "method" | "overview" | "gallery" | "distribution" | "explorer" | "stability" | "dimensions";
 export type MbtiDimension = OejtsDimension;
 
 export interface MbtiModel {

@@ -39,6 +39,18 @@ export function EconomicsPanel({ view }: EconomicsPanelProps) {
 // slides. This is never presented as a new fetch or as live billing coverage.
 let lastResult: EconomicsResponse | null = null;
 
+const REQUEST_TIMEOUT_MS = 35_000;
+
+// `catch (err)` sees `unknown`; read `name`/`message` without assuming
+// `instanceof Error` (a DOMException — e.g. AbortError — is not always one).
+function errorName(err: unknown): string {
+  return typeof err === "object" && err !== null && "name" in err ? String((err as { name: unknown }).name) : "";
+}
+
+function errorMessage(err: unknown): string {
+  return typeof err === "object" && err !== null && "message" in err ? String((err as { message: unknown }).message) : "";
+}
+
 function ValuePanel({ view }: { view: "map" | "ladder" }) {
   const [result, setResult] = useState<EconomicsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,8 +58,22 @@ function ValuePanel({ view }: { view: "map" | "ladder" }) {
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    // A single controller owns this attempt's request, so every abort path is
+    // explicit: the cleanup aborts when the slide is hidden/unmounted, and the
+    // timeout aborts 35s in. The previous version built a composite signal with
+    // `AbortSignal.any([controller.signal, AbortSignal.timeout(35_000)])` and
+    // fired `load()` without a terminal handler; when the slide went away the
+    // aborted fetch could stay an unobserved rejected promise, which the Next
+    // dev overlay reports as
+    // `unhandledRejection: AbortError: signal is aborted without reason`.
     const controller = new AbortController();
     let active = true;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, REQUEST_TIMEOUT_MS);
+
     async function load() {
       try {
         if (lastResult && attempt === 0) {
@@ -57,7 +83,7 @@ function ValuePanel({ view }: { view: "map" | "ladder" }) {
         }
         const response = await fetch("/talk/economics/data", {
           cache: "no-store",
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(35_000)]),
+          signal: controller.signal,
         });
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || `读取失败（${response.status}）`);
@@ -67,14 +93,29 @@ function ValuePanel({ view }: { view: "map" | "ladder" }) {
         setResult(lastResult);
         setError(null);
       } catch (err) {
+        // Leaving the slide aborts the request on purpose. That is not an app
+        // error and must not be rendered, logged or left unhandled.
         if (!active) return;
-        setError(err instanceof Error && err.name !== "TimeoutError" ? err.message : "数据读取超时，请重试。");
+        if (timedOut) {
+          setError("数据读取超时，请重试。");
+          return;
+        }
+        if (errorName(err) === "AbortError") return;
+        setError(errorMessage(err) || "数据读取失败，请重试。");
       } finally {
+        window.clearTimeout(timeoutId);
         if (active) setLoading(false);
       }
     }
-    void load();
-    return () => { active = false; controller.abort(); };
+
+    // Never leave a floating promise: if `load` ever rejects unexpectedly, it
+    // must not surface as an unhandled rejection in the dev overlay.
+    load().catch(() => {});
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [attempt]);
 
   const retry = () => { setLoading(true); setError(null); setAttempt((n) => n + 1); };

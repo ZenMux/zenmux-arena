@@ -1,9 +1,9 @@
 "use client";
 
-import { useId, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import Image from "next/image";
 import { VendorIcon } from "@/components/ZenMuxIcons";
-import { ArrowUpRight, Check, ChevronRight, RotateCcw } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, ChevronRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -13,18 +13,30 @@ import type { MbtiDimension, MbtiModel, MbtiTalkData, MbtiView } from "./types";
 import s from "./mbti.module.css";
 
 export type { MbtiTalkData, MbtiView } from "./types";
+/** A request from another scene to open one model in the explorer; nonce makes repeats distinct. */
+export type MbtiFocus = { id: string; nonce: number };
+type Inspect = ((id: string) => void) | undefined;
 
 const DIMENSIONS: MbtiDimension[] = ["IE", "SN", "FT", "JP"];
 const DIMENSION_NAMES: Record<MbtiDimension, string> = {
   IE: "内向 / 外向", SN: "实感 / 直觉", FT: "情感 / 思考", JP: "判断 / 感知",
 };
 const VIEW_LABELS: Record<MbtiView, string> = {
-  method: "问卷与计分", overview: "研究总览", gallery: "全模型人格一览", explorer: "模型探索", stability: "稳定性判定", dimensions: "连续维度",
+  method: "问卷与计分", overview: "研究总览", gallery: "全模型人格一览", distribution: "稳定模型类型分布", explorer: "模型探索", stability: "稳定性判定", dimensions: "连续维度",
 };
 const percent = (n: number, total: number) => `${(100 * n / total).toFixed(1)}%`;
 const exactPercent = (n: number, total: number) => `${Number((100 * n / total).toFixed(2))}%`;
 const position = (score: number) => `${(score - 8) / 32 * 100}%`;
 const typeTone = (type: string) => type[1] === "N" ? (type[2] === "T" ? "analyst" : "diplomat") : type[3] === "J" ? "sentinel" : "explorer";
+/** The 16 types in the conventional four temperament groups; tones match typeTone. */
+const TYPE_GROUPS = [
+  { tone: "analyst", label: "分析家", code: "NT", types: ["INTJ", "INTP", "ENTJ", "ENTP"] },
+  { tone: "diplomat", label: "外交家", code: "NF", types: ["INFJ", "INFP", "ENFJ", "ENFP"] },
+  { tone: "sentinel", label: "守护者", code: "SJ", types: ["ISTJ", "ISFJ", "ESTJ", "ESFJ"] },
+  { tone: "explorer", label: "探险家", code: "SP", types: ["ISTP", "ISFP", "ESTP", "ESFP"] },
+] as const;
+const ALL_TYPES: string[] = TYPE_GROUPS.flatMap((group) => [...group.types]);
+const byConsistency = (a: MbtiModel, b: MbtiModel) => b.modalCount - a.modalCount || a.name.localeCompare(b.name);
 
 function Logo({ model, size = 28 }: { model: MbtiModel; size?: number }) {
   return <VendorIcon vendor={model.logo} size={size} className={s.logo} />;
@@ -34,6 +46,21 @@ function Status({ model }: { model: MbtiModel }) {
   return <Badge variant={model.status === "stable" ? "default" : "outline"}>
     {model.status === "stable" ? <><Check data-icon="inline-start" />稳定 {model.stableType}</> : "未观察到稳定类型"}
   </Badge>;
+}
+
+/** One cell per questionnaire, modal type first; solid cells are the modal type. */
+function TypeStrip({ model }: { model: MbtiModel }) {
+  return <span className={s.typeStrip} aria-hidden="true">
+    {model.distribution.flatMap((item) => Array.from({ length: item.count }, (_, i) =>
+      <i key={`${item.type}-${i}`} data-tone={typeTone(item.type)} data-modal={item.count === model.modalCount} />))}
+  </span>;
+}
+
+function InspectButton({ model, onInspect }: { model: MbtiModel; onInspect: Inspect }) {
+  if (!onInspect) return null;
+  return <Button variant="outline" size="sm" className={s.inspectButton} onClick={() => onInspect(model.id)}>
+    查看 16 次<ArrowRight data-icon="inline-end" />
+  </Button>;
 }
 
 function Distribution({ model }: { model: MbtiModel }) {
@@ -128,7 +155,7 @@ function Method({ data }: { data: MbtiTalkData }) {
   </div>;
 }
 
-function Overview({ data }: { data: MbtiTalkData }) {
+function Overview({ data, onInspect }: { data: MbtiTalkData; onInspect: Inspect }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = data.models.find((model) => model.id === selectedId);
   return <div className={s.overview}>
@@ -162,52 +189,149 @@ function Overview({ data }: { data: MbtiTalkData }) {
         </div>
       </section>
     </div>
-    <div className={s.overviewReadout} aria-live="polite">{selected ? <><Logo model={selected} size={22} /><b>{selected.name}</b><span>众数 {selected.modalType} · {selected.modalCount}/{selected.n}</span><span>{selected.status === "stable" ? "完整类型唯一众数严格超过半数" : selected.reasons.join("；")}</span></> : <><ArrowUpRight size={17} aria-hidden="true" /><span>点击任意模型，查看稳定性依据。未稳定不是能力评价，也不等于没有答题倾向。</span></>}</div>
+    <div className={s.overviewReadout} aria-live="polite">{selected ? <><Logo model={selected} size={22} /><b>{selected.name}</b><span>众数 {selected.modalType} · {selected.modalCount}/{selected.n}</span><span>{selected.status === "stable" ? "完整类型唯一众数严格超过半数" : selected.reasons.join("；")}</span><InspectButton model={selected} onInspect={onInspect} /></> : <><ArrowUpRight size={17} aria-hidden="true" /><span>点击任意模型，查看稳定性依据。未稳定不是能力评价，也不等于没有答题倾向。</span></>}</div>
   </div>;
 }
 
-function Gallery({ data }: { data: MbtiTalkData }) {
+const GALLERY_COLUMNS = 10;
+
+function Gallery({ data, onInspect }: { data: MbtiTalkData; onInspect: Inspect }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = data.models.find((model) => model.id === selectedId);
-  const sorted = [...data.models].sort((a, b) =>
-    Number(b.status === "stable") - Number(a.status === "stable")
-    || (a.modalType ?? "").localeCompare(b.modalType ?? "") || b.modalCount - a.modalCount,
-  );
+  const find = (id: string) => data.models.find((m) => m.id === id)!;
+  // One band per stable type, then everything without a stable type. Bands keep the
+  // grid honest: a stable card never sits next to an unstable one of the same mode.
+  const bands = [
+    ...data.summary.stableGroups.map((group) => ({ key: group.type, type: group.type as string | null, illustration: group.illustration, models: group.modelIds.map(find) })),
+    { key: "unstable", type: null, illustration: null, models: data.models.filter((m) => m.status !== "stable") },
+  ].filter((band) => band.models.length).map((band) => ({ ...band, models: [...band.models].sort(byConsistency) }));
   return <div className={s.gallery}>
     <div className={s.galleryHeading}>
-      <span><b>{data.summary.modelCount}</b> 款模型 <i /> 每款 {data.repeats} 次完整问卷</span>
-      <span>按稳定状态与类型分组 <i /> <b>{data.summary.stableCount}</b> 稳定 · <b>{data.summary.unstableCount}</b> 未稳定</span>
+      <span><b>{data.summary.modelCount}</b> 款模型 <i /> 每款 {data.repeats} 次完整问卷 <i /> 色条 = {data.repeats} 份问卷的完整类型，实色为最高频</span>
+      <span><b>{data.summary.stableCount}</b> 稳定 · <b>{data.summary.unstableCount}</b> 未稳定</span>
     </div>
-    <div className={s.galleryGrid} aria-label="全部模型的最高频 MBTI 类型与占比">
-      {sorted.map((model) => {
-        const modes = model.distribution.filter((item) => item.count === model.modalCount);
-        return <button type="button" key={model.id} className={cn(s.personalityCard, selectedId === model.id && s.personalitySelected)}
-          data-tone={typeTone(modes[0].type)} data-stable={model.status === "stable"} aria-pressed={selectedId === model.id}
-          aria-label={`${model.name}，${model.status === "stable" ? "稳定类型" : "未稳定，最高频类型"} ${modes.map((m) => m.type).join("、")}，各 ${model.modalCount}/${model.n}，${exactPercent(model.modalCount, model.n)}`}
-          onClick={() => setSelectedId(model.id)}>
-          <span className={s.personalityModel}><Logo model={model} size={18} /><span>{model.name}</span></span>
-          <span className={s.personalityIdentity}>
-            <Image src={modes[0].illustration} width={58} height={64} alt="" unoptimized />
-            <span><b>{modes.length === 1 ? modes[0].type : "并列"}</b><strong>{exactPercent(model.modalCount, model.n)}</strong><small>{model.modalCount}/{model.n} 次</small></span>
-          </span>
-          <span className={s.personalityStatus}>{model.status === "stable" ? <><Check size={11} aria-hidden="true" /> 稳定类型</> : "未稳定 · 仅展示最高频"}</span>
-        </button>;
-      })}
+    <div className={s.galleryBands} aria-label="全部模型的最高频 MBTI 类型与占比"
+      style={{ gridTemplateRows: bands.map((band) => `${Math.ceil(band.models.length / GALLERY_COLUMNS)}fr`).join(" ") }}>
+      {bands.map((band) => <section key={band.key} className={s.galleryBand} data-tone={band.type ? typeTone(band.type) : undefined} data-band={band.type ? "stable" : "unstable"}
+        aria-label={band.type ? `稳定 ${band.type}，${band.models.length} 款` : `未观察到稳定类型，${band.models.length} 款`}>
+        <header className={s.bandLabel}>
+          {band.illustration ? <Image src={band.illustration} width={40} height={44} alt="" unoptimized /> : <span className={s.bandQuestion} aria-hidden="true">?</span>}
+          <div><b>{band.type ?? "未稳定"}</b><span>{band.type ? <>稳定 · {band.models.length} 款</> : <>{band.models.length} 款 · 仅展示最高频</>}</span></div>
+        </header>
+        <div className={s.bandCards}>{band.models.map((model) => {
+          const modes = model.distribution.filter((item) => item.count === model.modalCount);
+          return <button type="button" key={model.id} className={cn(s.personalityCard, selectedId === model.id && s.personalitySelected)}
+            data-tone={typeTone(modes[0].type)} data-stable={model.status === "stable"} aria-pressed={selectedId === model.id} title={model.name}
+            aria-label={`${model.name}，${model.status === "stable" ? "稳定类型" : "未稳定，最高频类型"} ${modes.map((m) => m.type).join("、")}，各 ${model.modalCount}/${model.n}，${exactPercent(model.modalCount, model.n)}`}
+            onClick={() => setSelectedId((id) => id === model.id ? null : model.id)}>
+            <span className={s.personalityModel}><Logo model={model} size={16} /><span>{model.name}</span></span>
+            <span className={s.personalityShare}>
+              {model.status !== "stable" && <b>{modes.length === 1 ? modes[0].type : "并列"}</b>}
+              <strong>{exactPercent(model.modalCount, model.n)}</strong><small>{model.modalCount}/{model.n}</small>
+            </span>
+            <TypeStrip model={model} />
+          </button>;
+        })}</div>
+      </section>)}
     </div>
-    <div className={s.galleryReadout} aria-live="polite">{selected ? <><Logo model={selected} size={20} /><b>{selected.name}</b><span>{selected.distribution.map((item) => `${item.type} ${item.count}/${selected.n}`).join(" · ")}</span></> : <><ArrowUpRight size={16} aria-hidden="true" /><span>点击模型查看完整分布。百分比 = 该完整类型出现次数 ÷ 16；不是人格置信度。虚线卡片未达到稳定标准。</span></>}</div>
+    <div className={s.galleryReadout} aria-live="polite">{selected ? <><Logo model={selected} size={20} /><b>{selected.name}</b><span>{selected.distribution.map((item) => `${item.type} ${item.count}/${selected.n}`).join(" · ")}</span><InspectButton model={selected} onInspect={onInspect} /></> : <><ArrowUpRight size={16} aria-hidden="true" /><span>点击模型查看完整分布。百分比 = 最高频完整类型出现次数 ÷ 16；不是人格置信度。虚线卡片未达到稳定标准。</span></>}</div>
   </div>;
 }
 
-function Explorer({ data }: { data: MbtiTalkData }) {
-  const [modelId, setModelId] = useState(data.models[0].id);
+/** Stable models only, stacked over the 16-type axis; nearer the axis = more consistent. */
+const MAP_ROW_CAP = 13;
+
+function TypeMap({ data, onInspect }: { data: MbtiTalkData; onInspect: Inspect }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [order, setOrder] = useState<"consistency" | "vendor">("consistency");
+  const stable = data.models.filter((m) => m.status === "stable" && m.stableType);
+  const selected = stable.find((m) => m.id === selectedId);
+  const byType = new Map<string, MbtiModel[]>(ALL_TYPES.map((type) => [type, []]));
+  for (const model of stable) byType.get(model.stableType!)?.push(model);
+  for (const models of byType.values()) models.sort(order === "vendor"
+    ? (a, b) => a.logo.localeCompare(b.logo) || byConsistency(a, b) : byConsistency);
+  const maxCount = Math.max(1, ...[...byType.values()].map((m) => m.length));
+  // Every populated column gets the same width so stack height stays proportional to count.
+  const subcols = Math.ceil(maxCount / MAP_ROW_CAP);
+  const rows = Math.ceil(maxCount / subcols);
+  const populated = ALL_TYPES.filter((type) => byType.get(type)!.length);
+  const counts = new Map(selected?.distribution.map((item) => [item.type, item.count]));
+  return <div className={s.typeMap}>
+    <div className={s.typeMapHeading}>
+      <span><b>{stable.length}</b> 款稳定模型 <i /> 16 种类型中仅 <b>{populated.length}</b> 种出现 <i /> 右侧数字 = 16 次中稳定类型出现次数，越靠近横轴越一致</span>
+      <ToggleGroup type="single" variant="outline" size="sm" value={order} aria-label="列内排序"
+        onValueChange={(value) => { if (value) setOrder(value as typeof order); }}>
+        <ToggleGroupItem value="consistency" className={s.orderChoice}>按一致度</ToggleGroupItem>
+        <ToggleGroupItem value="vendor" className={s.orderChoice}>按厂商</ToggleGroupItem>
+      </ToggleGroup>
+    </div>
+    <div className={s.typeMapChart} data-selecting={Boolean(selected)} role="group" aria-label={`稳定模型在 16 种 MBTI 类型上的分布：${populated.map((type) => `${type} ${byType.get(type)!.length} 款`).join("，")}，其余类型 0 款`}
+      style={{ gridTemplateColumns: ALL_TYPES.map((type) => byType.get(type)!.length ? `minmax(var(--filled-column), ${subcols}fr)` : "var(--empty-column)").join(" ") }}>
+      {TYPE_GROUPS.map((group) => {
+        const total = group.types.reduce((sum, type) => sum + byType.get(type)!.length, 0);
+        return <div key={group.code} className={s.temperament} data-tone={group.tone} data-empty={total === 0}>
+          <b>{group.label}</b><span>{group.code}</span><small>{total} 款</small>
+        </div>;
+      })}
+      {ALL_TYPES.map((type) => {
+        const models = byType.get(type)!;
+        return <div key={type} className={cn(s.typeColumn, !models.length && s.typeColumnEmpty)} data-tone={typeTone(type)} data-hit={Boolean(counts.get(type))}
+          style={{ gridTemplateColumns: `repeat(${models.length ? subcols : 1}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}>
+          {models.map((model, i) => <button type="button" key={model.id} title={model.name}
+            className={cn(s.mapChip, selectedId === model.id && s.mapChipSelected, selected && selected.logo === model.logo && s.mapChipKin)}
+            style={{ gridRow: rows - Math.floor(i / subcols), gridColumn: (i % subcols) + 1 }}
+            aria-pressed={selectedId === model.id} aria-label={`${model.name}，稳定 ${type}，${model.modalCount}/${model.n} 次`}
+            onClick={() => setSelectedId((id) => id === model.id ? null : model.id)}>
+            <Logo model={model} size={16} /><span>{model.name}</span><small>{model.modalCount}</small>
+          </button>)}
+        </div>;
+      })}
+      {ALL_TYPES.map((type) => {
+        const count = byType.get(type)!.length;
+        const hit = counts.get(type) ?? 0;
+        return <div key={type} className={s.typeAxis} data-tone={typeTone(type)} data-empty={count === 0}>
+          <span className={s.axisType}>{count > 0 && <Image src={`/mbti/${type.toLowerCase()}.svg`} width={24} height={26} alt="" unoptimized />}<b>{type}</b>{count > 0 && <small>{count} 款</small>}</span>
+          {count === 0 && <span className={s.axisZero}>0</span>}
+          {selected && <em className={s.axisHit} data-zero={hit === 0} style={{ "--share": `${hit / selected.n * 100}%` } as CSSProperties}
+            aria-label={`${selected.name} ${type} ${hit}/${selected.n}`}>{hit}</em>}
+        </div>;
+      })}
+    </div>
+    <div className={s.galleryReadout} aria-live="polite">{selected ? <><Logo model={selected} size={20} /><b>{selected.name}</b>
+      <span>稳定 {selected.stableType} · 横轴下方为 16 次的完整类型频数：{selected.distribution.map((item) => `${item.type} ${item.count}`).join(" · ")}；同厂商模型保持高亮</span>
+      <InspectButton model={selected} onInspect={onInspect} /></>
+      : <><ArrowUpRight size={16} aria-hidden="true" /><span>点击模型，横轴下方显示它在 16 种类型上的完整频数。仅含 {stable.length} 款稳定模型；{data.summary.unstableCount} 款未稳定模型见「画像一览」。</span></>}</div>
+  </div>;
+}
+
+function Explorer({ data, focus }: { data: MbtiTalkData; focus?: MbtiFocus | null }) {
+  const [modelId, setModelId] = useState(() => data.models.find((m) => m.id === focus?.id)?.id ?? data.models[0].id);
   const [repeat, setRepeat] = useState(0);
+  const [seenFocus, setSeenFocus] = useState(focus?.nonce);
+  const list = useRef<HTMLDivElement>(null);
+  // Another scene asked for a model: adopt it once per request (adjust state during render).
+  if (focus && focus.nonce !== seenFocus) {
+    setSeenFocus(focus.nonce);
+    const target = data.models.find((m) => m.id === focus.id);
+    if (target) { setModelId(target.id); setRepeat(target.replicates[0].repeat); }
+  }
+  useEffect(() => {
+    // Keep the active model visible inside its own list without scrolling the stage.
+    const container = list.current;
+    const active = container?.querySelector<HTMLElement>("[aria-pressed='true']");
+    if (!container || !active) return;
+    const top = active.offsetTop - container.offsetTop;
+    if (top < container.scrollTop || top + active.offsetHeight > container.scrollTop + container.clientHeight) {
+      container.scrollTop = top - container.clientHeight / 2 + active.offsetHeight / 2;
+    }
+  }, [modelId]);
   const model = data.models.find((m) => m.id === modelId)!;
   const selected = model.replicates.find((r) => r.repeat === repeat) ?? model.replicates[0];
   const resultId = useId();
   return <div className={s.explorerLayout}>
     <aside className={s.modelSidebar}>
       <div className={s.sidebarHeading}><b>选择模型</b><span>{data.models.length} 款 · 原始顺序</span></div>
-      <div className={s.modelList} aria-label="全部模型">
+      <div className={s.modelList} aria-label="全部模型" ref={list}>
         {data.models.map((item) => <button type="button" key={item.id} className={cn(s.modelButton, modelId === item.id && s.activeItem)}
           aria-pressed={modelId === item.id} aria-controls={resultId} onClick={() => { setModelId(item.id); setRepeat(item.replicates[0].repeat); }}>
           <Logo model={item} size={26} /><span>{item.name}<small>{item.stableType ? `稳定 ${item.stableType}` : `未稳定 · 众数 ${item.modalType}`}</small></span><ChevronRight size={14} aria-hidden="true" />
@@ -321,7 +445,13 @@ function Footnote({ data, view }: { data: MbtiTalkData; view: MbtiView }) {
 }
 
 /** Fits the talk shell's 1300 × 570 content slot; chapter headings belong to the parent. */
-export function MbtiPanel({ data, view }: { data: MbtiTalkData; view: MbtiView }) {
+export function MbtiPanel({ data, view, focus, onInspect }: {
+  data: MbtiTalkData; view: MbtiView;
+  /** Explorer only: a model requested from another scene. */
+  focus?: MbtiFocus | null;
+  /** Overview / gallery / distribution: open a model in the explorer scene. */
+  onInspect?: (id: string) => void;
+}) {
   function containControlKeys(event: KeyboardEvent<HTMLElement>) {
     // A slide shell may bind arrows/Space. Preserve native control behavior without
     // letting a focused questionnaire/list control accidentally advance the talk.
@@ -330,7 +460,13 @@ export function MbtiPanel({ data, view }: { data: MbtiTalkData; view: MbtiView }
   }
   return <section className={s.panel} aria-label={`OEJTS · ${VIEW_LABELS[view]}`} data-mbti-view={view} onKeyDown={containControlKeys}>
     <div className={s.content}>
-      {view === "method" ? <Method data={data} /> : view === "overview" ? <Overview data={data} /> : view === "gallery" ? <Gallery data={data} /> : view === "explorer" ? <Explorer data={data} /> : view === "stability" ? <Stability data={data} /> : <Dimensions data={data} />}
+      {view === "method" ? <Method data={data} />
+        : view === "overview" ? <Overview data={data} onInspect={onInspect} />
+        : view === "gallery" ? <Gallery data={data} onInspect={onInspect} />
+        : view === "distribution" ? <TypeMap data={data} onInspect={onInspect} />
+        : view === "explorer" ? <Explorer data={data} focus={focus} />
+        : view === "stability" ? <Stability data={data} />
+        : <Dimensions data={data} />}
     </div>
     <Footnote data={data} view={view} />
   </section>;

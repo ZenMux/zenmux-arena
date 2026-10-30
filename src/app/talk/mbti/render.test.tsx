@@ -27,9 +27,24 @@ test("the gallery shows all 47 model cards with exact shares and explicit unstab
   assert.equal(SLIDES.filter((s) => s.id === "mbti-gallery" && s.view === "gallery").length, 1);
 });
 
+test("the distribution view stacks only stable models over all 16 types", async () => {
+  const data = await loadMbtiTalkData();
+  const html = renderToStaticMarkup(<MbtiPanel data={data} view="distribution" />);
+  const stable = data.models.filter((m) => m.status === "stable");
+  assert.equal((html.match(/aria-label="[^"]*，稳定 (?:INTJ|ISTJ)，\d+\/16 次"/g) ?? []).length, stable.length);
+  for (const model of data.models) assert.equal(html.includes(`title="${model.name}"`), model.status === "stable", model.name);
+  for (const type of ["INTJ", "INTP", "ENFP", "ISTJ", "ESFP"]) assert.ok(html.includes(`<b>${type}</b>`), type);
+  assert.ok(html.includes("INTJ 25 款") && html.includes("ISTJ 12 款"));
+});
+
+test("MBTI scenes follow method → stability → overview → distribution → gallery", () => {
+  const order = SLIDES.filter((s) => s.kind === "mbti").map((s) => s.view);
+  assert.deepEqual(order, ["method", "stability", "overview", "distribution", "gallery", "explorer", "dimensions"]);
+});
+
 test("all MBTI views render under the majority-only classification contract", async () => {
   const data = await loadMbtiTalkData();
-  for (const view of ["method", "overview", "explorer", "stability", "dimensions"] as const) {
+  for (const view of ["method", "overview", "distribution", "explorer", "stability", "dimensions"] as const) {
     const html = renderToStaticMarkup(<MbtiPanel data={data} view={view} />);
     assert.ok(html.includes(`data-mbti-view="${view}"`));
     assert.ok(!html.includes("双重门槛"));
